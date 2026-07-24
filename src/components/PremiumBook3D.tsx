@@ -248,9 +248,9 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
 
     if (typeof RequestableDeviceOrientationEvent.requestPermission === "function") {
       // iOS requires permission to be requested from a genuine user
-      // gesture — piggybacking on the first tap anywhere avoids adding a
-      // dedicated "enable motion" button that isn't part of this design.
-      const requestOnFirstTap = () => {
+      // gesture — it doesn't have to be any particular gesture, just some
+      // gesture, so this only ever fires the request itself.
+      const requestPermission = () => {
         RequestableDeviceOrientationEvent.requestPermission?.()
           .then((state) => {
             if (state === "granted") attach();
@@ -259,20 +259,47 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
             /* permission denied or unsupported — floating simply stays off */
           });
       };
-      window.addEventListener("click", requestOnFirstTap, { once: true });
+
+      if (hasPreview) {
+        // Product page — unchanged: any first click anywhere requests
+        // permission once. Not to be touched by the Hero-only change below.
+        const requestOnFirstTap = () => requestPermission();
+        window.addEventListener("click", requestOnFirstTap, { once: true });
+        return () => {
+          active = false;
+          window.removeEventListener("click", requestOnFirstTap);
+          cleanup();
+        };
+      }
+
+      // Hero only: the book's own tap must never be the gesture that
+      // enables this (it already has its own click handler for the
+      // decorative peek, and a permission prompt appearing at the same
+      // moment the book opens reads as broken/coupled). iOS still needs
+      // *some* gesture, so this waits for the first click that does NOT
+      // originate from inside the book itself — no {once:true}, since a
+      // click on the book must be ignored, not consumed.
+      const requestOnFirstOutsideTap = (e: MouseEvent) => {
+        if (containerRef.current?.contains(e.target as Node)) return;
+        window.removeEventListener("click", requestOnFirstOutsideTap);
+        requestPermission();
+      };
+      window.addEventListener("click", requestOnFirstOutsideTap);
       return () => {
         active = false;
-        window.removeEventListener("click", requestOnFirstTap);
+        window.removeEventListener("click", requestOnFirstOutsideTap);
         cleanup();
       };
     }
 
+    // No permission prompt needed on this platform at all — the Hero book
+    // should feel alive immediately, with no tap required first.
     attach();
     return () => {
       active = false;
       cleanup();
     };
-  }, [isMobile, reducedMotion, mouseX, mouseY]);
+  }, [isMobile, reducedMotion, mouseX, mouseY, hasPreview]);
 
   // Mobile can't hover, so it gets a one-time scripted demo instead: once the
   // book is meaningfully in view, open the cover and turn three pages with
