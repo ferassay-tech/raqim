@@ -221,26 +221,58 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
     // that first reading is used, exactly like the mouse's own delta-from-
     // center approach.
     let baseline: { beta: number; gamma: number } | null = null;
+    // Raw beta/gamma are noisy frame to frame — especially on Android,
+    // whose fused accelerometer+magnetometer orientation pipeline is
+    // typically jumpier than iOS's — so an exponential moving average
+    // absorbs that noise before it ever reaches the motion values, rather
+    // than letting the spring chase a constantly-jittering target.
+    let smoothedBeta: number | null = null;
+    let smoothedGamma: number | null = null;
+    const SMOOTHING = 0.15;
+    let latestBeta = 0;
+    let latestGamma = 0;
+    let rafId: number | null = null;
 
-    const handleOrientation = (e: DeviceOrientationEvent) => {
+    const applyOrientation = () => {
+      rafId = null;
       if (!active) return;
-      const beta = e.beta ?? 0;
-      const gamma = e.gamma ?? 0;
-      if (baseline === null) baseline = { beta, gamma };
+      if (baseline === null) baseline = { beta: latestBeta, gamma: latestGamma };
+      smoothedBeta =
+        smoothedBeta === null ? latestBeta : smoothedBeta + (latestBeta - smoothedBeta) * SMOOTHING;
+      smoothedGamma =
+        smoothedGamma === null
+          ? latestGamma
+          : smoothedGamma + (latestGamma - smoothedGamma) * SMOOTHING;
 
       // Scaled to a smaller sub-range than the desktop cursor's full
       // -0.5..0.5 (which maps to this component's ±10°/±14° desktop tilt)
       // so the same shared rotation mapping tops out around 6-8° here
       // instead — gentle device tilt should read as floating, not as
       // aggressively rotating the object.
-      const normBeta = Math.max(-0.25, Math.min(0.25, (beta - baseline.beta) / 100));
-      const normGamma = Math.max(-0.25, Math.min(0.25, (gamma - baseline.gamma) / 100));
+      const normBeta = Math.max(-0.25, Math.min(0.25, (smoothedBeta - baseline.beta) / 100));
+      const normGamma = Math.max(-0.25, Math.min(0.25, (smoothedGamma - baseline.gamma) / 100));
       mouseY.set(normBeta);
       mouseX.set(normGamma);
     };
 
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      if (!active) return;
+      latestBeta = e.beta ?? 0;
+      latestGamma = e.gamma ?? 0;
+      // Sensors can dispatch far more often than the screen repaints —
+      // coalesce to at most one applied update per animation frame instead
+      // of pushing every single raw event straight through, which is its
+      // own separate source of visible stutter.
+      if (rafId === null) {
+        rafId = requestAnimationFrame(applyOrientation);
+      }
+    };
+
     const attach = () => window.addEventListener("deviceorientation", handleOrientation);
-    const cleanup = () => window.removeEventListener("deviceorientation", handleOrientation);
+    const cleanup = () => {
+      window.removeEventListener("deviceorientation", handleOrientation);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
 
     const RequestableDeviceOrientationEvent = window.DeviceOrientationEvent as unknown as {
       requestPermission?: () => Promise<"granted" | "denied">;
@@ -292,11 +324,27 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
       };
     }
 
-    // No permission prompt needed on this platform at all — the Hero book
-    // should feel alive immediately, with no tap required first.
+    // No permission prompt exists on this platform, so this should already
+    // receive events immediately with zero interaction — attach() below
+    // runs unconditionally, right on mount. The extra listener is a
+    // defensive, zero-cost safety net only: re-adding the identical
+    // handler reference to the same event is a documented no-op if it's
+    // already registered, so this changes nothing when the immediate
+    // attach already works, and closes the gap if a given browser/OS
+    // configuration silently withholds sensor dispatch until the page has
+    // received any engagement at all — never anything specific to the book.
     attach();
+    const reattachOnFirstTouch = () => {
+      window.removeEventListener("touchstart", reattachOnFirstTouch);
+      attach();
+    };
+    window.addEventListener("touchstart", reattachOnFirstTouch, {
+      once: true,
+      passive: true,
+    });
     return () => {
       active = false;
+      window.removeEventListener("touchstart", reattachOnFirstTouch);
       cleanup();
     };
   }, [isMobile, reducedMotion, mouseX, mouseY, hasPreview]);
