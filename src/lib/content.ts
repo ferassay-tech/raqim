@@ -12,6 +12,10 @@ export type Book = {
   authorSlug: string;
   category: string;
   cover: string;
+  /** Shown on the book page's flip-through preview, in reading order. */
+  previewPages?: string[];
+  /** Shown once every preview page is turned. */
+  backCoverImage?: string;
   excerpt: string;
   price: string;
   originalPrice?: string;
@@ -35,6 +39,14 @@ export const books: Book[] = [
     authorSlug: "maha-nasr",
     category: "الأمومة والإلهام الإسلامي",
     cover: "/books/kuni-hajar/cover.webp",
+    previewPages: [
+      "/books/kuni-hajar/page-01.webp",
+      "/books/kuni-hajar/page-02.webp",
+      "/books/kuni-hajar/page-03.webp",
+      "/books/kuni-hajar/page-04.webp",
+      "/books/kuni-hajar/page-05.webp",
+    ],
+    backCoverImage: "/books/kuni-hajar/back.webp",
     excerpt:
       "رحلة في سيرة هاجر عليها السلام، تستخلص منها الأم المعاصرة دروسًا في الصبر والثبات وصناعة الأثر الذي يبقى بعد الإنجاز.",
     price: " $10",

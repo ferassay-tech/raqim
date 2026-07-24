@@ -159,7 +159,7 @@ function PhilosophySection() {
             <p className="text-sm uppercase tracking-[0.25em] text-gold">فلسفتنا</p>
           </div>
           <h2 className="mt-5 text-balance font-display text-4xl leading-tight text-ink md:text-6xl">
-            نؤمن بأن الكلمة الراقية تستحق أن تُصاغ في أبهى صورة
+            نؤمن بأن الكلمة الراقية تستحق أن تصاغ في أبهى صورة
           </h2>
           <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">
             من هذا الإيمان، نختار بعناية ما ننشر وما نصمم وما نُبدع، لنمنح قارئاتنا تجارب فكرية

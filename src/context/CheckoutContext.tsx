@@ -38,18 +38,13 @@ const CheckoutContext = createContext<CheckoutContextValue | undefined>(
 export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [product, setProduct] = useState<Product>(() => {
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.product) return parsed.product;
-      }
-    } catch {
-      /* ignore malformed storage */
-    }
-    return defaultProduct;
-  });
+  // Only one real product exists on the site right now, so `product` always
+  // comes from the current defaultProduct — it is intentionally not read
+  // back from sessionStorage. Restoring a cached product here previously
+  // meant a stale placeholder, once stored in a browser tab, would silently
+  // keep overriding corrected data forever, since nothing re-validated it
+  // against the live source of truth.
+  const [product, setProduct] = useState<Product>(defaultProduct);
 
   const [selectedMethodId, setSelectedMethodId] =
     useState<PaymentMethodId | null>(null);
@@ -61,12 +56,12 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({
     try {
       sessionStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ product, selectedMethodId, confirmation })
+        JSON.stringify({ selectedMethodId, confirmation })
       );
     } catch {
       /* ignore quota errors */
     }
-  }, [product, selectedMethodId, confirmation]);
+  }, [selectedMethodId, confirmation]);
 
   return (
     <CheckoutContext.Provider

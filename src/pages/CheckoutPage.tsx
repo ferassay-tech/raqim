@@ -1,8 +1,9 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { CheckoutHero } from "../components/checkout/CheckoutHero";
 import { ProductSummaryCard } from "../components/checkout/ProductSummaryCard";
 import { PaymentMethodCard } from "../components/checkout/PaymentMethodCard";
+import { IconArrowLeft } from "../components/checkout/icons";
 import { useCheckout } from "../context/CheckoutContext";
 import { paymentMethodList } from "../config/paymentMethods";
 import type { PaymentMethodId } from "../config/paymentMethods";
@@ -22,6 +23,14 @@ const CheckoutPage: React.FC = () => {
       className="min-h-screen bg-[#faf6ef] px-4 py-16 sm:px-8"
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-10">
+        <Link
+          to="/books/kuni-hajar"
+          className="inline-flex w-fit items-center gap-1.5 text-sm text-[#7a6a52] transition hover:text-[#2c2416]"
+        >
+          <IconArrowLeft className="h-4 w-4 rotate-180" />
+          العودة إلى صفحة الكتاب
+        </Link>
+
         <CheckoutHero title={product.title} />
 
         <ProductSummaryCard product={product} />

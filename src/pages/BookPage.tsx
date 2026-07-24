@@ -7,6 +7,7 @@ import { GoldDivider, CornerFlourish, QuoteMark, IconHeart } from "../components
 import { StampCTA, UnderlineLink, NumeralCTA } from "../components/cta";
 import { Reveal } from "../components/motion-primitives";
 import { StructuredData } from "../components/StructuredData";
+import PremiumBook3D from "../components/PremiumBook3D";
 
 export default function BookPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -85,10 +86,11 @@ function BookHero({ book }: { book: BookT }) {
         <Reveal className="order-2 flex justify-center lg:order-1 lg:justify-start">
           <div className="relative">
             <div className="absolute -inset-10 -z-10 rounded-full bg-gold/10 blur-3xl" />
-            <img
-              src={book.cover}
+            <PremiumBook3D
+              cover={book.cover}
               alt={book.title}
-              className="w-full max-w-md drop-shadow-[0_40px_60px_rgba(44,36,32,0.25)]"
+              previewPages={book.previewPages}
+              backCover={book.backCoverImage}
             />
           </div>
         </Reveal>
@@ -307,7 +309,7 @@ function PurchaseSection({ book }: { book: BookT }) {
           {book.format} · {book.pages} · {book.language}
         </p>
         <div className="mt-8 flex justify-center">
-          <StampCTA href="#">اطلبي نسختك الآن</StampCTA>
+          <StampCTA to="/checkout">اطلبي نسختك الآن</StampCTA>
         </div>
         <p className="mt-4 text-xs text-ink-soft">تحميل فوري بعد إتمام الشراء · دعم فني على مدار الساعة</p>
       </Reveal>
@@ -430,7 +432,7 @@ function SimpleBookPage({ book }: { book: BookT }) {
   </p>
 </div>
               ) : (
-                <StampCTA href="#">اطلبي نسختك الآن</StampCTA>
+                <StampCTA to="/checkout">اطلبي نسختك الآن</StampCTA>
               )}
               <UnderlineLink to={`/authors/${book.authorSlug}`}>عن {book.author}</UnderlineLink>
             </div>

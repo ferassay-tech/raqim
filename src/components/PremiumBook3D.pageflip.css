@@ -1,0 +1,96 @@
+/* Required by the react-pageflip / page-flip engine itself. The npm
+   package ships no CSS of its own; its DOM code sets per-page position
+   and display inline, but relies on these base structural rules existing
+   for the parent/block containers and for the perspective its 3D page
+   curl needs. Copied verbatim from the upstream engine's own
+   stPageFlip.css — structural only, no color/shadow/gradient/border
+   values. All visual appearance stays owned by PremiumBook3D. */
+.stf__parent {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  transform: translateZ(0);
+  /* The engine sets minWidth/minHeight inline but never an explicit height,
+     so without this, this element's own rendered height is only as tall as
+     its (absolutely-positioned, non-contributing) children — collapsing
+     toward zero. That in turn starves .stf__wrapper/.stf__block below of a
+     definite height to resolve their own height:100% against, so the
+     engine's own getBlockHeight() measurement (which it uses to vertically
+     center every page) comes back wrong, reading the book as shorter than
+     it actually is and rendering pages shifted upward. This closes that
+     chain: our own wrapper around <HTMLFlipBook> already has a definite
+     height, so 100% here resolves correctly and the engine centers itself
+     using accurate numbers instead of a collapsed measurement.
+  */
+  height: 100%;
+
+  -ms-touch-action: pan-y;
+  touch-action: pan-y;
+}
+
+.stf__wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.stf__parent canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+}
+
+.stf__block {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  perspective: 2000px;
+}
+
+.stf__item {
+  display: none;
+  position: absolute;
+  transform-style: preserve-3d;
+  /* The engine's own "at rest" positioning (simpleDraw) never sets a
+     transform at all — only draw()/drawHard()/drawSoft(), invoked once an
+     actual fold/flip begins, ever apply one. So whichever page is visible
+     from mount (the cover) would otherwise receive its very first
+     transform at the moment of the user's first hover, which is exactly
+     when the browser has to promote that element to its own compositing
+     layer and upload its image as a GPU texture for the first time — a
+     real, one-time browser cost, not something our own code controls or
+     can defer. This no-op transform is present from first paint, so that
+     promotion/upload happens while the page is idle, before any real
+     interaction — the engine's own later transform values simply update
+     an already-promoted layer instead of creating one.
+  */
+  transform: translateZ(0);
+}
+
+.stf__outerShadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.stf__innerShadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.stf__hardShadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.stf__hardInnerShadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
