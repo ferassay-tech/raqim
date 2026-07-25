@@ -8,8 +8,8 @@ export default function AboutPage() {
   return (
     <PageShell>
       <Helmet
-        title="عن دار لومورا"
-        description="تعرّفي على دار لومورا، دار النشر الرقمية الفاخرة للمرأة العربية."
+        title="عن مرافئ"
+        description="تعرّفي على مرافئ، دار النشر الرقمية الفاخرة للمرأة العربية."
       />
       <section className="relative overflow-hidden px-6 pb-20 pt-16 lg:px-10 lg:pt-24">
         <div className="pointer-events-none absolute inset-0">
@@ -22,7 +22,7 @@ export default function AboutPage() {
           </Reveal>
           <Reveal delay={0.08}>
             <h1 className="mt-5 font-display text-4xl leading-tight text-ink md:text-5xl">
-              دار لومورا: بيت للكلمة الراقية
+              مرافئ: بيت للكلمة الراقية
             </h1>
           </Reveal>
           <Reveal delay={0.14}>
@@ -32,7 +32,7 @@ export default function AboutPage() {
           </Reveal>
           <Reveal delay={0.2}>
             <p className="mt-6 text-balance text-lg leading-loose text-ink-soft">
-              وُلدت دار لومورا من رغبة صادقة في أن يكون للمرأة العربية مكتبة تليق بها، تجمع بين
+              وُلدت مرافئ من رغبة صادقة في أن يكون للمرأة العربية مكتبة تليق بها، تجمع بين
               الجمال البصري والعمق الفكري، وتحتفي بكل ما يخصها من أمومة وروحانية وتطور شخصي.
             </p>
           </Reveal>
@@ -44,12 +44,13 @@ export default function AboutPage() {
           <Reveal>
             <p className="text-sm uppercase tracking-[0.25em] text-gold">قصتنا</p>
             <h2 className="mt-4 text-balance font-display text-3xl leading-tight text-ink md:text-4xl">
-              لماذا لومورا؟
+              لماذا مرافئ؟
             </h2>
             <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">
-              اسم لومورا مستوحى من النور، ذلك الضوء الهادئ الذي يرافق كل امرأة في رحلتها. أطلقنا
-              الدار لنقدّم كتبًا رقمية فاخرة تصمَّم بعناية فائقة، من اختيار الكلمة إلى تفاصيل
-              التصميم، لتكون كل قراءة تجربة تستحق وقتك.
+              اسم مرافئ مستوحى من المرفأ، ذلك المكان الذي ترسو فيه العقول لتتزوّد بالمعرفة قبل أن
+              تنطلق من جديد. أطلقنا الدار لتكون محطة تلجأ إليها كل امرأة لتتزوّد بالإلهام والمعرفة،
+              ثم تكمل رحلتها بقلب أكثر ثباتًا، عبر كتب رقمية فاخرة تصمَّم بعناية فائقة، من اختيار
+              الكلمة إلى تفاصيل التصميم.
             </p>
            <p className="mt-4 max-w-lg text-balance leading-loose text-ink-soft">
   نبني مكتبة رقمية تُعنى بالكتب والإصدارات الإبداعية والمنتجات الرقمية، حيث يلتقي المحتوى الهادف بالتصميم الراقي، لنقدم أعمالًا تترك أثرًا وترافق القارئ في مختلف مراحل رحلته.
@@ -59,7 +60,7 @@ export default function AboutPage() {
             <div className="overflow-hidden rounded-[10px]">
               <img
   src="/assets/lumora-about.webp"
-  alt="دار لومورا للنشر والإصدارات الرقمية"
+  alt="مرافئ للنشر والإصدارات الرقمية"
   className="h-full w-full object-cover"
   loading="lazy"
 />

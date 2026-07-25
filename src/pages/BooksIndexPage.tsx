@@ -7,10 +7,10 @@ import { Helmet } from "../components/Helmet";
 export default function BooksIndexPage() {
   return (
     <PageShell>
-      <Helmet title="الكتب — دار لومورا" description="استكشفي مكتبة دار لومورا الكاملة من الكتب الفاخرة." />
+      <Helmet title="الكتب — مرافئ" description="استكشفي مكتبة مرافئ الكاملة من الكتب الفاخرة." />
       <PageHeader
         eyebrow="المكتبة"
-        title="كل كتب دار لومورا"
+        title="كل كتب مرافئ"
         description="مجموعة مختارة بعناية من الكتب الفاخرة للمرأة والأم، تجمع بين الجمال والعمق."
       />
 

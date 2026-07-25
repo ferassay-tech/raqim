@@ -1,5 +1,5 @@
 /**
- * Lumora House — inline SVG ornament library.
+ * Marafi — inline SVG ornament library.
  * Fine gold arabesque line-work used for dividers, corner marks, and the
  * brand monogram. All strokes use currentColor so callers set the gold tone
  * via `text-gold` / `text-ink` etc. Kept as data, not images, per the "no

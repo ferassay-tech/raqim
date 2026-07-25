@@ -37,7 +37,7 @@ export default function BookPage() {
     return (
       <PageShell>
         <Helmet
-        title={`${book.title} — دار لومورا`}
+        title={`${book.title} — مرافئ`}
         description={book.excerpt}
         image={`https://lumora-house-seven.vercel.app${book.cover}`}
         url={`https://lumora-house-seven.vercel.app/books/${book.slug}`}
@@ -51,7 +51,7 @@ export default function BookPage() {
   return (
     <PageShell>
       <Helmet
-  title={`${book.title} — دار لومورا`}
+  title={`${book.title} — مرافئ`}
   description={book.excerpt}
   image={`https://lumora-house-seven.vercel.app${book.cover}`}
   url={`https://lumora-house-seven.vercel.app/books/${book.slug}`}
@@ -97,7 +97,7 @@ function BookHero({ book }: { book: BookT }) {
 
         <div className="order-1 text-center lg:order-2 lg:text-right">
           <Reveal>
-            <p className="text-sm uppercase tracking-[0.25em] text-gold">إصدار دار لومورا الأول</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-gold">إصدار مرافئ الأول</p>
           </Reveal>
           <Reveal delay={0.08}>
             <h1 className="mt-5 font-display text-5xl leading-[1.15] text-ink md:text-7xl">{book.title}</h1>
@@ -171,7 +171,7 @@ function StorySection() {
           <div className="relative overflow-hidden rounded-[10px]">
             <img
   src="/assets/kuni-hajar-collection.webp"
-  alt="مجموعة كتاب كوني هاجر وإصدارات دار لومورا"
+  alt="مجموعة كتاب كوني هاجر وإصدارات مرافئ"
   className="h-full w-full object-cover"
   loading="lazy"
 />

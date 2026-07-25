@@ -14,7 +14,7 @@ export default function AuthorPage() {
 
   return (
     <PageShell>
-      <Helmet title={`${author.name} — دار لومورا`} />
+      <Helmet title={`${author.name} — مرافئ`} />
       <section className="px-6 py-20 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[0.6fr_1.4fr]">
           <Reveal className="flex justify-center">

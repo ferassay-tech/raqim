@@ -59,11 +59,15 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
       "بعد الدفع، عد إلى هذه الصفحة واضغط \"لقد أتممت الدفع\".",
     ],
     fields: [
-      { label: "رابط المتجر", value: "YOUR_ETSY_SHOP_URL", copyable: true },
+      {
+        label: "رابط المتجر",
+        value: "https://www.etsy.com/listing/4532463342/kuni-hajar-arabic-islamic-self",
+        copyable: true,
+      },
     ],
     externalLink: {
       label: "فتح المتجر على Etsy",
-      url: "YOUR_ETSY_SHOP_URL",
+      url: "https://www.etsy.com/listing/4532463342/kuni-hajar-arabic-islamic-self",
     },
   },
   vodafone: {
@@ -77,8 +81,8 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
       "احتفظ برقم العملية لاستخدامه في نموذج التأكيد.",
     ],
     fields: [
-      { label: "رقم الهاتف", value: "YOUR_PHONE_NUMBER", copyable: true },
-      { label: "اسم المستلم", value: "YOUR_ACCOUNT_NAME", copyable: true },
+      { label: "رقم الهاتف", value: "01033017659", copyable: true },
+      { label: "اسم المستلم", value: "Feras Sayma", copyable: true },
     ],
   },
   "bank-palestine": {
@@ -92,10 +96,8 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
       "احتفظ بإيصال التحويل لرفعه في نموذج التأكيد.",
     ],
     fields: [
-      { label: "اسم صاحب الحساب", value: "YOUR_ACCOUNT_NAME", copyable: true },
-      { label: "رقم الحساب", value: "YOUR_ACCOUNT_NUMBER", copyable: true },
-      { label: "IBAN", value: "YOUR_IBAN", copyable: true },
-      { label: "SWIFT", value: "YOUR_SWIFT_CODE", copyable: true },
+      { label: "اسم صاحب الحساب", value: "Feras Sayma", copyable: true },
+      { label: "رقم الحساب", value: "1327800", copyable: true },
     ],
   },
 };

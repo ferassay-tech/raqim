@@ -25,8 +25,8 @@ export default function SearchPage() {
 
   return (
     <PageShell>
-      <Helmet title="بحث — دار لومورا" />
-      <PageHeader eyebrow="بحث" title="ابحثي في مكتبة دار لومورا" />
+      <Helmet title="بحث — مرافئ" />
+      <PageHeader eyebrow="بحث" title="ابحثي في مكتبة مرافئ" />
 
       <section className="px-6 pb-24 lg:px-10">
         <div className="mx-auto max-w-2xl">

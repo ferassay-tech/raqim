@@ -29,7 +29,7 @@ interface CheckoutContextValue {
   setConfirmation: (data: ConfirmationData) => void;
 }
 
-const STORAGE_KEY = "lumora_checkout_state_v1";
+const STORAGE_KEY = "marafi_checkout_state_v1";
 
 const CheckoutContext = createContext<CheckoutContextValue | undefined>(
   undefined
