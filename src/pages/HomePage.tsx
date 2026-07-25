@@ -120,7 +120,7 @@ function HeroSection() {
         {/* headline block — top-right, RTL primary reading direction */}
         <div className="order-1 text-center lg:order-2 lg:text-right">
           <Reveal>
-            <p className="text-sm uppercase tracking-[0.25em] text-gold">مرافئ للنشر الرقمي</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-gold">رقيم للنشر الرقمي</p>
           </Reveal>
           <Reveal delay={0.08}>
             <h1 className="mt-5 text-balance font-display text-5xl leading-[1.15] text-ink md:text-7xl">
@@ -248,7 +248,7 @@ function BooksGridSection() {
       <div className="relative mx-auto max-w-7xl">
         <Reveal className="text-center">
           <p className="text-sm uppercase tracking-[0.25em] text-gold">أحدث الإصدارات</p>
-          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">مكتبة مرافئ</h2>
+          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">مكتبة رقيم</h2>
           <div className="mt-5 flex justify-center">
             <GoldDivider className="h-4 w-44 text-gold" />
           </div>

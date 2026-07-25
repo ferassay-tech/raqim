@@ -11,13 +11,13 @@ export default function FutureReleasesPage() {
   return (
     <PageShell>
       <Helmet
-        title="إصدارات قادمة — مرافئ"
-        description="تعرّفي على الكتب القادمة من مرافئ قبل صدورها."
+        title="إصدارات قادمة — رقيم"
+        description="تعرّفي على الكتب القادمة من رقيم قبل صدورها."
       />
       <PageHeader
         eyebrow="قريبًا"
         title="إصدارات قادمة"
-        description="نعمل على إعداد إصدارات جديدة بعناية. تعرّفي على الكتب القادمة من مرافئ قبل صدورها."
+        description="نعمل على إعداد إصدارات جديدة بعناية. تعرّفي على الكتب القادمة من رقيم قبل صدورها."
       />
 
       <section className="px-6 py-20 lg:px-10">

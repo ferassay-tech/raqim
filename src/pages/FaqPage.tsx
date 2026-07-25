@@ -10,8 +10,8 @@ export default function FaqPage() {
   return (
     <PageShell>
       <Helmet
-        title="الأسئلة الشائعة — مرافئ"
-        description="إجابات على أكثر الأسئلة شيوعًا حول كتب مرافئ وطريقة الشراء."
+        title="الأسئلة الشائعة — رقيم"
+        description="إجابات على أكثر الأسئلة شيوعًا حول كتب رقيم وطريقة الشراء."
       />
       <PageHeader eyebrow="الدعم" title="الأسئلة الشائعة" description="كل ما تحتاجين معرفته قبل وبعد الشراء." />
 

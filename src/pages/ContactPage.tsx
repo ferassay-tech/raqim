@@ -11,7 +11,7 @@ export default function ContactPage() {
 
   return (
     <PageShell>
-      <Helmet title="تواصل معنا — مرافئ" description="تواصلي مع فريق مرافئ لأي استفسار." />
+      <Helmet title="تواصل معنا — رقيم" description="تواصلي مع فريق رقيم لأي استفسار." />
       <PageHeader
         eyebrow="تواصل معنا"
         title="يسعدنا سماع صوتك"

@@ -1,5 +1,5 @@
 /**
- * Marafi — content data layer.
+ * Raqim — content data layer.
  * Centralizes book/author/blog/faq copy so pages stay lean. Real copy per
  * design-brief.md (no filler verbs, no em-dashes, no fake stats).
  */
@@ -96,8 +96,8 @@ export const books: Book[] = [
   slug: "coming-soon-1",
   title: "إصدار جديد",
   subtitle: "ترقبوا قريبًا",
-  author: "مرافئ",
-  authorSlug: "marafi",
+  author: "رقيم",
+  authorSlug: "raqim",
   category: "قريبًا",
   cover: "/assets/lumora-coming-soon-01.webp",
   excerpt: "رحلة جديدة تبدأ قريبًا.",
@@ -111,8 +111,8 @@ export const books: Book[] = [
   slug: "coming-soon-2",
   title: "ترقبوا القادم",
   subtitle: "كتاب جديد قيد الإعداد",
-  author: "مرافئ",
-  authorSlug: "marafi",
+  author: "رقيم",
+  authorSlug: "raqim",
   category: "قريبًا",
   cover: "/assets/lumora-coming-soon-02.webp",
   excerpt: "نعمل على إصدار جديد يليق بكم.",
@@ -126,11 +126,11 @@ export const books: Book[] = [
   slug: "coming-soon-3",
   title: "قريبًا",
   subtitle: "إصدار جديد",
-  author: "مرافئ",
-  authorSlug: "marafi",
+  author: "رقيم",
+  authorSlug: "raqim",
   category: "قريبًا",
   cover: "/assets/lumora-coming-soon-03.webp",
-  excerpt: "ترقبوا المزيد من إصدارات مرافئ.",
+  excerpt: "ترقبوا المزيد من إصدارات رقيم.",
   price: "",
   format: "",
   pages: "",
@@ -231,7 +231,7 @@ export const faqs: { question: string; answer: string }[] = [
   {
     question: "هل يمكن استرجاع المنتج بعد الشراء؟",
     answer:
-      "نظرًا لأن منتجات مرافئ رقمية ويتم تحميلها مباشرة بعد إتمام الشراء، فلا يمكن استرجاعها أو استبدالها بعد إتمام عملية الدفع، إلا في حال وجود مشكلة تقنية تمنع الوصول إلى المنتج. إذا واجهتِ أي مشكلة، يسعدنا مساعدتك عبر البريد الإلكتروني.",
+      "نظرًا لأن منتجات رقيم رقمية ويتم تحميلها مباشرة بعد إتمام الشراء، فلا يمكن استرجاعها أو استبدالها بعد إتمام عملية الدفع، إلا في حال وجود مشكلة تقنية تمنع الوصول إلى المنتج. إذا واجهتِ أي مشكلة، يسعدنا مساعدتك عبر البريد الإلكتروني.",
   },
   {
     question: "هل الكتاب مناسب لجميع الأعمار؟",
@@ -239,9 +239,9 @@ export const faqs: { question: string; answer: string }[] = [
       "كُتب هذا الكتاب خصيصًا للمرأة البالغة، الأم أو التي تستعد لتكون أمًا، والباحثة عن إلهام روحي وعملي في آنٍ واحد.",
   },
   {
-    question: "هل ستصدر مرافئ كتبًا جديدة؟",
+    question: "هل ستصدر رقيم كتبًا جديدة؟",
     answer:
-      "نعم، مرافئ دار نشر مستمرة، وتصدر كتبًا ودفاتر ومنتجات تعليمية جديدة بانتظام. يمكنك الانضمام إلى نشرتنا البريدية لتصلك أول إشعار بكل إصدار جديد.",
+      "نعم، رقيم دار نشر مستمرة، وتصدر كتبًا ودفاتر ومنتجات تعليمية جديدة بانتظام. يمكنك الانضمام إلى نشرتنا البريدية لتصلك أول إشعار بكل إصدار جديد.",
   },
 ];
 

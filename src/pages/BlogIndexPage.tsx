@@ -8,8 +8,8 @@ export default function BlogIndexPage() {
   return (
     <PageShell>
       <Helmet
-        title="المدونة — مرافئ"
-        description="مقالات وأفكار من مرافئ حول الكتب، والثقافة، والكتابة، والإلهام."
+        title="المدونة — رقيم"
+        description="مقالات وأفكار من رقيم حول الكتب، والثقافة، والكتابة، والإلهام."
       />
       <PageHeader
         eyebrow="المدونة"

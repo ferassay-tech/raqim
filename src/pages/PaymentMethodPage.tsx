@@ -35,6 +35,7 @@ const PaymentMethodPage: React.FC = () => {
   }
 
   const Icon = iconMap[config.iconKey];
+  const requiresConfirmation = config.requiresConfirmation !== false;
 
   const handleConfirmationSubmit = (values: ConfirmationFormValues) => {
     setConfirmation(values);
@@ -64,11 +65,13 @@ const PaymentMethodPage: React.FC = () => {
             </span>
             <div>
               <h1 className="text-xl font-semibold text-[#2c2416]">
-                الدفع عبر {config.title}
+                {requiresConfirmation ? "الدفع عبر" : "شراء الكتاب عبر"} {config.title}
               </h1>
-              <p className="text-xs text-[#7a6a52]">
-                المبلغ المطلوب: {config.amount ?? `${product.currency} ${product.newPrice}`}
-              </p>
+              {requiresConfirmation && (
+                <p className="text-xs text-[#7a6a52]">
+                  المبلغ المطلوب: {config.amount ?? `${product.currency} ${product.newPrice}`}
+                </p>
+              )}
             </div>
           </div>
 
@@ -113,7 +116,7 @@ const PaymentMethodPage: React.FC = () => {
   </a>
 )}
 
-          {!showConfirmationForm && (
+          {requiresConfirmation && !showConfirmationForm && (
             <button
               type="button"
               onClick={() => setShowConfirmationForm(true)}
@@ -124,14 +127,16 @@ const PaymentMethodPage: React.FC = () => {
           )}
         </motion.div>
 
-        <AnimatePresence>
-          {showConfirmationForm && (
-            <PaymentConfirmationForm
-              methodTitle={config.title}
-              onSubmit={handleConfirmationSubmit}
-            />
-          )}
-        </AnimatePresence>
+        {requiresConfirmation && (
+          <AnimatePresence>
+            {showConfirmationForm && (
+              <PaymentConfirmationForm
+                methodTitle={config.title}
+                onSubmit={handleConfirmationSubmit}
+              />
+            )}
+          </AnimatePresence>
+        )}
       </div>
     </main>
   );

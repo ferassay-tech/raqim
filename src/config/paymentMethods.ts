@@ -1,5 +1,4 @@
 export type PaymentMethodId =
-  | "payoneer"
   | "etsy"
   | "vodafone"
   | "instapay"
@@ -15,7 +14,7 @@ export interface PaymentMethodConfig {
   id: PaymentMethodId;
   title: string;
   shortDescription: string;
-  iconKey: "payoneer" | "etsy" | "vodafone" | "bank" | "instapay";
+  iconKey: "etsy" | "vodafone" | "bank" | "instapay";
   instructions: string[];
   fields: PaymentField[];
   /** Overrides the default product-price display when this method's
@@ -26,6 +25,12 @@ export interface PaymentMethodConfig {
     label: string;
     url: string;
   };
+  /** False for methods that only redirect to an external product/purchase
+   * page rather than collecting payment on this site directly (e.g. Etsy) —
+   * suppresses the required-amount display, the "I've completed payment"
+   * button, and the confirmation form, none of which apply once the actual
+   * purchase happens on the external platform. Defaults to true. */
+  requiresConfirmation?: boolean;
 }
 
 /**
@@ -34,54 +39,29 @@ export interface PaymentMethodConfig {
  * No other file in the project needs to change.
  */
 export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
-  payoneer: {
-    id: "payoneer",
-    title: "Payoneer",
-    shortDescription: "حوّل المبلغ مباشرة عبر حساب Payoneer",
-    iconKey: "payoneer",
-    instructions: [
-      "افتح تطبيق أو موقع Payoneer الخاص بك.",
-      "أرسل المبلغ الظاهر أدناه إلى البريد الإلكتروني المذكور.",
-      "احتفظ برقم العملية (Transaction ID) لاستخدامه في نموذج التأكيد.",
-    ],
-    fields: [
-      {
-        label: "البريد الإلكتروني على Payoneer",
-        value: "ferassaymah@gmail.com",
-        copyable: true,
-      },
-      {
-        label: "رابط الدفع",
-        value: "https://link.payoneer.com/Token?t=56BF05C5ACB64112B26B28BE1D7A7C03&src=pl",
-        copyable: true,
-      },
-    ],
-    externalLink: {
-      label: "فتح رابط الدفع على Payoneer",
-      url: "https://link.payoneer.com/Token?t=56BF05C5ACB64112B26B28BE1D7A7C03&src=pl",
-    },
-  },
   etsy: {
     id: "etsy",
     title: "Etsy",
     shortDescription: "أكمل الشراء عبر متجرنا الرسمي على Etsy",
     iconKey: "etsy",
     instructions: [
-      "اضغط على زر \"فتح المتجر\" أدناه.",
-      "أكمل عملية الشراء داخل منصة Etsy.",
-      "بعد الدفع، عد إلى هذه الصفحة واضغط \"لقد أتممت الدفع\".",
+      "استعرض صفحة المنتج على Etsy.",
+      "شاهد صور الكتاب والمحتوى المعروض.",
+      "اقرأ تفاصيل المنتج وآراء المشترين.",
+      "إذا أعجبك المنتج يمكنك إتمام عملية الشراء مباشرة من خلال Etsy.",
     ],
     fields: [
       {
-        label: "رابط المتجر",
+        label: "رابط المنتج",
         value: "https://www.etsy.com/listing/4532463342/kuni-hajar-arabic-islamic-self",
         copyable: true,
       },
     ],
     externalLink: {
-      label: "فتح المتجر على Etsy",
+      label: "عرض المنتج على Etsy",
       url: "https://www.etsy.com/listing/4532463342/kuni-hajar-arabic-islamic-self",
     },
+    requiresConfirmation: false,
   },
   vodafone: {
     id: "vodafone",

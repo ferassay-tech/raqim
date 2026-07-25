@@ -37,11 +37,11 @@ export function SiteNav() {
         <Link to="/" className="flex items-center gap-1">
           <img
             src="/logos/lumora-logo-signature.png"
-           alt="مرافئ"
+           alt="رقيم"
            className="h-16 w-16 object-contain transition-transform duration-300 hover:scale-105"
            />
           <span className="font-logotype text-2xl tracking-wide text-ink">
-            مرافئ
+            رقيم
           </span>
         </Link>
 
@@ -127,7 +127,7 @@ export function LogoMark({
   return (
     <img
       src="/logos/lumora-logo-signature.png"
-      alt="مرافئ"
+      alt="رقيم"
       className={className}
     />
   );

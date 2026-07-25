@@ -42,7 +42,7 @@ export const HeroScene: React.FC<HeroSceneProps> = ({
     <section
       ref={sceneRef}
       className="hero-scene"
-      aria-label="مرافئ — كوني هاجر"
+      aria-label="رقيم — كوني هاجر"
     >
       <HeroBackground x={x} y={y} delay={0} reducedMotion={reducedMotion} />
       <HeroClouds x={x} y={y} delay={0.15} reducedMotion={reducedMotion} />

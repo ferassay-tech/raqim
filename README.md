@@ -1,4 +1,4 @@
-# Marafi — مرافئ
+# Raqim — رقيم
 
 Standalone Vite + React 19 website. No framework/platform dependencies —
 only public npm packages (react, react-dom, react-router-dom, lucide-react,

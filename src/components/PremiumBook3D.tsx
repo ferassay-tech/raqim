@@ -359,7 +359,7 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
     const node = containerRef.current;
     if (!node) return;
 
-    const storageKey = `marafi_preview_demo:${cover}`;
+    const storageKey = `raqim_preview_demo:${cover}`;
     try {
       if (sessionStorage.getItem(storageKey)) return;
     } catch {

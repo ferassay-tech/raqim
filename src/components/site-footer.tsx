@@ -5,7 +5,7 @@ import { GoldDivider } from "./ornaments";
 
 const EXPLORE_LINKS = [
   { to: "/books", label: "الكتب" },
-  { to: "/about", label: "عن مرافئ" },
+  { to: "/about", label: "عن رقيم" },
   { to: "/authors/maha-nasr", label: "المؤلفات" },
   { to: "/future-releases", label: "إصدارات قادمة" },
 ];
@@ -36,7 +36,7 @@ export function SiteFooter() {
           <div className="sm:col-span-2 lg:col-span-1">
             <Link to="/" className="flex items-center gap-2.5">
               <LogoMark className="h-8 w-8 text-gold" />
-              <span className="font-logotype text-xl tracking-wide text-ivory">مرافئ</span>
+              <span className="font-logotype text-xl tracking-wide text-ivory">رقيم</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-loose text-cream/70">
               دار نشر رقمية فاخرة، تصدر كتبًا للمرأة تجمع بين الجمال والعمق والإلهام.
@@ -67,7 +67,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-6 flex flex-col-reverse items-center justify-between gap-4 text-xs text-cream/50 sm:flex-row">
-          <p>© ٢٠٢٦ مرافئ. جميع الحقوق محفوظة.</p>
+          <p>© ٢٠٢٦ رقيم. جميع الحقوق محفوظة.</p>
           <div className="flex gap-6">
             <Link to="/privacy" className="hover:text-gold">
               الخصوصية
@@ -108,7 +108,7 @@ function NewsletterBand() {
       <div>
         <p className="text-sm uppercase tracking-[0.2em] text-gold">النشرة البريدية</p>
         <h3 className="mt-3 font-display text-3xl leading-tight text-ivory">
-          انضمي إلى مرافئ
+          انضمي إلى رقيم
         </h3>
         <p className="mt-3 max-w-sm text-sm leading-loose text-cream/70">
           كوني أول من يعلم بكل إصدار جديد، ومقالات ملهمة تصل بريدك بلا إزعاج.

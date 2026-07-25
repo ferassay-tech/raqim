@@ -13,7 +13,7 @@ export default function BlogPostPage() {
 
   return (
     <PageShell>
-      <Helmet title={`${post.title} — مدونة مرافئ`} description={post.excerpt} />
+      <Helmet title={`${post.title} — مدونة رقيم`} description={post.excerpt} />
       <article className="px-6 py-20 lg:px-10 lg:py-28">
         <div className="mx-auto max-w-2xl">
           <Reveal>
@@ -50,7 +50,7 @@ export default function BlogPostPage() {
   </Link>
 
   <Link to="/books" className="block text-sm text-ink hover:text-gold transition-colors">
-    تصفح كتب مرافئ
+    تصفح كتب رقيم
   </Link>
 </div>
         </div>
