@@ -37,6 +37,21 @@ export const IconVodafone: React.FC<{ className?: string }> = ({
   </svg>
 );
 
+export const IconInstapay: React.FC<{ className?: string }> = ({
+  className,
+}) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+    <path
+      d="M13 7 8 13h3.2l-.7 4L16 11h-3.2l.7-4Z"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
 export const IconBank: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
     <path
@@ -109,4 +124,5 @@ export const iconMap = {
   etsy: IconEtsy,
   vodafone: IconVodafone,
   bank: IconBank,
+  instapay: IconInstapay,
 };

@@ -67,7 +67,7 @@ const PaymentMethodPage: React.FC = () => {
                 الدفع عبر {config.title}
               </h1>
               <p className="text-xs text-[#7a6a52]">
-                المبلغ المطلوب: {product.currency} {product.newPrice}
+                المبلغ المطلوب: {config.amount ?? `${product.currency} ${product.newPrice}`}
               </p>
             </div>
           </div>

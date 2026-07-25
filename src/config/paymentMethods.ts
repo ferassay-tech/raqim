@@ -2,6 +2,7 @@ export type PaymentMethodId =
   | "payoneer"
   | "etsy"
   | "vodafone"
+  | "instapay"
   | "bank-palestine";
 
 export interface PaymentField {
@@ -14,9 +15,13 @@ export interface PaymentMethodConfig {
   id: PaymentMethodId;
   title: string;
   shortDescription: string;
-  iconKey: "payoneer" | "etsy" | "vodafone" | "bank";
+  iconKey: "payoneer" | "etsy" | "vodafone" | "bank" | "instapay";
   instructions: string[];
   fields: PaymentField[];
+  /** Overrides the default product-price display when this method's
+   * required amount differs from the checkout total (e.g. a fixed local-
+   * currency amount instead of the product's own price). */
+  amount?: string;
   externalLink?: {
     label: string;
     url: string;
@@ -40,13 +45,21 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
       "احتفظ برقم العملية (Transaction ID) لاستخدامه في نموذج التأكيد.",
     ],
     fields: [
-      { label: "اسم الحساب", value: "YOUR_ACCOUNT_NAME", copyable: true },
       {
         label: "البريد الإلكتروني على Payoneer",
-        value: "YOUR_PAYONEER_EMAIL",
+        value: "ferassaymah@gmail.com",
+        copyable: true,
+      },
+      {
+        label: "رابط الدفع",
+        value: "https://link.payoneer.com/Token?t=56BF05C5ACB64112B26B28BE1D7A7C03&src=pl",
         copyable: true,
       },
     ],
+    externalLink: {
+      label: "فتح رابط الدفع على Payoneer",
+      url: "https://link.payoneer.com/Token?t=56BF05C5ACB64112B26B28BE1D7A7C03&src=pl",
+    },
   },
   etsy: {
     id: "etsy",
@@ -82,8 +95,25 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
     ],
     fields: [
       { label: "رقم الهاتف", value: "01033017659", copyable: true },
-      { label: "اسم المستلم", value: "Feras Sayma", copyable: true },
+      { label: "اسم المستلم", value: "Feras S.M.S.", copyable: true },
     ],
+    amount: "500 جنيه مصري",
+  },
+  instapay: {
+    id: "instapay",
+    title: "InstaPay",
+    shortDescription: "حوّل المبلغ عبر تطبيق إنستاباي",
+    iconKey: "instapay",
+    instructions: [
+      "افتح تطبيق إنستاباي.",
+      "أرسل المبلغ الظاهر أدناه إلى الرقم المذكور.",
+      "احتفظ برقم العملية لاستخدامه في نموذج التأكيد.",
+    ],
+    fields: [
+      { label: "رقم الهاتف", value: "01033017659", copyable: true },
+      { label: "اسم المستلم", value: "Feras S.M.S.", copyable: true },
+    ],
+    amount: "500 جنيه مصري",
   },
   "bank-palestine": {
     id: "bank-palestine",
@@ -96,9 +126,10 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
       "احتفظ بإيصال التحويل لرفعه في نموذج التأكيد.",
     ],
     fields: [
-      { label: "اسم صاحب الحساب", value: "Feras Sayma", copyable: true },
+      { label: "اسم صاحب الحساب", value: "Feras S.M.S.", copyable: true },
       { label: "رقم الحساب", value: "1327800", copyable: true },
     ],
+    amount: "30 شيكل",
   },
 };
 
