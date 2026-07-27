@@ -7,6 +7,7 @@ import { Select } from "../form/Select";
 import { useSettings } from "../../context/SettingsContext";
 import { BRAND_FONT_OPTIONS } from "../../types/settings";
 import type { BrandColorTokens, BrandFontFamily, BrandFontRole } from "../../types/settings";
+import { SettingsRow } from "./SettingsRow";
 
 interface BrandSectionProps {
   onSaved: (message: string) => void;
@@ -49,32 +50,28 @@ export function BrandSection({ onSaved }: BrandSectionProps) {
   };
 
   return (
-    <div className="rounded-[10px] border border-beige bg-white/70 p-6 backdrop-blur">
-      <h2 className="font-display text-lg text-ink">الهوية البصرية</h2>
+    <div>
+      <SettingsRow title="الشعار والأيقونة" description="تظهر هذه الصور في رأس الموقع، وعلامة تبويب المتصفح، ومشاركات التواصل.">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <FileDropzone
+            label="الشعار"
+            previewUrl={logo}
+            onFileSelected={(file) => updateBrand({ logo: URL.createObjectURL(file) })}
+            onClear={() => updateBrand({ logo: null })}
+            onBrowseLibrary={() => setPickerTarget("logo")}
+          />
+          <FileDropzone
+            label="أيقونة الموقع (Favicon)"
+            previewUrl={favicon}
+            onFileSelected={(file) => updateBrand({ favicon: URL.createObjectURL(file) })}
+            onClear={() => updateBrand({ favicon: null })}
+            onBrowseLibrary={() => setPickerTarget("favicon")}
+          />
+        </div>
+      </SettingsRow>
 
-      <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <FileDropzone
-          label="الشعار"
-          previewUrl={logo}
-          onFileSelected={(file) => updateBrand({ logo: URL.createObjectURL(file) })}
-          onClear={() => updateBrand({ logo: null })}
-          onBrowseLibrary={() => setPickerTarget("logo")}
-        />
-        <FileDropzone
-          label="أيقونة الموقع (Favicon)"
-          previewUrl={favicon}
-          onFileSelected={(file) => updateBrand({ favicon: URL.createObjectURL(file) })}
-          onClear={() => updateBrand({ favicon: null })}
-          onBrowseLibrary={() => setPickerTarget("favicon")}
-        />
-      </div>
-
-      <div className="mt-6 border-t border-beige pt-6">
-        <p className="text-sm text-ink">الألوان</p>
-        <p className="mt-1 text-xs text-ink-faint">
-          تعديل أي لون هنا يُحدّث فورًا الألوان المستخدمة عبر كامل الموقع.
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <SettingsRow title="الألوان" description="تعديل أي لون هنا يُحدّث فورًا الألوان المستخدمة عبر كامل الموقع.">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
           {(Object.keys(colors) as (keyof BrandColorTokens)[]).map((token) => (
             <div key={token} className="rounded-[10px] border border-beige p-3">
               <div className="flex items-center gap-2">
@@ -99,11 +96,10 @@ export function BrandSection({ onSaved }: BrandSectionProps) {
             </div>
           ))}
         </div>
-      </div>
+      </SettingsRow>
 
-      <div className="mt-6 border-t border-beige pt-6">
-        <p className="text-sm text-ink">الطباعة</p>
-        <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <SettingsRow title="الطباعة" description="أدوار الخطوط الثلاثة مقتصرة على الخطوط المُحمّلة فعليًا في الموقع.">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {(Object.keys(fonts) as BrandFontRole[]).map((role) => (
             <Select
               key={role}
@@ -114,50 +110,44 @@ export function BrandSection({ onSaved }: BrandSectionProps) {
             />
           ))}
         </div>
-      </div>
+      </SettingsRow>
 
-      <div className="mt-6 border-t border-beige pt-6">
-        <p className="text-sm text-ink">الانحناء (Radius)</p>
-        <div className="mt-4 grid grid-cols-2 gap-5 sm:grid-cols-4">
+      <SettingsRow title="الانحناء (Radius)" description="القيم بوحدة rem — تتحكم في استدارة الحواف عبر الموقع.">
+        <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
           <TextField label="أساسي" type="number" value={String(radius.base)} onChange={(v) => setRadius("base", Number(v) || 0)} />
           <TextField label="صغير" type="number" value={String(radius.sm)} onChange={(v) => setRadius("sm", Number(v) || 0)} />
           <TextField label="متوسط" type="number" value={String(radius.md)} onChange={(v) => setRadius("md", Number(v) || 0)} />
           <TextField label="كبير" type="number" value={String(radius.lg)} onChange={(v) => setRadius("lg", Number(v) || 0)} />
         </div>
-        <p className="mt-2 text-xs text-ink-faint">القيم بوحدة rem.</p>
-      </div>
+      </SettingsRow>
 
-      <div className="mt-6 border-t border-beige pt-6">
-        <p className="text-sm text-ink">التباعد (Spacing)</p>
-        <div className="mt-4 max-w-xs">
+      <SettingsRow title="التباعد (Spacing)" description="وحدة التباعد الأساسية التي يُشتق منها كل تباعد في الموقع تلقائيًا.">
+        <div className="max-w-xs">
           <TextField
             label="وحدة التباعد الأساسية (rem)"
             type="number"
             value={String(spacing)}
             onChange={(v) => updateBrand({ spacing: Number(v) || 0 })}
-            hint="يُشتق منها كل تباعد في الموقع تلقائيًا"
           />
         </div>
-      </div>
+      </SettingsRow>
 
-      <div className="mt-6 border-t border-beige pt-6">
-        <p className="text-sm text-ink">الظلال (Admin فقط)</p>
-        <p className="mt-1 text-xs text-ink-faint">
-          تُستخدم في بطاقات لوحة التحكم فقط، دون التأثير على تصميم الموقع العام.
-        </p>
-        <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <SettingsRow title="الظلال (Admin فقط)" description="تُستخدم في بطاقات لوحة التحكم فقط، دون التأثير على تصميم الموقع العام.">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <TextField label="ظل ناعم" value={shadowSoft} onChange={(v) => updateBrand({ shadowSoft: v })} dir="ltr" />
           <TextField label="ظل متوسط" value={shadowMd} onChange={(v) => updateBrand({ shadowMd: v })} dir="ltr" />
         </div>
-      </div>
+      </SettingsRow>
 
-      <button
-        type="button"
-        onClick={() => onSaved("تم حفظ إعدادات الهوية البصرية")}
-        className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
-      >
-        حفظ التغييرات
-      </button>
+      <div className="pt-6">
+        <button
+          type="button"
+          onClick={() => onSaved("تم حفظ إعدادات الهوية البصرية")}
+          className="rounded-full bg-ink px-6 py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
+        >
+          حفظ التغييرات
+        </button>
+      </div>
 
       <MediaPickerModal
         open={pickerTarget !== null}

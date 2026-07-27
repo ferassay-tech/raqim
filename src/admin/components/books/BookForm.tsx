@@ -23,6 +23,7 @@ import { Repeater } from "../form/Repeater";
 import { ImageListEditor } from "../form/ImageListEditor";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { MediaPickerModal } from "../media/MediaPickerModal";
+import { BookFilesPanel } from "./BookFilesPanel";
 import { IconTrash } from "../../icons";
 
 export type BookFormValues = Omit<AdminBook, "id" | "sales" | "updatedAt">;
@@ -71,6 +72,7 @@ const TABS = [
   { key: "reviews", label: "آراء القارئات" },
   { key: "pricing", label: "التسعير والمخزون" },
   { key: "media", label: "الغلاف والمعرض" },
+  { key: "files", label: "الملفات" },
   { key: "faq", label: "الأسئلة الشائعة" },
   { key: "seo", label: "السيو" },
 ];
@@ -412,6 +414,16 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
                 onChange={(v) => set("previewPages", v)}
               />
             </div>
+          )}
+
+          {activeTab === "files" && (
+            <>
+              {initialBook ? (
+                <BookFilesPanel bookId={initialBook.id} />
+              ) : (
+                <p className="text-sm text-ink-faint">احفظي الكتاب أولًا لإدارة ملفاته القابلة للتحميل.</p>
+              )}
+            </>
           )}
 
           {activeTab === "faq" && (

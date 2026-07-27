@@ -11,6 +11,7 @@ import { IconArrowLeft } from "../components/checkout/icons";
 import { useCheckout } from "../context/CheckoutContext";
 import type { BookCurrency } from "../admin/types/book";
 import { computeDiscountedPrice } from "../context/couponMath";
+import { useOrders } from "../admin/context/OrdersContext";
 
 // Matches the original site's exact wording for the "required amount" line
 // ("500 جنيه مصري", "30 شيكل") — full currency names, not ISO-style symbols.
@@ -28,6 +29,7 @@ const PaymentMethodPage: React.FC = () => {
   const { method } = useParams<{ method: string }>();
   const navigate = useNavigate();
   const { product, book, appliedCoupon, setConfirmation } = useCheckout();
+  const { createOrder } = useOrders();
   const [showConfirmationForm, setShowConfirmationForm] = useState(false);
 
   const config = getPaymentMethod(method);
@@ -59,7 +61,23 @@ const PaymentMethodPage: React.FC = () => {
 
   const handleConfirmationSubmit = (values: ConfirmationFormValues) => {
     setConfirmation(values);
-    navigate("/order-received");
+    const discountedPrice = appliedCoupon ? computeDiscountedPrice(product.newPrice, appliedCoupon) : product.newPrice;
+    const order = createOrder({
+      customerName: values.fullName,
+      customerEmail: values.email,
+      paymentMethod: config.title,
+      items: [
+        {
+          bookId: book?.id ?? product.id,
+          title: product.title,
+          cover: product.coverImage,
+          quantity: 1,
+          unitPrice: product.newPrice,
+        },
+      ],
+      discount: product.newPrice - discountedPrice,
+    });
+    navigate("/order-received", { state: { orderId: order.id } });
   };
 
   return (

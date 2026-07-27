@@ -8,6 +8,7 @@ import { OrderItemsCard } from "../components/orders/OrderItemsCard";
 import { OrderCustomerCard } from "../components/orders/OrderCustomerCard";
 import { OrderPaymentCard } from "../components/orders/OrderPaymentCard";
 import { OrderTimelineCard } from "../components/orders/OrderTimelineCard";
+import { OrderDownloadsCard } from "../components/orders/OrderDownloadsCard";
 import { IconBag, IconChevronStart } from "../icons";
 
 export default function OrderDetailPage() {
@@ -64,6 +65,9 @@ export default function OrderDetailPage() {
         <div className="flex flex-col gap-6 lg:col-span-2">
           <Reveal delay={0.05}>
             <OrderItemsCard order={order} />
+          </Reveal>
+          <Reveal delay={0.08}>
+            <OrderDownloadsCard order={order} />
           </Reveal>
           <Reveal delay={0.1}>
             <OrderTimelineCard order={order} onAddNote={(text) => addNote(order.id, text)} />

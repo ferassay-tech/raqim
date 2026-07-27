@@ -1,4 +1,5 @@
 import type { AdminSettings } from "../types/settings";
+import { CONTACT_EMAILS } from "../../config/contactEmails";
 
 // Seeded from the real, live values already hardcoded across index.html,
 // src/index.css's @theme, and the (previously non-persisted) Settings
@@ -44,7 +45,7 @@ export const INITIAL_SETTINGS: AdminSettings = {
     socialImage: "/og-image.webp",
   },
   contact: {
-    email: "lumora.m.house@gmail.com",
+    email: CONTACT_EMAILS.contact,
     phone: "",
     address: "",
     hours: "من الأحد إلى الخميس، ٩ص - ٥م",
@@ -57,5 +58,8 @@ export const INITIAL_SETTINGS: AdminSettings = {
     defaultCurrency: "USD",
     tax: 0,
     orderPrefix: "A-",
+  },
+  storage: {
+    activeProvider: "local",
   },
 };

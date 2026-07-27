@@ -1,6 +1,7 @@
 import { PageShell, PageHeader } from "../components/page-shell";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
+import { CONTACT_EMAILS } from "../config/contactEmails";
 
 const sections = [
   {
@@ -25,7 +26,7 @@ const sections = [
   },
   {
     title: "٦. التواصل معنا",
-    body: "لأي استفسار حول سياسة الخصوصية هذه، يمكنك التواصل معنا عبر البريد الإلكتروني lumora.m.house@gmail.com.",
+    body: `لأي استفسار حول سياسة الخصوصية هذه، يمكنك التواصل معنا عبر البريد الإلكتروني ${CONTACT_EMAILS.general}.`,
   },
 ];
 

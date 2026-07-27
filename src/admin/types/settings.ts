@@ -1,4 +1,5 @@
 import type { BookCurrency } from "./book";
+import type { StorageProviderId } from "../services/storage";
 
 export interface GeneralSettings {
   siteName: string;
@@ -76,10 +77,17 @@ export interface StoreSettings {
   orderPrefix: string;
 }
 
+/** Which storage provider the Digital Library currently uploads through —
+ * see src/admin/services/storage for the adapter interface itself. */
+export interface StorageSettings {
+  activeProvider: StorageProviderId;
+}
+
 export interface AdminSettings {
   general: GeneralSettings;
   brand: BrandSettings;
   seo: SeoSettings;
   contact: ContactSettings;
   store: StoreSettings;
+  storage: StorageSettings;
 }

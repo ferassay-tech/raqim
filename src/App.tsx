@@ -19,6 +19,7 @@ import { CheckoutProvider } from "./context/CheckoutContext";
 import CheckoutPage from "./pages/CheckoutPage";
 import PaymentMethodPage from "./pages/PaymentMethodPage";
 import OrderReceivedPage from "./pages/OrderReceivedPage";
+import DownloadPage from "./pages/DownloadPage";
 import AdminApp from "./admin/AdminApp";
 import { AdminProviders } from "./admin/context/AdminProviders";
 
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/payment/:method" element={<PaymentMethodPage />} />
         <Route path="/order-received" element={<OrderReceivedPage />} />
+        <Route path="/download/:token" element={<DownloadPage />} />
         <Route path="/admin/*" element={<AdminApp />} />
         <Route path="*" element={<NotFoundPage />} />
      </Routes>

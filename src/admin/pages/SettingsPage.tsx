@@ -8,6 +8,7 @@ import { BrandSection } from "../components/settings/BrandSection";
 import { SeoSection } from "../components/settings/SeoSection";
 import { ContactSection } from "../components/settings/ContactSection";
 import { StoreSection } from "../components/settings/StoreSection";
+import { StorageSection } from "../components/settings/StorageSection";
 import { IconCheck } from "../icons";
 
 const TABS = [
@@ -16,6 +17,7 @@ const TABS = [
   { key: "seo", label: "السيو" },
   { key: "contact", label: "التواصل" },
   { key: "store", label: "المتجر" },
+  { key: "storage", label: "التخزين" },
 ];
 
 const VALID_SECTIONS = new Set(TABS.map((t) => t.key));
@@ -51,12 +53,13 @@ export default function SettingsPage() {
 
       <Tabs tabs={TABS} active={activeSection} onChange={(key) => navigate(`/admin/settings/${key}`, { replace: true })} />
 
-      <div className="max-w-5xl">
+      <div className="w-full">
         {activeSection === "general" && <GeneralSection onSaved={handleSaved} />}
         {activeSection === "brand" && <BrandSection onSaved={handleSaved} />}
         {activeSection === "seo" && <SeoSection onSaved={handleSaved} />}
         {activeSection === "contact" && <ContactSection onSaved={handleSaved} />}
         {activeSection === "store" && <StoreSection onSaved={handleSaved} />}
+        {activeSection === "storage" && <StorageSection onSaved={handleSaved} />}
       </div>
     </div>
   );

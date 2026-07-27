@@ -6,6 +6,7 @@ import type {
   ContactSettings,
   GeneralSettings,
   SeoSettings,
+  StorageSettings,
   StoreSettings,
 } from "../types/settings";
 import { INITIAL_SETTINGS } from "../data/settingsData";
@@ -18,6 +19,7 @@ interface SettingsContextValue {
   updateSeo: (values: Partial<SeoSettings>) => void;
   updateContact: (values: Partial<ContactSettings>) => void;
   updateStore: (values: Partial<StoreSettings>) => void;
+  updateStorage: (values: Partial<StorageSettings>) => void;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -29,7 +31,15 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
  * `useState`, which reset on every reload and never reached the public site.
  */
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = usePersistedState<AdminSettings>("settings", INITIAL_SETTINGS);
+  const [rawSettings, setSettings] = usePersistedState<AdminSettings>("settings", INITIAL_SETTINGS);
+  // Defensive merge against defaults — a browser that persisted `settings`
+  // before a new top-level section (e.g. `storage`) existed would otherwise
+  // read back an object missing that key and crash the first time it's
+  // touched. New sections should always land here, not assume a clean slate.
+  const settings: AdminSettings = useMemo(
+    () => ({ ...INITIAL_SETTINGS, ...rawSettings, storage: rawSettings.storage ?? INITIAL_SETTINGS.storage }),
+    [rawSettings]
+  );
 
   const updateGeneral = useCallback((values: Partial<GeneralSettings>) => {
     setSettings((prev) => ({ ...prev, general: { ...prev.general, ...values } }));
@@ -51,9 +61,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => ({ ...prev, store: { ...prev.store, ...values } }));
   }, [setSettings]);
 
+  const updateStorage = useCallback((values: Partial<StorageSettings>) => {
+    setSettings((prev) => ({ ...prev, storage: { ...(prev.storage ?? INITIAL_SETTINGS.storage), ...values } }));
+  }, [setSettings]);
+
   const value = useMemo(
-    () => ({ settings, updateGeneral, updateBrand, updateSeo, updateContact, updateStore }),
-    [settings, updateGeneral, updateBrand, updateSeo, updateContact, updateStore]
+    () => ({ settings, updateGeneral, updateBrand, updateSeo, updateContact, updateStore, updateStorage }),
+    [settings, updateGeneral, updateBrand, updateSeo, updateContact, updateStore, updateStorage]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

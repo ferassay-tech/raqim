@@ -1,10 +1,13 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Helmet } from "../components/Helmet";
 import { IconSuccess } from "../components/checkout/icons";
 
 const OrderSuccessPage: React.FC = () => {
+  const location = useLocation();
+  const orderId = (location.state as { orderId?: string } | null)?.orderId;
+
   return (
     <main
       dir="rtl"
@@ -32,6 +35,11 @@ const OrderSuccessPage: React.FC = () => {
           تم استلام طلب الدفع الخاص بك بنجاح. سنقوم بمراجعة الدفع وإرسال رابط
           التحميل إلى بريدك الإلكتروني في أقرب وقت ممكن.
         </p>
+        {orderId && (
+          <p className="mt-3 text-xs text-ink-faint" dir="ltr">
+            رقم الطلب: {orderId}
+          </p>
+        )}
       </motion.div>
 
       <motion.div

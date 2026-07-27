@@ -10,6 +10,8 @@ import { MediaProvider } from "./MediaContext";
 import { MessagesProvider } from "./MessagesContext";
 import { SettingsProvider } from "./SettingsContext";
 import { SiteContentProvider } from "./SiteContentContext";
+import { LibraryProvider } from "./LibraryContext";
+import { DownloadsProvider } from "./DownloadsContext";
 import { ThemeSync } from "./ThemeContext";
 
 const PROVIDERS: FC<{ children: ReactNode }>[] = [
@@ -24,6 +26,10 @@ const PROVIDERS: FC<{ children: ReactNode }>[] = [
   ArticlesProvider,
   MediaProvider,
   MessagesProvider,
+  // Both need SettingsProvider above them in this list (Library reads the
+  // active storage provider; keeping them last is simplest, not required).
+  LibraryProvider,
+  DownloadsProvider,
 ];
 
 /**

@@ -1,6 +1,7 @@
 import { TextField } from "../form/TextField";
 import { TextArea } from "../form/TextArea";
 import { useSettings } from "../../context/SettingsContext";
+import { SettingsRow } from "./SettingsRow";
 
 interface ContactSectionProps {
   onSaved: (message: string) => void;
@@ -11,38 +12,38 @@ export function ContactSection({ onSaved }: ContactSectionProps) {
   const { email, phone, address, hours, instagram, pinterest, tiktok } = settings.contact;
 
   return (
-    <div className="rounded-[10px] border border-beige bg-white/70 p-6 backdrop-blur">
-      <h2 className="font-display text-lg text-ink">التواصل</h2>
-      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <TextField
-          label="البريد الإلكتروني"
-          type="email"
-          value={email}
-          onChange={(v) => updateContact({ email: v })}
-          dir="ltr"
-        />
-        <TextField
-          label="رقم الهاتف"
-          value={phone}
-          onChange={(v) => updateContact({ phone: v })}
-          placeholder="+966 5X XXX XXXX"
-          dir="ltr"
-        />
-        <TextField label="ساعات الرد" value={hours} onChange={(v) => updateContact({ hours: v })} />
-        <div className="lg:col-span-2">
-          <TextArea
-            label="العنوان"
-            rows={2}
-            value={address}
-            onChange={(v) => updateContact({ address: v })}
-            placeholder="اختياري"
+    <div>
+      <SettingsRow title="معلومات التواصل" description="تظهر هذه البيانات في صفحة تواصل معنا العامة.">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <TextField
+            label="البريد الإلكتروني"
+            type="email"
+            value={email}
+            onChange={(v) => updateContact({ email: v })}
+            dir="ltr"
           />
+          <TextField
+            label="رقم الهاتف"
+            value={phone}
+            onChange={(v) => updateContact({ phone: v })}
+            placeholder="+966 5X XXX XXXX"
+            dir="ltr"
+          />
+          <TextField label="ساعات الرد" value={hours} onChange={(v) => updateContact({ hours: v })} />
+          <div className="sm:col-span-2">
+            <TextArea
+              label="العنوان"
+              rows={2}
+              value={address}
+              onChange={(v) => updateContact({ address: v })}
+              placeholder="اختياري"
+            />
+          </div>
         </div>
-      </div>
+      </SettingsRow>
 
-      <div className="mt-6 border-t border-beige pt-6">
-        <p className="mb-4 text-sm text-ink">روابط التواصل الاجتماعي</p>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <SettingsRow title="روابط التواصل الاجتماعي" description="تظهر في تذييل الموقع وصفحة التواصل.">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
           <TextField
             label="إنستغرام"
             value={instagram}
@@ -65,15 +66,17 @@ export function ContactSection({ onSaved }: ContactSectionProps) {
             dir="ltr"
           />
         </div>
-      </div>
+      </SettingsRow>
 
-      <button
-        type="button"
-        onClick={() => onSaved("تم حفظ إعدادات التواصل")}
-        className="mt-6 rounded-full bg-ink px-6 py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
-      >
-        حفظ التغييرات
-      </button>
+      <div className="pt-6">
+        <button
+          type="button"
+          onClick={() => onSaved("تم حفظ إعدادات التواصل")}
+          className="rounded-full bg-ink px-6 py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
+        >
+          حفظ التغييرات
+        </button>
+      </div>
     </div>
   );
 }

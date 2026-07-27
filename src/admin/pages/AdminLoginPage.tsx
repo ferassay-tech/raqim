@@ -9,7 +9,7 @@ export default function AdminLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [email, setEmail] = useState("admin@localhost");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,12 +61,6 @@ export default function AdminLoginPage() {
             تسجيل الدخول
           </button>
         </form>
-
-        <p className="mt-6 text-center text-[11px] text-ink-faint">
-          نظام دخول محلي مؤقت لا يتصل بأي خادم — بيانات الدخول الافتراضية:
-          <br />
-          <span dir="ltr">admin@localhost / admin123</span>
-        </p>
       </div>
     </div>
   );

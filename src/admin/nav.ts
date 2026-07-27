@@ -13,6 +13,7 @@ import {
   IconGear,
   IconUser,
   IconPencil,
+  IconArchive,
 } from "./icons";
 
 export interface AdminNavItem {
@@ -58,6 +59,10 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
   {
+    label: "المكتبة الرقمية",
+    items: [{ to: "/admin/library", label: "الملفات القابلة للتحميل", icon: IconArchive }],
+  },
+  {
     label: "التواصل",
     items: [{ to: "/admin/messages", label: "الرسائل", icon: IconMail }],
   },
@@ -88,6 +93,7 @@ export const ADMIN_SEGMENT_LABELS: Record<string, string> = {
   articles: "المقالات",
   media: "مكتبة الوسائط",
   content: "محتوى الموقع",
+  library: "المكتبة الرقمية",
   messages: "الرسائل",
   settings: "الإعدادات",
   profile: "الملف الشخصي",
@@ -96,4 +102,5 @@ export const ADMIN_SEGMENT_LABELS: Record<string, string> = {
   seo: "السيو",
   contact: "التواصل",
   store: "المتجر",
+  storage: "التخزين",
 };

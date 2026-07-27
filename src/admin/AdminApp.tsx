@@ -17,6 +17,7 @@ import ArticlesListPage from "./pages/ArticlesListPage";
 import ArticleNewPage from "./pages/ArticleNewPage";
 import ArticleEditPage from "./pages/ArticleEditPage";
 import MediaLibraryPage from "./pages/MediaLibraryPage";
+import LibraryListPage from "./pages/LibraryListPage";
 import MessagesPage from "./pages/MessagesPage";
 import SettingsPage from "./pages/SettingsPage";
 import SiteContentPage from "./pages/SiteContentPage";
@@ -62,6 +63,7 @@ export default function AdminApp() {
         <Route path="articles/edit/:id" element={<ArticleEditPage />} />
 
         <Route path="media" element={<MediaLibraryPage />} />
+        <Route path="library" element={<LibraryListPage />} />
 
         <Route path="messages" element={<MessagesPage />} />
         <Route path="messages/:id" element={<MessagesPage />} />

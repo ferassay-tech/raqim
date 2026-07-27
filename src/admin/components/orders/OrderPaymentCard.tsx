@@ -4,6 +4,8 @@ import { ORDER_STATUS_OPTIONS } from "../../lib/orderStatus";
 import { SegmentedControl } from "../form/SegmentedControl";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { CopyIconButton } from "../CopyIconButton";
+import { useAuth } from "../../context/AuthContext";
+import { can } from "../../lib/permissions";
 
 interface OrderPaymentCardProps {
   order: AdminOrder;
@@ -14,16 +16,24 @@ const SENSITIVE: OrderStatus[] = ["refunded", "cancelled"];
 
 export function OrderPaymentCard({ order, onStatusChange }: OrderPaymentCardProps) {
   const [pendingStatus, setPendingStatus] = useState<OrderStatus | null>(null);
+  const { currentUser } = useAuth();
+  const canChangeStatus = can(currentUser?.role, "changeOrderStatus");
 
   const requestChange = (status: string) => {
     const next = status as OrderStatus;
     if (next === order.status) return;
+    if (SENSITIVE.includes(next) && !canChangeStatus) return;
     if (SENSITIVE.includes(next)) {
       setPendingStatus(next);
     } else {
       onStatusChange(next);
     }
   };
+
+  const statusOptions = ORDER_STATUS_OPTIONS.map((opt) => ({
+    ...opt,
+    disabled: SENSITIVE.includes(opt.value) && !canChangeStatus,
+  }));
 
   return (
     <div className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
@@ -52,8 +62,11 @@ export function OrderPaymentCard({ order, onStatusChange }: OrderPaymentCardProp
           label="حالة الطلب"
           value={order.status}
           onChange={requestChange}
-          options={ORDER_STATUS_OPTIONS}
+          options={statusOptions}
         />
+        {!canChangeStatus && (
+          <p className="mt-2 text-xs text-ink-faint">صلاحيتك الحالية لا تسمح بتحديد الطلب كمسترجع أو ملغي.</p>
+        )}
       </div>
 
       <ConfirmDialog
