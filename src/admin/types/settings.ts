@@ -39,8 +39,44 @@ export interface BrandRadiusTokens {
   lg: number;
 }
 
+/** Header logo box — every value is optional/overridable except the two
+ * responsive sizes, which is what actually renders day-to-day. Explicit
+ * width/height (when set) take precedence over desktopSize/mobileSize;
+ * objectFit guarantees the source image is never stretched out of its
+ * aspect ratio regardless of which box it ends up in. */
+export interface LogoSizing {
+  width: number | null;
+  height: number | null;
+  maxWidth: number | null;
+  maxHeight: number | null;
+  desktopSize: number;
+  mobileSize: number;
+  objectFit: "contain" | "cover" | "fill";
+  padding: number;
+}
+
+/** Typography for the "رقيم" wordmark shown beside the header logo —
+ * distinct from `fonts.logotype` (used elsewhere across the site), so
+ * editing the wordmark's own type never touches other logotype usages.
+ * `englishFontFamily` is reserved for a future English wordmark variant —
+ * only the Arabic text is actually rendered in the header today. */
+export interface WordmarkTypography {
+  arabicFontFamily: BrandFontFamily;
+  englishFontFamily: BrandFontFamily;
+  fontWeight: number;
+  /** em units. */
+  letterSpacing: number;
+  fontSizeDesktop: number;
+  fontSizeMobile: number;
+}
+
 export interface BrandSettings {
   logo: string | null;
+  logoSizing: LogoSizing;
+  /** The book page's atmospheric hero background — a real, replaceable
+   * Media Library asset instead of a hardcoded path. */
+  heroImage: string | null;
+  wordmark: WordmarkTypography;
   favicon: string | null;
   colors: BrandColorTokens;
   fonts: Record<BrandFontRole, BrandFontFamily>;

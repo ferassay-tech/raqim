@@ -12,6 +12,8 @@ import type { AdminBook } from "../admin/types/book";
 import { isInLibraryGrid } from "../admin/lib/bookPlacement";
 import { useSettings } from "../admin/context/SettingsContext";
 import { useSiteContent } from "../admin/context/SiteContentContext";
+import { buildGraph, bookSchema, organizationSchema, websiteSchema } from "../lib/structuredData";
+import { useAssetDimensions } from "../lib/mediaDimensions";
 // Every Hero* atmosphere component (HeroLight, HeroClouds, HeroParticles,
 // HeroBirds, HeroForeground) and the shared ambient mask are temporarily
 // not rendered anywhere on the homepage — components and assets are kept
@@ -38,27 +40,21 @@ export default function HomePage() {
     [activeBooks]
   );
 
-  const bookJsonLd = heroBook
-    ? JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "Book",
-        name: heroBook.title,
-        url: `https://r-aqim.com/books/${heroBook.id}`,
-        author: { "@type": "Person", name: heroBook.author },
-        inLanguage: "ar",
-        bookFormat: "https://schema.org/EBook",
-      })
-    : null;
+  const homeJsonLd = buildGraph([
+    organizationSchema(),
+    websiteSchema(),
+    ...(heroBook ? [bookSchema(heroBook)] : []),
+  ]);
 
   return (
     <PageShell>
       <Helmet
         title={settings.seo.title}
         description={settings.seo.description}
-        url="https://r-aqim.com/"
-        image={settings.seo.socialImage ? `https://r-aqim.com${settings.seo.socialImage}` : undefined}
+        path="/"
+        image={settings.seo.socialImage ?? undefined}
       />
-      {bookJsonLd && <StructuredData json={bookJsonLd} />}
+      <StructuredData json={homeJsonLd} />
       <HeroSection book={heroBook} />
       <PhilosophySection />
       {featuredBook && <FeaturedBookSection book={featuredBook} />}
@@ -185,6 +181,8 @@ function HeroSection({ book }: { book: AdminBook | null }) {
 
 function PhilosophySection() {
   const { getValue } = useSiteContent();
+  const getDimensions = useAssetDimensions();
+  const patternDims = getDimensions("/assets/arabesque-pattern.webp");
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-cream via-cream to-ivory px-6 py-14 lg:px-10 lg:py-20">
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-14">
@@ -207,8 +205,11 @@ function PhilosophySection() {
             <img
               src="/assets/arabesque-pattern.webp"
               alt=""
+              width={patternDims?.width}
+              height={patternDims?.height}
               className="h-full w-full object-cover"
               loading="lazy"
+              decoding="async"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-cream/40 via-transparent to-transparent" />
             <ArchFrame className="pointer-events-none absolute -bottom-8 left-1/2 h-64 w-48 -translate-x-1/2 text-ivory/70" />
@@ -220,17 +221,24 @@ function PhilosophySection() {
 }
 
 function FeaturedBookSection({ book }: { book: AdminBook }) {
+  const getDimensions = useAssetDimensions();
+  const backdropSrc = book.gallery[0] ?? "/assets/kuni-hajar-collection.webp";
+  const backdropDims = getDimensions(backdropSrc);
+  const coverDims = getDimensions(book.cover);
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-ivory via-ivory to-cream px-6 py-16 lg:px-10 lg:py-24">
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 lg:grid-cols-2">
         <Reveal className="relative order-2 lg:order-1">
           <div className="relative overflow-hidden rounded-[10px] shadow-[0_30px_60px_-25px_rgba(44,36,32,0.35)]">
             <img
-              src={book.gallery[0] ?? "/assets/kuni-hajar-collection.webp"}
+              src={backdropSrc}
               alt=""
+              width={backdropDims?.width}
+              height={backdropDims?.height}
               className="h-[28rem] w-full object-cover lg:h-[34rem]"
               style={{ objectPosition: "30% 35%" }}
               loading="lazy"
+              decoding="async"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/25 via-transparent to-transparent" />
           </div>
@@ -241,8 +249,11 @@ function FeaturedBookSection({ book }: { book: AdminBook }) {
               <img
                 src={book.cover}
                 alt={book.title}
+                width={coverDims?.width}
+                height={coverDims?.height}
                 className="h-full w-full object-cover"
                 loading="lazy"
+                decoding="async"
               />
             </div>
           )}
@@ -279,6 +290,7 @@ function FeaturedBookSection({ book }: { book: AdminBook }) {
 }
 
 function BooksGridSection({ books }: { books: AdminBook[] }) {
+  const getDimensions = useAssetDimensions();
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-cream via-cream to-mauve/25 px-6 py-16 lg:px-10 lg:py-24">
       <div className="relative mx-auto max-w-7xl">
@@ -302,8 +314,11 @@ function BooksGridSection({ books }: { books: AdminBook[] }) {
                     <img
                       src={book.cover}
                       alt={book.title}
+                      width={getDimensions(book.cover)?.width}
+                      height={getDimensions(book.cover)?.height}
                       className="mx-auto h-full w-auto object-contain transition-transform duration-500 group-hover:scale-[1.03]"
                       loading="lazy"
+                      decoding="async"
                     />
                   )}
                   <span className="absolute right-4 top-4 flex h-9 w-9 translate-y-2 items-center justify-center rounded-full bg-ink/90 text-sm text-ivory opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">

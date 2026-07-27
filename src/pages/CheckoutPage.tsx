@@ -52,7 +52,12 @@ const CheckoutPage: React.FC = () => {
       dir="rtl"
       className="min-h-screen bg-ivory px-4 py-16 sm:px-8"
     >
-      <Helmet title="إتمام الشراء — رقيم" url="https://r-aqim.com/checkout" />
+      <Helmet
+        title="إتمام الشراء — رقيم"
+        description="أكملي عملية الشراء واختاري طريقة الدفع المناسبة."
+        path="/checkout"
+        noindex
+      />
       <div className="mx-auto flex max-w-3xl flex-col gap-10">
         <Link
           to={book ? `/books/${book.id}` : "/books"}

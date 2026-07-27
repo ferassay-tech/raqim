@@ -17,8 +17,8 @@ export default function ContactPage() {
     <PageShell>
       <Helmet
         title="تواصل معنا — رقيم"
-        description="تواصلي مع فريق رقيم لأي استفسار."
-        url="https://r-aqim.com/contact"
+        description="تواصلي مع فريق رقيم لأي استفسار عن الكتب أو الطلبات أو التعاون."
+        path="/contact"
       />
       <PageHeader
         eyebrow="تواصل معنا"
@@ -77,12 +77,14 @@ export default function ContactPage() {
                 className="space-y-5 rounded-[10px] border border-beige bg-cream/40 p-8"
               >
                 <Field
+                  id="contact-name"
                   label="الاسم"
                   value={form.name}
                   onChange={(v) => setForm((f) => ({ ...f, name: v }))}
                   required
                 />
                 <Field
+                  id="contact-email"
                   label="البريد الإلكتروني"
                   type="email"
                   value={form.email}
@@ -90,8 +92,9 @@ export default function ContactPage() {
                   required
                 />
                 <div>
-                  <label className="mb-2 block text-sm text-ink">رسالتك</label>
+                  <label htmlFor="contact-message" className="mb-2 block text-sm text-ink">رسالتك</label>
                   <textarea
+                    id="contact-message"
                     required
                     rows={5}
                     value={form.message}
@@ -139,12 +142,14 @@ function ContactInfo({ label, value }: { label: string; value: string }) {
 }
 
 function Field({
+  id,
   label,
   value,
   onChange,
   type = "text",
   required,
 }: {
+  id: string;
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -153,8 +158,9 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm text-ink">{label}</label>
+      <label htmlFor={id} className="mb-2 block text-sm text-ink">{label}</label>
       <input
+        id={id}
         type={type}
         required={required}
         value={value}

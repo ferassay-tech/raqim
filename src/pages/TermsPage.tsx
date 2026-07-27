@@ -32,7 +32,11 @@ const sections = [
 export default function TermsPage() {
   return (
     <PageShell>
-      <Helmet title="الشروط والأحكام — رقيم" url="https://r-aqim.com/terms" />
+      <Helmet
+        title="الشروط والأحكام — رقيم"
+        description="الشروط والأحكام الناظمة لاستخدام موقع رقيم وشراء إصداراته الرقمية."
+        path="/terms"
+      />
       <PageHeader eyebrow="قانوني" title="الشروط والأحكام" description="آخر تحديث: يونيو ٢٠٢٦" />
       <section className="px-6 py-16 lg:px-10">
         <div className="mx-auto max-w-3xl space-y-10">

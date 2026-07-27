@@ -33,11 +33,22 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [rawSettings, setSettings] = usePersistedState<AdminSettings>("settings", INITIAL_SETTINGS);
   // Defensive merge against defaults — a browser that persisted `settings`
-  // before a new top-level section (e.g. `storage`) existed would otherwise
-  // read back an object missing that key and crash the first time it's
-  // touched. New sections should always land here, not assume a clean slate.
+  // before a new section or nested field (e.g. `storage`, or `brand`'s
+  // `logoSizing`/`heroImage`/`wordmark`) existed would otherwise read back
+  // an object missing those keys and crash the first time one is touched.
+  // New fields should always land here, not assume a clean slate.
   const settings: AdminSettings = useMemo(
-    () => ({ ...INITIAL_SETTINGS, ...rawSettings, storage: rawSettings.storage ?? INITIAL_SETTINGS.storage }),
+    () => ({
+      ...INITIAL_SETTINGS,
+      ...rawSettings,
+      brand: {
+        ...INITIAL_SETTINGS.brand,
+        ...rawSettings.brand,
+        logoSizing: { ...INITIAL_SETTINGS.brand.logoSizing, ...rawSettings.brand?.logoSizing },
+        wordmark: { ...INITIAL_SETTINGS.brand.wordmark, ...rawSettings.brand?.wordmark },
+      },
+      storage: rawSettings.storage ?? INITIAL_SETTINGS.storage,
+    }),
     [rawSettings]
   );
 

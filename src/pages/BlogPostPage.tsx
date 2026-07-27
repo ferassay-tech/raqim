@@ -3,8 +3,10 @@ import { PageShell } from "../components/page-shell";
 import { Reveal } from "../components/motion-primitives";
 import { GoldDivider } from "../components/ornaments";
 import { Helmet } from "../components/Helmet";
+import { StructuredData } from "../components/StructuredData";
 import { useArticles } from "../admin/context/ArticlesContext";
 import { formatArticleDate } from "../admin/lib/articleStatus";
+import { buildGraph, articleSchema, breadcrumbSchema } from "../lib/structuredData";
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -15,14 +17,27 @@ export default function BlogPostPage() {
 
   const paragraphs = post.content.split(/\n{2,}/).filter((p) => p.trim().length > 0);
 
+  const postJsonLd = buildGraph([
+    articleSchema(post),
+    breadcrumbSchema([
+      { name: "الرئيسية", path: "/" },
+      { name: "المدونة", path: "/blog" },
+      { name: post.title, path: `/blog/${post.slug}` },
+    ]),
+  ]);
+
   return (
     <PageShell>
       <Helmet
         title={post.seoTitle || `${post.title} — مدونة رقيم`}
         description={post.seoDescription || post.excerpt}
-        url={`https://r-aqim.com/blog/${post.slug}`}
-        image={post.coverImage ? `https://r-aqim.com${post.coverImage}` : undefined}
+        path={`/blog/${post.slug}`}
+        image={post.coverImage ?? undefined}
+        type="article"
+        publishedTime={post.publishedAt ?? undefined}
+        modifiedTime={post.updatedAt}
       />
+      <StructuredData json={postJsonLd} />
       <article className="px-6 py-20 lg:px-10 lg:py-28">
         <div className="mx-auto max-w-2xl">
           <Reveal>
@@ -52,6 +67,7 @@ export default function BlogPostPage() {
                 alt={post.title}
                 className="mt-10 w-full rounded-[10px] object-cover"
                 loading="lazy"
+                decoding="async"
               />
             </Reveal>
           )}

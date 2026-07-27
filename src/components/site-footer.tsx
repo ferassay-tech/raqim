@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { LogoMark } from "./site-nav";
 import { GoldDivider } from "./ornaments";
 import { useSiteContent } from "../admin/context/SiteContentContext";
+import { SOCIAL_LINKS } from "../config/socialLinks";
+import { useAssetDimensions } from "../lib/mediaDimensions";
 
 const EXPLORE_LINKS = [
   { to: "/books", label: "الكتب" },
@@ -20,6 +22,8 @@ const SUPPORT_LINKS = [
 
 export function SiteFooter() {
   const { getValue } = useSiteContent();
+  const getDimensions = useAssetDimensions();
+  const patternDims = getDimensions("/assets/arabesque-pattern.webp");
 
   return (
     <footer className="relative overflow-hidden bg-ink text-cream">
@@ -27,8 +31,11 @@ export function SiteFooter() {
         <img
           src="/assets/arabesque-pattern.webp"
           alt=""
+          width={patternDims?.width}
+          height={patternDims?.height}
           className="absolute -left-24 -top-24 h-[560px] w-[560px] object-cover"
           loading="lazy"
+          decoding="async"
         />
       </div>
 
@@ -52,15 +59,28 @@ export function SiteFooter() {
           <div>
             <h3 className="text-sm text-gold">{getValue("footer.followTitle")}</h3>
             <div className="mt-4 flex gap-3">
-              {["إنستغرام", "بينتريست", "تيك توك"].map((label) => (
-                <a
-                  key={label}
-                  href="#"
-                  className="rounded-full border border-white/15 px-4 py-2 text-xs text-cream/80 transition-colors hover:border-gold hover:text-gold"
-                >
-                  {label}
-                </a>
-              ))}
+              {Object.entries(SOCIAL_LINKS).map(([platform, { label, url }]) =>
+                url ? (
+                  <a
+                    key={platform}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border border-white/15 px-4 py-2 text-xs text-cream/80 transition-colors hover:border-gold hover:text-gold"
+                  >
+                    {label}
+                  </a>
+                ) : (
+                  <span
+                    key={platform}
+                    aria-disabled="true"
+                    title="سيتوفر هذا الرابط قريبًا"
+                    className="cursor-not-allowed rounded-full border border-white/15 px-4 py-2 text-xs text-cream/40"
+                  >
+                    {label}
+                  </span>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -126,7 +146,11 @@ function NewsletterBand() {
         }}
         className="flex flex-col gap-3 sm:flex-row"
       >
+        <label htmlFor="newsletter-email" className="sr-only">
+          بريدك الإلكتروني
+        </label>
         <input
+          id="newsletter-email"
           type="email"
           required
           value={email}

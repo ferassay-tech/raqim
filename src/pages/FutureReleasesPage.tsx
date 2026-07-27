@@ -5,9 +5,11 @@ import { Reveal } from "../components/motion-primitives";
 import { GoldDivider } from "../components/ornaments";
 import { Helmet } from "../components/Helmet";
 import { useBooks } from "../admin/context/BooksContext";
+import { useAssetDimensions } from "../lib/mediaDimensions";
 
 export default function FutureReleasesPage() {
   const { books } = useBooks();
+  const getDimensions = useAssetDimensions();
   const upcoming = useMemo(
     () =>
       books
@@ -21,7 +23,7 @@ export default function FutureReleasesPage() {
       <Helmet
         title="إصدارات قادمة — رقيم"
         description="تعرّفي على الكتب القادمة من رقيم قبل صدورها."
-        url="https://r-aqim.com/future-releases"
+        path="/future-releases"
       />
       <PageHeader
         eyebrow="قريبًا"
@@ -36,7 +38,15 @@ export default function FutureReleasesPage() {
               <div className="flex flex-col items-center gap-8 rounded-[10px] border border-beige bg-cream/40 p-8 sm:flex-row-reverse sm:text-right">
                 <div className="w-40 shrink-0 rounded-[10px] bg-gradient-to-br from-cream to-beige p-4">
                   {book.cover && (
-                    <img src={book.cover} alt={book.title} className="w-full object-contain" loading="lazy" />
+                    <img
+                      src={book.cover}
+                      alt={book.title}
+                      width={getDimensions(book.cover)?.width}
+                      height={getDimensions(book.cover)?.height}
+                      className="w-full object-contain"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   )}
                 </div>
                 <div className="flex-1">

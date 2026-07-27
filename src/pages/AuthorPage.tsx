@@ -5,16 +5,34 @@ import { GoldDivider } from "../components/ornaments";
 import { UnderlineLink } from "../components/cta";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
+import { StructuredData } from "../components/StructuredData";
+import { buildGraph, breadcrumbSchema } from "../lib/structuredData";
+import { useAssetDimensions } from "../lib/mediaDimensions";
 
 export default function AuthorPage() {
   const { slug } = useParams<{ slug: string }>();
   const author = getAuthorBySlug(slug ?? "");
+  const getDimensions = useAssetDimensions();
 
   if (!author) return <Navigate to="/books" replace />;
 
+  const authorJsonLd = buildGraph([
+    {
+      "@type": "Person",
+      name: author.name,
+      description: author.bio,
+      jobTitle: author.title,
+    },
+    breadcrumbSchema([
+      { name: "الرئيسية", path: "/" },
+      { name: author.name, path: `/authors/${author.slug}` },
+    ]),
+  ]);
+
   return (
     <PageShell>
-      <Helmet title={`${author.name} — رقيم`} url={`https://r-aqim.com/authors/${author.slug}`} />
+      <Helmet title={`${author.name} — رقيم`} description={author.bio} path={`/authors/${author.slug}`} />
+      <StructuredData json={authorJsonLd} />
       <section className="px-6 py-20 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[0.6fr_1.4fr]">
           <Reveal className="flex justify-center">
@@ -52,7 +70,15 @@ export default function AuthorPage() {
                     className="group block overflow-hidden rounded-[10px] border border-beige bg-ivory"
                   >
                     <div className="aspect-[3/4] bg-gradient-to-br from-cream to-beige p-8">
-                      <img src={book.cover} alt={book.title} className="mx-auto h-full w-auto object-contain" loading="lazy" />
+                      <img
+                        src={book.cover}
+                        alt={book.title}
+                        width={getDimensions(book.cover)?.width}
+                        height={getDimensions(book.cover)?.height}
+                        className="mx-auto h-full w-auto object-contain"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </div>
                     <div className="p-5 text-right">
                       <h3 className="font-display text-lg text-ink">{book.title}</h3>

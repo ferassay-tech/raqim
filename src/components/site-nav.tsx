@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useSiteContent } from "../admin/context/SiteContentContext";
 import { useBooks } from "../admin/context/BooksContext";
 import { isInLibraryGrid } from "../admin/lib/bookPlacement";
 import { useSettings } from "../admin/context/SettingsContext";
+import { FONT_STACKS } from "../admin/context/ThemeContext";
 
 function IconMenu({ size = 22 }: { size?: number }) {
   return (
@@ -51,6 +53,16 @@ export function SiteNav() {
   const { pathname } = useLocation();
   const { getValue } = useSiteContent();
   const { books } = useBooks();
+  const { settings } = useSettings();
+  const { wordmark } = settings.brand;
+
+  const wordmarkStyle = {
+    fontFamily: FONT_STACKS[wordmark.arabicFontFamily],
+    fontWeight: wordmark.fontWeight,
+    letterSpacing: `${wordmark.letterSpacing}em`,
+    "--wordmark-size-mobile": `${wordmark.fontSizeMobile}px`,
+    "--wordmark-size-desktop": `${wordmark.fontSizeDesktop}px`,
+  } as CSSProperties;
 
   const navLinks = [
     { to: "/", label: getValue("nav.home") },
@@ -88,13 +100,16 @@ export function SiteNav() {
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-10">
         <Link to="/" className="flex items-center gap-1">
-          <LogoMark className="h-16 w-16 object-contain transition-transform duration-300 hover:scale-105" />
-          <span className="font-logotype text-2xl tracking-wide text-ink">
+          <LogoMark useConfiguredSize className="transition-transform duration-300 hover:scale-105" />
+          <span
+            style={wordmarkStyle}
+            className="text-[length:var(--wordmark-size-mobile)] text-ink lg:text-[length:var(--wordmark-size-desktop)]"
+          >
             رقيم
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-8 lg:flex">
+        <nav aria-label="التصفح الرئيسي" className="hidden items-center gap-8 lg:flex">
           {navLinks.map((link) => (
             <NavLink key={link.to} to={link.to} label={link.label} active={pathname === link.to} />
           ))}
@@ -122,14 +137,16 @@ export function SiteNav() {
           onClick={() => setOpen((v) => !v)}
           className="grid h-10 w-10 place-items-center text-ink lg:hidden"
           aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
+          aria-expanded={open}
+          aria-controls="mobile-nav"
         >
           {open ? <IconClose size={22} /> : <IconMenu size={22} />}
         </button>
       </div>
 
       {open && (
-        <div className="border-t border-beige bg-ivory px-6 pb-8 pt-4 lg:hidden">
-          <nav className="flex flex-col gap-1">
+        <div id="mobile-nav" className="border-t border-beige bg-ivory px-6 pb-8 pt-4 lg:hidden">
+          <nav aria-label="قائمة الجوال" className="flex flex-col gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
@@ -174,9 +191,51 @@ function NavLink({ to, label, active }: { to: string; label: string; active: boo
 }
 export function LogoMark({
   className = "",
+  useConfiguredSize = false,
 }: {
   className?: string;
+  /** Applies the Dashboard's Logo Sizing controls (width/height/max/object
+   * fit/padding/responsive size) via inline style. Off by default so
+   * existing call sites (e.g. the footer's small fixed-size mark) keep
+   * their own Tailwind size classes untouched. */
+  useConfiguredSize?: boolean;
 }) {
   const { settings } = useSettings();
-  return <img src={settings.brand.logo ?? undefined} alt="رقيم" className={className} />;
+  const { logo, logoSizing } = settings.brand;
+
+  if (!useConfiguredSize) {
+    return <img src={logo ?? undefined} alt="رقيم" decoding="async" className={className} />;
+  }
+
+  const explicitWidth = logoSizing.width ? `${logoSizing.width}px` : undefined;
+  const explicitHeight = logoSizing.height ? `${logoSizing.height}px` : undefined;
+
+  const style = {
+    objectFit: logoSizing.objectFit,
+    padding: logoSizing.padding ? `${logoSizing.padding}px` : undefined,
+    maxWidth: logoSizing.maxWidth ? `${logoSizing.maxWidth}px` : undefined,
+    maxHeight: logoSizing.maxHeight ? `${logoSizing.maxHeight}px` : undefined,
+    width: explicitWidth ?? "auto",
+    height: explicitHeight,
+    "--logo-size-mobile": `${logoSizing.mobileSize}px`,
+    "--logo-size-desktop": `${logoSizing.desktopSize}px`,
+  } as CSSProperties;
+
+  // Explicit height (when set) always wins; otherwise the responsive
+  // mobile/desktop sizes drive the visible height — aspect ratio is
+  // preserved either way since width is left to "auto" and objectFit
+  // guarantees the source image is never stretched.
+  const responsiveHeight = explicitHeight
+    ? ""
+    : "h-[length:var(--logo-size-mobile)] lg:h-[length:var(--logo-size-desktop)]";
+
+  return (
+    <img
+      src={logo ?? undefined}
+      alt="رقيم"
+      decoding="async"
+      style={style}
+      className={`${responsiveHeight} ${className}`}
+    />
+  );
 }

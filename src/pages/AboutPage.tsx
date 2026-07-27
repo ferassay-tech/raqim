@@ -3,15 +3,25 @@ import { GoldDivider, IconBook, IconHeart, IconCrescent, IconJournal } from "../
 import { Reveal } from "../components/motion-primitives";
 import { UnderlineLink } from "../components/cta";
 import { Helmet } from "../components/Helmet";
+import { StructuredData } from "../components/StructuredData";
+import { buildGraph, breadcrumbSchema } from "../lib/structuredData";
+
+const aboutJsonLd = buildGraph([
+  breadcrumbSchema([
+    { name: "الرئيسية", path: "/" },
+    { name: "عن الدار", path: "/about" },
+  ]),
+]);
 
 export default function AboutPage() {
   return (
     <PageShell>
       <Helmet
-        title="عن رقيم"
-        description="تعرّفي على رقيم، دار النشر الرقمية الفاخرة للمرأة العربية."
-        url="https://r-aqim.com/about"
+        title="عن رقيم — دار نشر رقمية فاخرة للمرأة"
+        description="تعرّفي على رقيم، دار النشر الرقمية الفاخرة للمرأة العربية، ورسالتها في تحويل المعرفة إلى أثر خالد."
+        path="/about"
       />
+      <StructuredData json={aboutJsonLd} />
       <section className="relative overflow-hidden px-6 pb-20 pt-16 lg:px-10 lg:pt-24">
         <div className="pointer-events-none absolute inset-0">
           <img src="/assets/philosophy.webp" alt="" className="absolute inset-0 h-full w-full object-cover opacity-[0.1]" />

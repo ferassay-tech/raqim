@@ -3,8 +3,17 @@ import { Link } from "react-router-dom";
 import { PageShell, PageHeader } from "../components/page-shell";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
+import { StructuredData } from "../components/StructuredData";
 import { useArticles } from "../admin/context/ArticlesContext";
 import { formatArticleDate } from "../admin/lib/articleStatus";
+import { buildGraph, breadcrumbSchema } from "../lib/structuredData";
+
+const blogJsonLd = buildGraph([
+  breadcrumbSchema([
+    { name: "الرئيسية", path: "/" },
+    { name: "المدونة", path: "/blog" },
+  ]),
+]);
 
 export default function BlogIndexPage() {
   const { articles } = useArticles();
@@ -22,8 +31,9 @@ export default function BlogIndexPage() {
       <Helmet
         title="المدونة — رقيم"
         description="مقالات وأفكار من رقيم حول الكتب، والثقافة، والكتابة، والإلهام."
-        url="https://r-aqim.com/blog"
+        path="/blog"
       />
+      <StructuredData json={blogJsonLd} />
       <PageHeader
         eyebrow="المدونة"
         title="كلمات تستحق وقتك"

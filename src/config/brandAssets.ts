@@ -1,0 +1,18 @@
+/**
+ * Single source of truth for every brand image path — the logo, the book
+ * page's hero background, and the social-sharing (OG/Twitter) image all
+ * come from here. Every one of these lives inside the project's own
+ * `public/` assets (never an external URL), and every Settings seed /
+ * Media Library entry / meta tag that needs one of these paths reads it
+ * from this file instead of holding its own literal string.
+ *
+ * `index.html`'s og:image/twitter:image meta tags are the one necessary
+ * exception — plain HTML can't import a TS module, since crawlers read it
+ * before any JavaScript runs. Keep `OG_IMAGE` here in sync with those two
+ * tags by hand if this path ever changes.
+ */
+export const BRAND_ASSETS = {
+  logo: "/logos/lumora-logo-signature.png",
+  heroImage: "/assets/arabesque-pattern.webp",
+  ogImage: "/og-image-2026.png",
+} as const;

@@ -1,10 +1,16 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Helmet } from "../components/Helmet";
 
 export default function NotFoundPage() {
+  const location = useLocation();
   return (
     <div dir="rtl" className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-ivory px-6 text-center">
-      <Helmet title="٤٠٤ — الصفحة غير موجودة" />
+      <Helmet
+        title="٤٠٤ — الصفحة غير موجودة — رقيم"
+        description="الصفحة التي تبحثين عنها غير موجودة أو تم نقلها."
+        path={location.pathname}
+        noindex
+      />
       <span className="font-logotype text-6xl text-gold">٤٠٤</span>
       <h1 className="font-display text-3xl text-ink">هذه الصفحة غير موجودة</h1>
       <p className="max-w-md text-ink-soft">

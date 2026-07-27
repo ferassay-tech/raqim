@@ -243,13 +243,13 @@ export const INITIAL_MEDIA_ASSETS: AdminMediaAsset[] = [
   },
   {
     id: "media-og",
-    url: "/og-image.webp",
+    url: "/og-image-2026.png",
     name: "صورة المشاركة الاجتماعية",
     type: "image",
     folderId: "folder-brand",
-    size: 310_000,
-    width: 1200,
-    height: 630,
-    uploadedAt: "2026-05-15",
+    size: 2_138_324,
+    width: 1536,
+    height: 1024,
+    uploadedAt: "2026-07-20",
   },
 ];

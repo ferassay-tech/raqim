@@ -13,7 +13,12 @@ const OrderSuccessPage: React.FC = () => {
       dir="rtl"
       className="flex min-h-screen flex-col items-center justify-center gap-6 bg-ivory px-4 py-16 text-center"
     >
-      <Helmet title="تم استلام طلبك — رقيم" url="https://r-aqim.com/order-received" />
+      <Helmet
+        title="تم استلام طلبك — رقيم"
+        description="تم استلام طلبك بنجاح وهو قيد المراجعة."
+        path="/order-received"
+        noindex
+      />
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}

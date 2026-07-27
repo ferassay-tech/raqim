@@ -84,7 +84,9 @@ const PaymentMethodPage: React.FC = () => {
     <main dir="rtl" className="min-h-screen bg-ivory px-4 py-16 sm:px-8">
       <Helmet
         title={`${requiresConfirmation ? "الدفع عبر" : "شراء الكتاب عبر"} ${config.title} — رقيم`}
-        url={`https://r-aqim.com/payment/${config.id}`}
+        description={`أكملي الدفع عبر ${config.title} للحصول على نسختك الرقمية.`}
+        path={`/payment/${config.id}`}
+        noindex
       />
       <div className="mx-auto flex max-w-2xl flex-col gap-8">
         <Link

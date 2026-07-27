@@ -5,8 +5,14 @@ import { SiteFooter } from "./site-footer";
 export function PageShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-ivory">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:start-2 focus:z-50 focus:rounded-full focus:bg-ink focus:px-5 focus:py-2.5 focus:text-sm focus:text-ivory"
+      >
+        تخطي إلى المحتوى
+      </a>
       <SiteNav />
-      <main className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1">{children}</main>
       <SiteFooter />
     </div>
   );

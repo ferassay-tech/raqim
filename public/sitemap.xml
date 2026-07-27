@@ -1,49 +1,105 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-<url>
-<loc>https://r-aqim.com/</loc>
-</url>
-
-<url>
-<loc>https://r-aqim.com/books</loc>
-</url>
-
-<url>
-<loc>https://r-aqim.com/books/kuni-hajar</loc>
-</url>
-
-<url>
-<loc>https://r-aqim.com/about</loc>
-</url>
-
-<url>
-<loc>https://r-aqim.com/contact</loc>
-</url>
-
-<url>
-<loc>https://r-aqim.com/blog</loc>
-</url>
-
-<url>
-<loc>https://r-aqim.com/faq</loc>
-</url>
-
-<url>
-<loc>https://r-aqim.com/privacy</loc>
-</url>
-
-<url>
-<loc>https://r-aqim.com/terms</loc>
-</url>
-
-<url>
-<loc>https://r-aqim.com/search</loc>
-</url>
-
-<url>
-<loc>https://r-aqim.com/future-releases</loc>
-</url>
-
+  <url>
+    <loc>https://r-aqim.com/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/books</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/books/kuni-hajar</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/books/coming-soon-1</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/books/coming-soon-2</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/books/coming-soon-3</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/future-releases</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/about</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/authors/maha-nasr</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/blog</loc>
+    <lastmod>2026-06-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/blog/athar-la-yunsa</loc>
+    <lastmod>2026-06-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/blog/sabr-hajar</loc>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/blog/kitab-hadiya</loc>
+    <lastmod>2026-05-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/contact</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/faq</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/privacy</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://r-aqim.com/terms</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
 </urlset>

@@ -1,5 +1,10 @@
 User-agent: *
-
 Allow: /
+Disallow: /admin
+Disallow: /checkout
+Disallow: /payment
+Disallow: /order-received
+Disallow: /download
+Disallow: /search
 
 Sitemap: https://r-aqim.com/sitemap.xml

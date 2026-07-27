@@ -1,17 +1,49 @@
 import { useEffect } from "react";
+import {
+  absoluteUrl,
+  DEFAULT_OG_IMAGE,
+  DEFAULT_OG_IMAGE_HEIGHT,
+  DEFAULT_OG_IMAGE_WIDTH,
+  SITE_NAME,
+} from "../lib/seo";
+
+type OgType = "website" | "book" | "article";
 
 type HelmetProps = {
   title: string;
   description?: string;
+  /** Site-relative path (e.g. "/books/kuni-hajar") — canonical and og:url
+   * are both derived from this via `absoluteUrl`, so no page hand-builds
+   * an "https://r-aqim.com/..." string itself. */
+  path: string;
+  /** Site-relative or absolute image path. Falls back to the sitewide
+   * default OG image (with its real dimensions) when omitted. */
   image?: string;
-  url?: string;
+  /** Only applied when `image` is also provided — never guessed, so a
+   * custom image without known dimensions simply omits the width/height
+   * tags rather than reporting the wrong size. */
+  imageWidth?: number;
+  imageHeight?: number;
+  type?: OgType;
+  /** True for transactional/utility/private pages (checkout, payment,
+   * order-received, download, search, 404) that should never be indexed. */
+  noindex?: boolean;
+  /** ISO date strings — set on Article pages only. */
+  publishedTime?: string;
+  modifiedTime?: string;
 };
 
 export function Helmet({
   title,
   description,
+  path,
   image,
-  url,
+  imageWidth,
+  imageHeight,
+  type = "website",
+  noindex = false,
+  publishedTime,
+  modifiedTime,
 }: HelmetProps) {
   useEffect(() => {
     document.title = title;
@@ -22,29 +54,32 @@ export function Helmet({
       value: string
     ) => {
       let tag = document.querySelector(selector) as HTMLMetaElement | null;
-
       if (!tag) {
         tag = document.createElement("meta");
         tag.setAttribute(attribute, selector.match(/["'](.+)["']/)?.[1] || "");
         document.head.appendChild(tag);
       }
-
       tag.setAttribute("content", value);
     };
 
-    const setLink = (rel: string, href: string) => {
-      let link = document.querySelector(
-        `link[rel="${rel}"]`
-      ) as HTMLLinkElement | null;
+    const removeMeta = (selector: string) => {
+      document.querySelector(selector)?.remove();
+    };
 
+    const setLink = (rel: string, href: string) => {
+      let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
       if (!link) {
         link = document.createElement("link");
         link.rel = rel;
         document.head.appendChild(link);
       }
-
       link.href = href;
     };
+
+    const url = absoluteUrl(path);
+    const resolvedImage = image ? absoluteUrl(image) : absoluteUrl(DEFAULT_OG_IMAGE);
+    const resolvedWidth = image ? imageWidth : DEFAULT_OG_IMAGE_WIDTH;
+    const resolvedHeight = image ? imageHeight : DEFAULT_OG_IMAGE_HEIGHT;
 
     if (description) {
       setMeta('meta[name="description"]', "name", description);
@@ -52,19 +87,29 @@ export function Helmet({
       setMeta('meta[name="twitter:description"]', "name", description);
     }
 
+    setMeta('meta[property="og:site_name"]', "property", SITE_NAME);
+    setMeta('meta[property="og:type"]', "property", type);
     setMeta('meta[property="og:title"]', "property", title);
+    setMeta('meta[name="twitter:card"]', "name", "summary_large_image");
     setMeta('meta[name="twitter:title"]', "name", title);
 
-    if (image) {
-      setMeta("meta[property=\"og:image\"]", "property", image);
-      setMeta("meta[name=\"twitter:image\"]", "name", image);
-    }
+    setMeta('meta[property="og:image"]', "property", resolvedImage);
+    setMeta('meta[name="twitter:image"]', "name", resolvedImage);
+    if (resolvedWidth) setMeta('meta[property="og:image:width"]', "property", String(resolvedWidth));
+    else removeMeta('meta[property="og:image:width"]');
+    if (resolvedHeight) setMeta('meta[property="og:image:height"]', "property", String(resolvedHeight));
+    else removeMeta('meta[property="og:image:height"]');
 
-    if (url) {
-      setMeta("meta[property=\"og:url\"]", "property", url);
-      setLink("canonical", url);
-    }
-  }, [title, description, image, url]);
+    setMeta('meta[property="og:url"]', "property", url);
+    setLink("canonical", url);
+
+    setMeta('meta[name="robots"]', "name", noindex ? "noindex,nofollow" : "index,follow");
+
+    if (publishedTime) setMeta('meta[property="article:published_time"]', "property", publishedTime);
+    else removeMeta('meta[property="article:published_time"]');
+    if (modifiedTime) setMeta('meta[property="article:modified_time"]', "property", modifiedTime);
+    else removeMeta('meta[property="article:modified_time"]');
+  }, [title, description, path, image, imageWidth, imageHeight, type, noindex, publishedTime, modifiedTime]);
 
   return null;
 }

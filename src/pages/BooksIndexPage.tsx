@@ -3,14 +3,25 @@ import { Link } from "react-router-dom";
 import { PageShell, PageHeader } from "../components/page-shell";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
+import { StructuredData } from "../components/StructuredData";
 import { useBooks } from "../admin/context/BooksContext";
 import { useCategories } from "../admin/context/CategoriesContext";
 import { isInLibraryGrid } from "../admin/lib/bookPlacement";
+import { buildGraph, breadcrumbSchema } from "../lib/structuredData";
+import { useAssetDimensions } from "../lib/mediaDimensions";
+
+const booksJsonLd = buildGraph([
+  breadcrumbSchema([
+    { name: "الرئيسية", path: "/" },
+    { name: "الكتب", path: "/books" },
+  ]),
+]);
 
 export default function BooksIndexPage() {
   const { books } = useBooks();
   const { categories } = useCategories();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const getDimensions = useAssetDimensions();
 
   const libraryBooks = useMemo(
     () =>
@@ -36,9 +47,10 @@ export default function BooksIndexPage() {
     <PageShell>
       <Helmet
         title="الكتب — رقيم"
-        description="استكشفي مكتبة رقيم الكاملة من الكتب الفاخرة."
-        url="https://r-aqim.com/books"
+        description="استكشفي مكتبة رقيم الكاملة من الكتب الفاخرة للمرأة والأم في التطوير الذاتي والروحانية والإلهام الإسلامي."
+        path="/books"
       />
+      <StructuredData json={booksJsonLd} />
       <PageHeader
         eyebrow="المكتبة"
         title="كل كتب رقيم"
@@ -92,8 +104,11 @@ export default function BooksIndexPage() {
                         <img
                           src={book.cover}
                           alt={book.title}
+                          width={getDimensions(book.cover)?.width}
+                          height={getDimensions(book.cover)?.height}
                           className="mx-auto h-full w-auto object-contain transition-transform duration-500 group-hover:scale-[1.03]"
                           loading="lazy"
+                          decoding="async"
                         />
                       )}
                       {book.placement === "comingSoon" && (

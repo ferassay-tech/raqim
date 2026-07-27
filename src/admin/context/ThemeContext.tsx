@@ -4,8 +4,10 @@ import type { BrandColorTokens, BrandFontFamily } from "../types/settings";
 
 /** Fallback stacks for the three fonts actually loaded (index.html) — an
  * Admin only ever reassigns which role a family plays, never introduces a
- * new one, so these stacks never need to change. */
-const FONT_STACKS: Record<BrandFontFamily, string> = {
+ * new one, so these stacks never need to change. Exported so any other
+ * brand-typography consumer (e.g. the header wordmark) resolves a family
+ * name to a real CSS font stack the same way, instead of duplicating it. */
+export const FONT_STACKS: Record<BrandFontFamily, string> = {
   Amiri: '"Amiri", "Times New Roman", serif',
   "IBM Plex Sans Arabic": '"IBM Plex Sans Arabic", "Segoe UI", sans-serif',
   "Cormorant Garamond": '"Cormorant Garamond", serif',

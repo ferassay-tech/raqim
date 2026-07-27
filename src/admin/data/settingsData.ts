@@ -1,5 +1,6 @@
 import type { AdminSettings } from "../types/settings";
 import { CONTACT_EMAILS } from "../../config/contactEmails";
+import { BRAND_ASSETS } from "../../config/brandAssets";
 
 // Seeded from the real, live values already hardcoded across index.html,
 // src/index.css's @theme, and the (previously non-persisted) Settings
@@ -14,7 +15,30 @@ export const INITIAL_SETTINGS: AdminSettings = {
     timezone: "cairo",
   },
   brand: {
-    logo: "/logos/lumora-logo-signature.png",
+    logo: BRAND_ASSETS.logo,
+    logoSizing: {
+      width: null,
+      height: null,
+      maxWidth: null,
+      maxHeight: null,
+      // Matches today's real rendered size exactly (h-16 w-16 in site-nav.tsx)
+      // so switching to configured sizing changes nothing until edited.
+      desktopSize: 64,
+      mobileSize: 64,
+      objectFit: "contain",
+      padding: 0,
+    },
+    heroImage: BRAND_ASSETS.heroImage,
+    wordmark: {
+      arabicFontFamily: "Cormorant Garamond",
+      englishFontFamily: "Cormorant Garamond",
+      fontWeight: 400,
+      letterSpacing: 0.025,
+      // Matches today's real rendered size exactly (text-2xl = 24px) at
+      // every breakpoint, since the header never varied it responsively.
+      fontSizeDesktop: 24,
+      fontSizeMobile: 24,
+    },
     favicon: "/favicon.webp",
     colors: {
       ivory: "#fbf6ed",
@@ -42,7 +66,7 @@ export const INITIAL_SETTINGS: AdminSettings = {
     title: "رقيم — دار نشر رقمية فاخرة للمرأة",
     description:
       "رقيم دار نشر رقمية عربية فاخرة، تُحوّل المعرفة إلى أثر خالد عبر كتب أنيقة للمرأة والأم. اكتشفي كوني هاجر، إصدارنا الأول.",
-    socialImage: "/og-image.webp",
+    socialImage: BRAND_ASSETS.ogImage,
   },
   contact: {
     email: CONTACT_EMAILS.contact,
