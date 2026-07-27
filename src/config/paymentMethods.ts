@@ -1,3 +1,5 @@
+import type { BookCurrency } from "../admin/types/book";
+
 export type PaymentMethodId =
   | "etsy"
   | "vodafone"
@@ -17,10 +19,12 @@ export interface PaymentMethodConfig {
   iconKey: "etsy" | "vodafone" | "bank" | "instapay";
   instructions: string[];
   fields: PaymentField[];
-  /** Overrides the default product-price display when this method's
-   * required amount differs from the checkout total (e.g. a fixed local-
-   * currency amount instead of the product's own price). */
-  amount?: string;
+  /** Which of the book's manually-entered per-currency prices this method
+   * charges in (e.g. Vodafone/InstaPay collect EGP, Bank of Palestine
+   * collects ILS) — looked up against `AdminBook.prices` at render time
+   * instead of a hardcoded amount string, so an Admin price edit is
+   * reflected immediately. */
+  currency: BookCurrency;
   externalLink?: {
     label: string;
     url: string;
@@ -62,6 +66,7 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
       url: "https://www.etsy.com/listing/4532463342/kuni-hajar-arabic-islamic-self",
     },
     requiresConfirmation: false,
+    currency: "USD",
   },
   vodafone: {
     id: "vodafone",
@@ -77,7 +82,7 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
       { label: "رقم الهاتف", value: "01033017659", copyable: true },
       { label: "اسم المستلم", value: "Feras S.M.S.", copyable: true },
     ],
-    amount: "500 جنيه مصري",
+    currency: "EGP",
   },
   instapay: {
     id: "instapay",
@@ -93,7 +98,7 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
       { label: "رقم الهاتف", value: "01033017659", copyable: true },
       { label: "اسم المستلم", value: "Feras S.M.S.", copyable: true },
     ],
-    amount: "500 جنيه مصري",
+    currency: "EGP",
   },
   "bank-palestine": {
     id: "bank-palestine",
@@ -109,7 +114,7 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
       { label: "اسم صاحب الحساب", value: "Feras S.M.S.", copyable: true },
       { label: "رقم الحساب", value: "1327800", copyable: true },
     ],
-    amount: "30 شيكل",
+    currency: "ILS",
   },
 };
 

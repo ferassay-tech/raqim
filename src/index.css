@@ -22,9 +22,21 @@
   --color-ink-soft: #5c5147;
   --color-ink-faint: #8a7d70;
 
+  /* Semantic status colors — admin dashboard only. Deliberately muted and
+     warm-leaning (sage / ochre / brick) so they sit quietly alongside the
+     gold/ink palette instead of reading as stock traffic-light UI colors. */
+  --color-success: #6f8f66;
+  --color-warning: #b8763a;
+  --color-danger: #b2544a;
+
   --font-display: "Amiri", "Times New Roman", serif;
   --font-body: "IBM Plex Sans Arabic", "Segoe UI", sans-serif;
   --font-logotype: "Cormorant Garamond", serif;
+
+  /* Admin-only shadow tokens (Brand Settings → ThemeSync). Not applied to
+     the public site's own bespoke per-component shadows. */
+  --shadow-soft: 0 10px 40px -24px rgba(44, 36, 32, 0.2);
+  --shadow-md: 0 20px 45px -20px rgba(44, 36, 32, 0.35);
 }
 
 @layer base {

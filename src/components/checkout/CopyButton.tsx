@@ -24,7 +24,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ value, label }) => {
       type="button"
       onClick={handleCopy}
       aria-label={label ? `نسخ ${label}` : "نسخ"}
-      className="inline-flex items-center gap-1.5 rounded-full border border-[#d9c79f] bg-white/70 px-3 py-1.5 text-xs font-medium text-[#7a6238] transition hover:bg-[#f4ecd8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b08d4f] focus-visible:ring-offset-2"
+      className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-white/70 px-3 py-1.5 text-xs font-medium text-gold-deep transition hover:bg-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
     >
       {copied ? (
         <>

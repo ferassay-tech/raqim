@@ -1,15 +1,28 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { PageShell, PageHeader } from "../components/page-shell";
-import { blogPosts } from "../lib/content";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
+import { useArticles } from "../admin/context/ArticlesContext";
+import { formatArticleDate } from "../admin/lib/articleStatus";
 
 export default function BlogIndexPage() {
+  const { articles } = useArticles();
+
+  const publishedPosts = useMemo(
+    () =>
+      articles
+        .filter((a) => a.status === "published")
+        .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "")),
+    [articles]
+  );
+
   return (
     <PageShell>
       <Helmet
         title="المدونة — رقيم"
         description="مقالات وأفكار من رقيم حول الكتب، والثقافة، والكتابة، والإلهام."
+        url="https://r-aqim.com/blog"
       />
       <PageHeader
         eyebrow="المدونة"
@@ -19,7 +32,7 @@ export default function BlogIndexPage() {
 
       <section className="px-6 py-20 lg:px-10">
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 lg:grid-cols-2">
-          {blogPosts.map((post, i) => (
+          {publishedPosts.map((post, i) => (
             <Reveal key={post.slug} delay={i * 0.08} className={i === 0 ? "lg:col-span-2" : ""}>
               <Link
                 to={`/blog/${post.slug}`}
@@ -30,7 +43,7 @@ export default function BlogIndexPage() {
                   <span>·</span>
                   <span>{post.readTime}</span>
                   <span>·</span>
-                  <span>{post.date}</span>
+                  <span>{formatArticleDate(post.publishedAt)}</span>
                 </div>
                 <h2 className="mt-4 font-display text-2xl leading-snug text-ink">{post.title}</h2>
                 <p className="mt-3 text-balance leading-relaxed text-ink-soft">{post.excerpt}</p>
@@ -45,4 +58,3 @@ export default function BlogIndexPage() {
     </PageShell>
   );
 }
-

@@ -1,20 +1,73 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { useSiteContent } from "../admin/context/SiteContentContext";
+import { useBooks } from "../admin/context/BooksContext";
+import { isInLibraryGrid } from "../admin/lib/bookPlacement";
+import { useSettings } from "../admin/context/SettingsContext";
 
-const NAV_LINKS = [
-  { to: "/", label: "الرئيسية" },
-  { to: "/books", label: "الكتب" },
-  { to: "/about", label: "عن الدار" },
-  { to: "/future-releases", label: "إصدارات قادمة" },
-  { to: "/blog", label: "المدونة" },
-  { to: "/contact", label: "تواصل معنا" },
-] as const;
+function IconMenu({ size = 22 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M4 7h16M4 12h16M4 17h16"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconClose({ size = 22 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M6 6l12 12M18 6L6 18"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export function SiteNav() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { pathname } = useLocation();
+  const { getValue } = useSiteContent();
+  const { books } = useBooks();
+
+  const navLinks = [
+    { to: "/", label: getValue("nav.home") },
+    { to: "/books", label: getValue("nav.books") },
+    { to: "/about", label: getValue("nav.about") },
+    { to: "/future-releases", label: getValue("nav.futureReleases") },
+    { to: "/blog", label: getValue("nav.blog") },
+    { to: "/contact", label: getValue("nav.contact") },
+  ];
+
+  const ctaBook = useMemo(
+    () =>
+      [...books]
+        .filter((b) => b.deletedAt === null && isInLibraryGrid(b.placement) && b.prices.USD)
+        .sort((a, b) => a.displayOrder - b.displayOrder)[0] ?? null,
+    [books]
+  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -35,18 +88,14 @@ export function SiteNav() {
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-10">
         <Link to="/" className="flex items-center gap-1">
-          <img
-            src="/logos/lumora-logo-signature.png"
-           alt="رقيم"
-           className="h-16 w-16 object-contain transition-transform duration-300 hover:scale-105"
-           />
+          <LogoMark className="h-16 w-16 object-contain transition-transform duration-300 hover:scale-105" />
           <span className="font-logotype text-2xl tracking-wide text-ink">
             رقيم
           </span>
         </Link>
 
         <nav className="hidden items-center gap-8 lg:flex">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <NavLink key={link.to} to={link.to} label={link.label} active={pathname === link.to} />
           ))}
         </nav>
@@ -54,17 +103,19 @@ export function SiteNav() {
         <div className="hidden items-center gap-4 lg:flex">
           <Link
             to="/search"
-            aria-label="بحث"
+            aria-label={getValue("nav.search")}
             className="text-sm text-ink-soft transition-colors hover:text-gold"
           >
-            بحث
+            {getValue("nav.search")}
           </Link>
-          <Link
-            to="/books/kuni-hajar"
-            className="rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-transform duration-300 hover:-translate-y-0.5 hover:bg-gold-deep"
-          >
-            كوني هاجر
-          </Link>
+          {ctaBook && (
+            <Link
+              to={`/books/${ctaBook.id}`}
+              className="rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-transform duration-300 hover:-translate-y-0.5 hover:bg-gold-deep"
+            >
+              {ctaBook.title}
+            </Link>
+          )}
         </div>
 
         <button
@@ -72,14 +123,14 @@ export function SiteNav() {
           className="grid h-10 w-10 place-items-center text-ink lg:hidden"
           aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
         >
-          {open ? <X size={22} /> : <Menu size={22} />}
+          {open ? <IconClose size={22} /> : <IconMenu size={22} />}
         </button>
       </div>
 
       {open && (
         <div className="border-t border-beige bg-ivory px-6 pb-8 pt-4 lg:hidden">
           <nav className="flex flex-col gap-1">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
@@ -89,14 +140,16 @@ export function SiteNav() {
               </Link>
             ))}
             <Link to="/search" className="rounded-lg px-3 py-3 text-base text-ink hover:bg-cream">
-              بحث
+              {getValue("nav.search")}
             </Link>
-            <Link
-              to="/books/kuni-hajar"
-              className="mt-3 rounded-full bg-ink px-5 py-3 text-center text-sm text-ivory"
-            >
-              اطلبي كوني هاجر
-            </Link>
+            {ctaBook && (
+              <Link
+                to={`/books/${ctaBook.id}`}
+                className="mt-3 rounded-full bg-ink px-5 py-3 text-center text-sm text-ivory"
+              >
+                اطلبي {ctaBook.title}
+              </Link>
+            )}
           </nav>
         </div>
       )}
@@ -124,11 +177,6 @@ export function LogoMark({
 }: {
   className?: string;
 }) {
-  return (
-    <img
-      src="/logos/lumora-logo-signature.png"
-      alt="رقيم"
-      className={className}
-    />
-  );
+  const { settings } = useSettings();
+  return <img src={settings.brand.logo ?? undefined} alt="رقيم" className={className} />;
 }

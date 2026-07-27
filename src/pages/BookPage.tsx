@@ -2,46 +2,64 @@ import { useState } from "react";
 import { Link, useParams, Navigate } from "react-router-dom";
 import { Helmet } from "../components/Helmet";
 import { PageShell } from "../components/page-shell";
-import { getBookBySlug, faqs as globalFaqs } from "../lib/content";
 import { GoldDivider, CornerFlourish, QuoteMark, IconHeart } from "../components/ornaments";
 import { StampCTA, UnderlineLink, NumeralCTA } from "../components/cta";
 import { Reveal } from "../components/motion-primitives";
 import { StructuredData } from "../components/StructuredData";
 import PremiumBook3D from "../components/PremiumBook3D";
+import { useBooks } from "../admin/context/BooksContext";
+import { useSiteContent } from "../admin/context/SiteContentContext";
+import type { AdminBook } from "../admin/types/book";
+
+/** Arabic-Indic digit formatting — matches the original site's own numeral
+ * style ("١٨٦ صفحة", " $10") instead of the Latin digits a raw number/
+ * toFixed would otherwise produce. */
+function toArabicNumeral(n: number): string {
+  return n.toLocaleString("ar-EG");
+}
+
+function formatUsdPrice(n: number): string {
+  return Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`;
+}
 
 export default function BookPage() {
   const { slug } = useParams<{ slug: string }>();
-  const book = getBookBySlug(slug ?? "");
+  const { getBook } = useBooks();
+  const book = slug ? getBook(slug) : undefined;
 
-  if (!book) return <Navigate to="/books" replace />;
+  if (!book || book.deletedAt !== null) return <Navigate to="/books" replace />;
 
-  const isFlagship = book.slug === "kuni-hajar";
+  const hasFullContent = book.placement !== "comingSoon";
+  const usdPrice = book.prices.USD;
 
   const BOOK_JSON_LD = JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Book",
     name: book.title,
-    description: book.excerpt,
+    description: book.description,
+    url: `https://r-aqim.com/books/${book.id}`,
     author: { "@type": "Person", name: book.author },
     inLanguage: "ar",
     bookFormat: "https://schema.org/EBook",
-    offers: {
-      "@type": "Offer",
-      price: book.price.replace(/[^\d]/g, ""),
-      priceCurrency: "SAR",
-      availability: "https://schema.org/InStock",
-    },
+    ...(usdPrice && {
+      offers: {
+        "@type": "Offer",
+        price: usdPrice.price,
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+      },
+    }),
   });
 
-  if (!isFlagship) {
+  if (!hasFullContent) {
     return (
       <PageShell>
         <Helmet
-        title={`${book.title} — رقيم`}
-        description={book.excerpt}
-        image={`https://lumora-house-seven.vercel.app${book.cover}`}
-        url={`https://lumora-house-seven.vercel.app/books/${book.slug}`}
-/>
+          title={`${book.title} — رقيم`}
+          description={book.description}
+          image={book.cover ? `https://r-aqim.com${book.cover}` : undefined}
+          url={`https://r-aqim.com/books/${book.id}`}
+        />
         <StructuredData json={BOOK_JSON_LD} />
         <SimpleBookPage book={book} />
       </PageShell>
@@ -51,30 +69,28 @@ export default function BookPage() {
   return (
     <PageShell>
       <Helmet
-  title={`${book.title} — رقيم`}
-  description={book.excerpt}
-  image={`https://lumora-house-seven.vercel.app${book.cover}`}
-  url={`https://lumora-house-seven.vercel.app/books/${book.slug}`}
-/>
+        title={`${book.title} — رقيم`}
+        description={book.description}
+        image={book.cover ? `https://r-aqim.com${book.cover}` : undefined}
+        url={`https://r-aqim.com/books/${book.id}`}
+      />
       <StructuredData json={BOOK_JSON_LD} />
       <BookHero book={book} />
-      <WhoForSection book={book} />
-      <StorySection />
-      <ChaptersSection book={book} />
-      <BenefitsSection book={book} />
-      <TestimonialsSection book={book} />
+      {book.whoFor.length > 0 && <WhoForSection book={book} />}
+      {book.longDescription && <StorySection book={book} />}
+      {book.chapters.length > 0 && <ChaptersSection book={book} />}
+      {book.features.length > 0 && <BenefitsSection book={book} />}
+      {book.reviews.length > 0 && <TestimonialsSection book={book} />}
       <AuthorSection book={book} />
       <PurchaseSection book={book} />
       <GuaranteeSection />
-      <FaqSection />
+      <FaqSection book={book} />
       <FinalCTASection book={book} />
     </PageShell>
   );
 }
 
-type BookT = NonNullable<ReturnType<typeof getBookBySlug>>;
-
-function BookHero({ book }: { book: BookT }) {
+function BookHero({ book }: { book: AdminBook }) {
   return (
     <section className="relative overflow-hidden px-6 pb-20 pt-14 lg:px-10 lg:pb-28 lg:pt-20">
       <div className="pointer-events-none absolute inset-0">
@@ -87,18 +103,20 @@ function BookHero({ book }: { book: BookT }) {
           <div className="relative">
             <div className="absolute -inset-10 -z-10 rounded-full bg-gold/10 blur-3xl" />
             <PremiumBook3D
-              cover={book.cover}
+              cover={book.cover ?? ""}
               alt={book.title}
               previewPages={book.previewPages}
-              backCover={book.backCoverImage}
+              backCover={book.backCoverImage ?? undefined}
             />
           </div>
         </Reveal>
 
         <div className="order-1 text-center lg:order-2 lg:text-right">
-          <Reveal>
-            <p className="text-sm uppercase tracking-[0.25em] text-gold">إصدار رقيم الأول</p>
-          </Reveal>
+          {book.badges.length > 0 && (
+            <Reveal>
+              <p className="text-sm uppercase tracking-[0.25em] text-gold">{book.badges.join(" · ")}</p>
+            </Reveal>
+          )}
           <Reveal delay={0.08}>
             <h1 className="mt-5 font-display text-5xl leading-[1.15] text-ink md:text-7xl">{book.title}</h1>
           </Reveal>
@@ -114,7 +132,7 @@ function BookHero({ book }: { book: BookT }) {
           </Reveal>
           <Reveal delay={0.26}>
             <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-end">
-              <StampCTA href="#purchase">اطلبي نسختك الآن</StampCTA>
+              <StampCTA href="#purchase">{book.ctaLabel || "اطلبي نسختك الآن"}</StampCTA>
               <UnderlineLink to={`/authors/${book.authorSlug}`}>عن المؤلفة</UnderlineLink>
             </div>
           </Reveal>
@@ -124,7 +142,7 @@ function BookHero({ book }: { book: BookT }) {
   );
 }
 
-function WhoForSection({ book }: { book: BookT }) {
+function WhoForSection({ book }: { book: AdminBook }) {
   return (
     <section className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-5xl">
@@ -134,7 +152,7 @@ function WhoForSection({ book }: { book: BookT }) {
         </Reveal>
 
         <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {book.whoFor?.map((line: string, i: number) => (
+          {book.whoFor.map((line, i) => (
             <Reveal key={i} delay={i * 0.08}>
               <div className="flex items-start gap-4 rounded-[10px] border border-beige bg-ivory p-6">
                 <span className="mt-1 shrink-0 text-gold">
@@ -150,7 +168,7 @@ function WhoForSection({ book }: { book: BookT }) {
   );
 }
 
-function StorySection() {
+function StorySection({ book }: { book: AdminBook }) {
   return (
     <section className="relative overflow-hidden px-6 py-24 lg:px-10 lg:py-32">
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 lg:grid-cols-2">
@@ -159,30 +177,27 @@ function StorySection() {
           <h2 className="mt-4 text-balance font-display text-4xl leading-tight text-ink md:text-5xl">
             من الإرهاق إلى السكينة، خطوة بخطوة
           </h2>
-          <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">
-            كل أم تمر بلحظات تشعر فيها أن العطاء بلا حدود يستنزفها. في هذا الكتاب، نأخذك في رحلة
-            مع سيرة هاجر عليها السلام، لتكتشفي أن الصبر ليس استسلامًا، بل قوة هادئة تصنع الأثر.
-            ستنتقلين من الشعور بالوحدة في التعب، إلى اليقين بأن كل خطوة تخطينها لها معنى يتجاوز
-            اللحظة.
-          </p>
+          <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">{book.longDescription}</p>
         </Reveal>
 
-        <Reveal delay={0.15} className="relative">
-          <div className="relative overflow-hidden rounded-[10px]">
-            <img
-  src="/assets/kuni-hajar-collection.webp"
-  alt="مجموعة كتاب كوني هاجر وإصدارات رقيم"
-  className="h-full w-full object-cover"
-  loading="lazy"
-/>
-          </div>
-        </Reveal>
+        {book.gallery[0] && (
+          <Reveal delay={0.15} className="relative">
+            <div className="relative overflow-hidden rounded-[10px]">
+              <img
+                src={book.gallery[0]}
+                alt={`مجموعة كتاب ${book.title}`}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          </Reveal>
+        )}
       </div>
     </section>
   );
 }
 
-function ChaptersSection({ book }: { book: BookT }) {
+function ChaptersSection({ book }: { book: AdminBook }) {
   return (
     <section className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-6xl">
@@ -192,12 +207,8 @@ function ChaptersSection({ book }: { book: BookT }) {
         </Reveal>
 
         <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {book.chapters?.map((ch: { number: string; title: string }, i: number) => (
-            <Reveal
-              key={ch.number}
-              delay={i * 0.08}
-              className={i % 2 === 1 ? "sm:translate-y-6" : ""}
-            >
+          {book.chapters.map((ch, i) => (
+            <Reveal key={ch.number} delay={i * 0.08} className={i % 2 === 1 ? "sm:translate-y-6" : ""}>
               <div className="group relative overflow-hidden rounded-[10px] border border-gold/30 bg-ivory p-7 shadow-[0_10px_30px_-18px_rgba(44,36,32,0.2)] transition-transform duration-300 hover:-translate-y-1.5">
                 <CornerFlourish className="absolute -left-2 -top-2 h-10 w-10 text-gold/30" />
                 <span className="font-logotype text-4xl text-gold">{ch.number}</span>
@@ -211,7 +222,7 @@ function ChaptersSection({ book }: { book: BookT }) {
   );
 }
 
-function BenefitsSection({ book }: { book: BookT }) {
+function BenefitsSection({ book }: { book: AdminBook }) {
   return (
     <section className="px-6 py-24 lg:px-10 lg:py-32">
       <div className="mx-auto max-w-6xl">
@@ -221,19 +232,15 @@ function BenefitsSection({ book }: { book: BookT }) {
         </Reveal>
 
         <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {book.benefits?.map((b: { title: string; body: string }, i: number) => (
-            <Reveal
-              key={b.title}
-              delay={i * 0.06}
-              className={i === 0 ? "sm:col-span-2 lg:col-span-1" : ""}
-            >
+          {book.features.map((f, i) => (
+            <Reveal key={f.title} delay={i * 0.06} className={i === 0 ? "sm:col-span-2 lg:col-span-1" : ""}>
               <div
                 className={`h-full rounded-[10px] p-7 ${
                   i % 3 === 1 ? "bg-lavender/25" : i % 3 === 2 ? "bg-mauve/20" : "bg-cream"
                 }`}
               >
-                <h3 className="font-display text-xl text-ink">{b.title}</h3>
-                <p className="mt-3 text-balance leading-loose text-ink-soft">{b.body}</p>
+                <h3 className="font-display text-xl text-ink">{f.title}</h3>
+                <p className="mt-3 text-balance leading-loose text-ink-soft">{f.body}</p>
               </div>
             </Reveal>
           ))}
@@ -243,7 +250,7 @@ function BenefitsSection({ book }: { book: BookT }) {
   );
 }
 
-function TestimonialsSection({ book }: { book: BookT }) {
+function TestimonialsSection({ book }: { book: AdminBook }) {
   return (
     <section className="bg-mauve/20 px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-6xl">
@@ -253,7 +260,7 @@ function TestimonialsSection({ book }: { book: BookT }) {
         </Reveal>
 
         <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {book.testimonials?.map((t: { quote: string; name: string; role: string }, i: number) => (
+          {book.reviews.map((t, i) => (
             <Reveal key={t.name} delay={i * 0.1} className={i === 1 ? "lg:-translate-y-6" : ""}>
               <div className="h-full rounded-[10px] border border-gold/25 bg-ivory p-7">
                 <QuoteMark className="h-6 w-9 text-gold/70" />
@@ -269,23 +276,23 @@ function TestimonialsSection({ book }: { book: BookT }) {
   );
 }
 
-function AuthorSection({ book }: { book: BookT }) {
+function AuthorSection({ book }: { book: AdminBook }) {
   return (
     <section className="px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[0.7fr_1.3fr]">
         <Reveal className="flex justify-center">
           <div className="flex h-56 w-56 items-center justify-center rounded-full bg-gradient-to-br from-cream to-lavender/40 text-6xl text-gold">
-            م
+            {book.author.trim().charAt(0) || "؟"}
           </div>
         </Reveal>
         <Reveal delay={0.1} className="text-center lg:text-right">
           <p className="text-sm uppercase tracking-[0.25em] text-gold">عن المؤلفة</p>
           <h2 className="mt-4 font-display text-3xl text-ink md:text-4xl">{book.author}</h2>
-          <p className="mt-5 max-w-2xl text-balance leading-loose text-ink-soft">
-  مها نصر كاتبة فلسطينية من غزة، ومدربة في تنمية المرأة والأسرة. تهتم ببناء الوعي التربوي والنفسي، وتستلهم في كتاباتها القيم الإيمانية والتجارب الإنسانية الواقعية، لتقدم محتوى يجمع بين الدفء والعمق. ويأتي كتابها الأول «كوني هاجر» ليكون بداية رحلة أدبية تهدف إلى إلهام المرأة وبناء أثر يبقى.
-</p>
+          {book.authorBio && (
+            <p className="mt-5 max-w-2xl text-balance leading-loose text-ink-soft">{book.authorBio}</p>
+          )}
           <div className="mt-6 flex justify-center lg:justify-end">
-            <UnderlineLink to={`/authors/${book.authorSlug}`}>اقرئي المزيد عن مها</UnderlineLink>
+            <UnderlineLink to={`/authors/${book.authorSlug}`}>اقرئي المزيد عن {book.author.split(" ")[0]}</UnderlineLink>
           </div>
         </Reveal>
       </div>
@@ -293,23 +300,26 @@ function AuthorSection({ book }: { book: BookT }) {
   );
 }
 
-function PurchaseSection({ book }: { book: BookT }) {
+function PurchaseSection({ book }: { book: AdminBook }) {
+  const price = book.prices.USD;
   return (
     <section id="purchase" className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
       <Reveal className="mx-auto max-w-3xl rounded-[10px] border border-gold/30 bg-ivory p-10 text-center lg:p-14">
         <p className="text-sm uppercase tracking-[0.25em] text-gold">اقتني نسختك</p>
         <h2 className="mt-4 font-display text-3xl text-ink md:text-4xl">{book.title}</h2>
-        <div className="mt-6 flex items-center justify-center gap-3">
-          <span className="font-logotype text-4xl text-ink">{book.price}</span>
-          {book.originalPrice && (
-            <span className="text-lg text-ink-soft line-through">{book.originalPrice}</span>
-          )}
-        </div>
+        {price && (
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <span className="font-logotype text-4xl text-ink">{formatUsdPrice(price.price)}</span>
+            {price.compareAtPrice && (
+              <span className="text-lg text-ink-soft line-through">{formatUsdPrice(price.compareAtPrice)}</span>
+            )}
+          </div>
+        )}
         <p className="mt-2 text-sm text-ink-soft">
-          {book.format} · {book.pages} · {book.language}
+          {book.format} · {toArabicNumeral(book.pages)} صفحة · {book.language}
         </p>
         <div className="mt-8 flex justify-center">
-          <StampCTA to="/checkout">اطلبي نسختك الآن</StampCTA>
+          <StampCTA to="/checkout">{book.ctaLabel || "اطلبي نسختك الآن"}</StampCTA>
         </div>
         <p className="mt-4 text-xs text-ink-soft">تحميل فوري بعد إتمام الشراء · دعم فني على مدار الساعة</p>
       </Reveal>
@@ -318,6 +328,7 @@ function PurchaseSection({ book }: { book: BookT }) {
 }
 
 function GuaranteeSection() {
+  const { getValue } = useSiteContent();
   return (
     <section className="px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-5xl grid grid-cols-1 gap-10 lg:grid-cols-2 items-center">
@@ -331,14 +342,11 @@ function GuaranteeSection() {
 
         <Reveal delay={0.1} className="text-center lg:text-right">
           <h2 className="font-display text-3xl leading-tight text-ink md:text-4xl">
-            تجربة شراء رقمية بسيطة وآمنة
+            {getValue("bookpage.guarantee.title")}
           </h2>
 
           <p className="mt-4 max-w-md text-balance leading-loose text-ink-soft lg:mr-0 lg:ml-auto">
-            ستحصلين على نسخة رقمية عالية الجودة فور إتمام عملية الشراء،
-            مع إمكانية التواصل معنا عبر البريد الإلكتروني لأي استفسار أو
-            مساعدة، كما سنرسل لك أي تحديثات مستقبلية مجانية لهذا الإصدار
-            عند توفرها.
+            {getValue("bookpage.guarantee.body")}
           </p>
         </Reveal>
       </div>
@@ -346,8 +354,13 @@ function GuaranteeSection() {
   );
 }
 
-function FaqSection() {
+function FaqSection({ book }: { book: AdminBook }) {
   const [open, setOpen] = useState<number | null>(0);
+  const { faqs: globalFaqs } = useSiteContent();
+  const faqItems = book.faq.length > 0 ? book.faq : globalFaqs;
+
+  if (faqItems.length === 0) return null;
+
   return (
     <section className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-3xl">
@@ -357,7 +370,7 @@ function FaqSection() {
         </Reveal>
 
         <div className="mt-12 divide-y divide-beige border-y border-beige">
-          {globalFaqs.map((faq, i) => (
+          {faqItems.map((faq, i) => (
             <div key={faq.question} className="py-5">
               <button
                 onClick={() => setOpen(open === i ? null : i)}
@@ -384,7 +397,8 @@ function FaqSection() {
   );
 }
 
-function FinalCTASection({ book }: { book: BookT }) {
+function FinalCTASection({ book }: { book: AdminBook }) {
+  const { getValue } = useSiteContent();
   return (
     <section className="relative overflow-hidden px-6 py-28 lg:px-10">
       <div className="pointer-events-none absolute inset-0">
@@ -392,48 +406,41 @@ function FinalCTASection({ book }: { book: BookT }) {
       </div>
       <Reveal className="relative mx-auto max-w-2xl text-center">
         <h2 className="text-balance font-display text-3xl leading-tight text-ink md:text-4xl">
-          كوني البداية التي تُلهم أجيالًا بعدك
+          {getValue("bookpage.finalCta.title")}
         </h2>
         <p className="mt-4 text-balance leading-loose text-ink-soft">
           احصلي على نسختك من {book.title} اليوم، وابدئي رحلة الثبات والسكينة.
         </p>
         <div className="mt-8 flex justify-center">
-          <StampCTA href="#purchase">اطلبي نسختك الآن</StampCTA>
+          <StampCTA href="#purchase">{book.ctaLabel || "اطلبي نسختك الآن"}</StampCTA>
         </div>
       </Reveal>
     </section>
   );
 }
 
-function SimpleBookPage({ book }: { book: BookT }) {
+function SimpleBookPage({ book }: { book: AdminBook }) {
   return (
     <>
       <section className="px-6 py-20 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-2">
           <Reveal className="flex justify-center">
             <div className="rounded-[10px] bg-gradient-to-br from-cream to-beige p-10">
-              <img src={book.cover} alt={book.title} className="w-full max-w-sm object-contain drop-shadow-xl" />
+              {book.cover && (
+                <img src={book.cover} alt={book.title} className="w-full max-w-sm object-contain drop-shadow-xl" />
+              )}
             </div>
           </Reveal>
           <Reveal delay={0.1} className="text-center lg:text-right">
             <p className="text-sm uppercase tracking-[0.25em] text-gold">{book.category}</p>
             <h1 className="mt-4 font-display text-4xl text-ink md:text-5xl">{book.title}</h1>
             <p className="mt-4 text-balance leading-loose text-ink-soft">{book.subtitle}</p>
-            <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">{book.excerpt}</p>
+            <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">{book.description}</p>
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-end">
-              {book.comingSoon ? (
-                <div className="rounded-[10px] border border-gold/30 bg-cream px-8 py-4 text-center">
-  <p className="font-display text-lg text-gold">
-    هذا الإصدار قيد الإعداد
-  </p>
-
-  <p className="mt-2 text-sm text-ink-soft">
-    نعمل عليه بعناية، وسيكون متاحًا قريبًا بإذن الله.
-  </p>
-</div>
-              ) : (
-                <StampCTA to="/checkout">اطلبي نسختك الآن</StampCTA>
-              )}
+              <div className="rounded-[10px] border border-gold/30 bg-cream px-8 py-4 text-center">
+                <p className="font-display text-lg text-gold">هذا الإصدار قيد الإعداد</p>
+                <p className="mt-2 text-sm text-ink-soft">نعمل عليه بعناية، وسيكون متاحًا قريبًا بإذن الله.</p>
+              </div>
               <UnderlineLink to={`/authors/${book.authorSlug}`}>عن {book.author}</UnderlineLink>
             </div>
           </Reveal>
@@ -447,4 +454,3 @@ function SimpleBookPage({ book }: { book: BookT }) {
     </>
   );
 }
-

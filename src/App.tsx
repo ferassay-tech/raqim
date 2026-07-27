@@ -19,10 +19,13 @@ import { CheckoutProvider } from "./context/CheckoutContext";
 import CheckoutPage from "./pages/CheckoutPage";
 import PaymentMethodPage from "./pages/PaymentMethodPage";
 import OrderReceivedPage from "./pages/OrderReceivedPage";
+import AdminApp from "./admin/AdminApp";
+import { AdminProviders } from "./admin/context/AdminProviders";
 
 export default function App() {
   return (
     <BrowserRouter>
+    <AdminProviders>
     <CheckoutProvider>
     <ScrollToTop />
 
@@ -43,9 +46,11 @@ export default function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/payment/:method" element={<PaymentMethodPage />} />
         <Route path="/order-received" element={<OrderReceivedPage />} />
+        <Route path="/admin/*" element={<AdminApp />} />
         <Route path="*" element={<NotFoundPage />} />
      </Routes>
   </CheckoutProvider>
+  </AdminProviders>
 </BrowserRouter>
   );
 }

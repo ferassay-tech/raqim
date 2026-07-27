@@ -25,7 +25,7 @@ export default function SearchPage() {
 
   return (
     <PageShell>
-      <Helmet title="بحث — رقيم" />
+      <Helmet title="بحث — رقيم" url="https://r-aqim.com/search" />
       <PageHeader eyebrow="بحث" title="ابحثي في مكتبة رقيم" />
 
       <section className="px-6 pb-24 lg:px-10">

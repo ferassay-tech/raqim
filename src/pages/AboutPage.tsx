@@ -10,6 +10,7 @@ export default function AboutPage() {
       <Helmet
         title="عن رقيم"
         description="تعرّفي على رقيم، دار النشر الرقمية الفاخرة للمرأة العربية."
+        url="https://r-aqim.com/about"
       />
       <section className="relative overflow-hidden px-6 pb-20 pt-16 lg:px-10 lg:pt-24">
         <div className="pointer-events-none absolute inset-0">

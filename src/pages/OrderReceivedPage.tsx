@@ -1,14 +1,16 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Helmet } from "../components/Helmet";
 import { IconSuccess } from "../components/checkout/icons";
 
 const OrderSuccessPage: React.FC = () => {
   return (
     <main
       dir="rtl"
-      className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#faf6ef] px-4 py-16 text-center"
+      className="flex min-h-screen flex-col items-center justify-center gap-6 bg-ivory px-4 py-16 text-center"
     >
+      <Helmet title="تم استلام طلبك — رقيم" url="https://r-aqim.com/order-received" />
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -23,10 +25,10 @@ const OrderSuccessPage: React.FC = () => {
         transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
         className="max-w-md"
       >
-        <h1 className="text-2xl font-semibold text-[#2c2416]">
+        <h1 className="text-2xl font-semibold text-ink">
           شكرًا لك على شراءك
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-[#7a6a52]">
+        <p className="mt-3 text-sm leading-relaxed text-ink-soft">
           تم استلام طلب الدفع الخاص بك بنجاح. سنقوم بمراجعة الدفع وإرسال رابط
           التحميل إلى بريدك الإلكتروني في أقرب وقت ممكن.
         </p>
@@ -40,13 +42,13 @@ const OrderSuccessPage: React.FC = () => {
       >
         <Link
           to="/"
-          className="rounded-full bg-[#2c2416] px-6 py-2.5 text-sm font-medium text-[#f4ecd8] transition hover:bg-[#40331f]"
+          className="rounded-full bg-ink px-6 py-2.5 text-sm font-medium text-beige transition hover:bg-gold-deep"
         >
           العودة للصفحة الرئيسية
         </Link>
         <Link
           to="/checkout"
-          className="rounded-full border border-[#b08d4f] px-6 py-2.5 text-sm font-medium text-[#8a6d3b] transition hover:bg-[#f4ecd8]"
+          className="rounded-full border border-gold px-6 py-2.5 text-sm font-medium text-gold-deep transition hover:bg-beige"
         >
           متابعة التسوق
         </Link>

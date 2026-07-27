@@ -2,8 +2,12 @@ import { useState } from "react";
 import { PageShell, PageHeader } from "../components/page-shell";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
+import { useSettings } from "../admin/context/SettingsContext";
+import { useSiteContent } from "../admin/context/SiteContentContext";
 
 export default function ContactPage() {
+  const { settings } = useSettings();
+  const { getValue } = useSiteContent();
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -11,7 +15,11 @@ export default function ContactPage() {
 
   return (
     <PageShell>
-      <Helmet title="تواصل معنا — رقيم" description="تواصلي مع فريق رقيم لأي استفسار." />
+      <Helmet
+        title="تواصل معنا — رقيم"
+        description="تواصلي مع فريق رقيم لأي استفسار."
+        url="https://r-aqim.com/contact"
+      />
       <PageHeader
         eyebrow="تواصل معنا"
         title="يسعدنا سماع صوتك"
@@ -21,9 +29,9 @@ export default function ContactPage() {
       <section className="px-6 py-20 lg:px-10">
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-12 lg:grid-cols-[1fr_1.2fr]">
           <Reveal className="space-y-8">
-            <ContactInfo label="البريد الإلكتروني" value="lumora.m.house@gmail.com" />
-            <ContactInfo label="ساعات الرد" value="من الأحد إلى الخميس، ٩ص - ٥م" />
-            <ContactInfo label="طريقة التواصل" value="يرجى استخدام نموذج التواصل أو البريد الإلكتروني." />
+            <ContactInfo label="البريد الإلكتروني" value={settings.contact.email} />
+            <ContactInfo label="ساعات الرد" value={settings.contact.hours} />
+            <ContactInfo label="طريقة التواصل" value={getValue("contact.methodNote")} />
           </Reveal>
 
           <Reveal delay={0.1}>

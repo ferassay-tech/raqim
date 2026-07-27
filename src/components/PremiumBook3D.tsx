@@ -85,7 +85,6 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<FlipBookHandle>(null);
-  const [isHovered, setIsHovered] = useState(false);
   const hasPreview = Boolean(previewPages && previewPages.length > 0);
   const pageCount = hasPreview ? previewPages!.length : 0;
 
@@ -189,10 +188,6 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
   const sheenX = useTransform(rotateY, [-14, 14], [30, 70]);
   const sheenY = useTransform(rotateX, [-10, 10], [70, 30]);
   const sheenPosition = useMotionTemplate`${sheenX}% ${sheenY}%`;
-
-  // Fore-edge highlight — directional (not just magnitude), like light
-  // catching the laminated edge opposite the spine as the book turns one way.
-  const edgeHighlightOpacity = useTransform(rotateY, [-14, 14], [0.1, 0.5]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -400,13 +395,11 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
       observer.disconnect();
       timers.forEach((t) => clearTimeout(t));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPreview, isMobile, reducedMotion, cover, pageCount]);
 
   const handleMouseLeave = () => {
     mouseX.set(0);
     mouseY.set(0);
-    setIsHovered(false);
 
     if (hasPreview) return; // never auto-closes once opened
 
@@ -429,7 +422,6 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
         isMobile || reducedMotion
           ? undefined
           : () => {
-              setIsHovered(true);
               if (hasPreview) return; // click-only; hover never opens it
 
               if (resetTimer.current) {

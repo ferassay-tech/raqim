@@ -32,7 +32,7 @@ const sections = [
 export default function PrivacyPage() {
   return (
     <PageShell>
-      <Helmet title="سياسة الخصوصية — رقيم" />
+      <Helmet title="سياسة الخصوصية — رقيم" url="https://r-aqim.com/privacy" />
       <PageHeader eyebrow="قانوني" title="سياسة الخصوصية" description="آخر تحديث: يونيو ٢٠٢٦" />
       <section className="px-6 py-16 lg:px-10">
         <div className="mx-auto max-w-3xl space-y-10">

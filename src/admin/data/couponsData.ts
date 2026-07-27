@@ -1,0 +1,73 @@
+import type { AdminCoupon } from "../types/coupon";
+
+// Five realistic starter codes, seeded disabled — they exist only inside
+// the Admin until an admin actively enables one. Once enabled, the public
+// checkout's coupon field will accept it immediately (same shared
+// CouponsContext, see ProductSummaryCard.tsx).
+export const INITIAL_COUPONS: AdminCoupon[] = [
+  {
+    id: "cp-welcome10",
+    code: "WELCOME10",
+    type: "percentage",
+    value: 10,
+    minOrderValue: null,
+    usageLimit: null,
+    usageCount: 0,
+    startsAt: null,
+    expiresAt: null,
+    enabled: false,
+    description: "خصم ترحيبي لأول عملية شراء.",
+  },
+  {
+    id: "cp-hajar20",
+    code: "HAJAR20",
+    type: "percentage",
+    value: 20,
+    minOrderValue: null,
+    usageLimit: null,
+    usageCount: 0,
+    startsAt: null,
+    expiresAt: null,
+    enabled: false,
+    description: "خصم مناسبة خاصة بإصدار كوني هاجر.",
+  },
+  {
+    id: "cp-firstorder",
+    code: "FIRSTORDER",
+    type: "fixed",
+    value: 3,
+    minOrderValue: null,
+    usageLimit: null,
+    usageCount: 0,
+    startsAt: null,
+    expiresAt: null,
+    enabled: false,
+    description: "خصم ثابت لأول طلب لعميلة جديدة.",
+  },
+  {
+    id: "cp-ramadan",
+    code: "RAMADAN",
+    type: "percentage",
+    value: 15,
+    minOrderValue: null,
+    usageLimit: null,
+    usageCount: 0,
+    startsAt: null,
+    expiresAt: null,
+    enabled: false,
+    description: "خصم موسمي لشهر رمضان.",
+  },
+  {
+    id: "cp-vip30",
+    code: "VIP30",
+    type: "percentage",
+    value: 30,
+    minOrderValue: null,
+    usageLimit: 50,
+    usageCount: 0,
+    startsAt: null,
+    expiresAt: null,
+    enabled: false,
+    description: "خصم كبير للعميلات المميزات — عدد محدود من الاستخدامات.",
+  },
+];

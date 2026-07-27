@@ -17,7 +17,7 @@ interface PaymentConfirmationFormProps {
 }
 
 const inputClasses =
-  "w-full rounded-xl border border-[#e0d3b0] bg-white/80 px-4 py-2.5 text-sm text-[#2c2416] placeholder:text-[#a8987a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b08d4f] focus-visible:border-transparent";
+  "w-full rounded-xl border border-beige bg-white/80 px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:border-transparent";
 
 export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = ({
   methodTitle,
@@ -56,19 +56,19 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
       onSubmit={handleSubmit}
-      className="flex flex-col gap-5 rounded-3xl border border-[#e8ddc8] bg-white/70 p-6 shadow-[0_10px_40px_rgba(60,45,20,0.08)] backdrop-blur"
+      className="flex flex-col gap-5 rounded-3xl border border-beige bg-white/70 p-6 shadow-[0_10px_40px_rgba(60,45,20,0.08)] backdrop-blur"
       aria-labelledby="confirmation-form-heading"
     >
       <h2
         id="confirmation-form-heading"
-        className="text-lg font-semibold text-[#2c2416]"
+        className="text-lg font-semibold text-ink"
       >
         تأكيد بيانات الدفع
       </h2>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="fullName" className="mb-1.5 block text-xs text-[#7a6a52]">
+          <label htmlFor="fullName" className="mb-1.5 block text-xs text-ink-soft">
             الاسم الكامل
           </label>
           <input
@@ -83,7 +83,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
         </div>
 
         <div>
-          <label htmlFor="email" className="mb-1.5 block text-xs text-[#7a6a52]">
+          <label htmlFor="email" className="mb-1.5 block text-xs text-ink-soft">
             البريد الإلكتروني
           </label>
           <input
@@ -99,7 +99,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
         </div>
 
         <div>
-          <label htmlFor="country" className="mb-1.5 block text-xs text-[#7a6a52]">
+          <label htmlFor="country" className="mb-1.5 block text-xs text-ink-soft">
             الدولة
           </label>
           <input
@@ -114,7 +114,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
         </div>
 
         <div>
-          <label htmlFor="paymentMethod" className="mb-1.5 block text-xs text-[#7a6a52]">
+          <label htmlFor="paymentMethod" className="mb-1.5 block text-xs text-ink-soft">
             طريقة الدفع
           </label>
           <input
@@ -122,12 +122,12 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
             name="paymentMethod"
             value={values.paymentMethod}
             readOnly
-            className={`${inputClasses} cursor-not-allowed bg-[#f4ecd8]/60`}
+            className={`${inputClasses} cursor-not-allowed bg-beige/60`}
           />
         </div>
 
         <div className="sm:col-span-2">
-          <label htmlFor="transactionId" className="mb-1.5 block text-xs text-[#7a6a52]">
+          <label htmlFor="transactionId" className="mb-1.5 block text-xs text-ink-soft">
             رقم العملية (اختياري)
           </label>
           <input
@@ -140,7 +140,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
         </div>
 
         <div className="sm:col-span-2">
-          <label htmlFor="receipt" className="mb-1.5 block text-xs text-[#7a6a52]">
+          <label htmlFor="receipt" className="mb-1.5 block text-xs text-ink-soft">
             رفع إيصال الدفع
           </label>
           <input
@@ -149,17 +149,17 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
             type="file"
             accept="image/*,application/pdf"
             onChange={handleFile}
-            className="w-full text-xs text-[#7a6a52] file:mr-3 file:rounded-full file:border-0 file:bg-[#f4ecd8] file:px-4 file:py-2 file:text-xs file:font-medium file:text-[#8a6d3b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b08d4f]"
+            className="w-full text-xs text-ink-soft file:mr-3 file:rounded-full file:border-0 file:bg-beige file:px-4 file:py-2 file:text-xs file:font-medium file:text-gold-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
           />
           {values.receiptFileName && (
-            <p className="mt-1.5 text-xs text-[#7a6a52]">
+            <p className="mt-1.5 text-xs text-ink-soft">
               الملف المرفق: {values.receiptFileName}
             </p>
           )}
         </div>
 
         <div className="sm:col-span-2">
-          <label htmlFor="notes" className="mb-1.5 block text-xs text-[#7a6a52]">
+          <label htmlFor="notes" className="mb-1.5 block text-xs text-ink-soft">
             ملاحظات
           </label>
           <textarea
@@ -175,7 +175,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
 
       <button
         type="submit"
-        className="mt-2 w-full rounded-full bg-[#2c2416] py-3 text-sm font-medium text-[#f4ecd8] transition hover:bg-[#40331f] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b08d4f] focus-visible:ring-offset-2"
+        className="mt-2 w-full rounded-full bg-ink py-3 text-sm font-medium text-beige transition hover:bg-gold-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
       >
         إرسال بيانات الدفع
       </button>

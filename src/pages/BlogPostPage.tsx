@@ -1,19 +1,28 @@
 import { Link, useParams, Navigate } from "react-router-dom";
 import { PageShell } from "../components/page-shell";
-import { blogPosts } from "../lib/content";
 import { Reveal } from "../components/motion-primitives";
 import { GoldDivider } from "../components/ornaments";
 import { Helmet } from "../components/Helmet";
+import { useArticles } from "../admin/context/ArticlesContext";
+import { formatArticleDate } from "../admin/lib/articleStatus";
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
-  const post = blogPosts.find((p) => p.slug === slug);
+  const { articles } = useArticles();
+  const post = articles.find((a) => a.slug === slug && a.status === "published");
 
   if (!post) return <Navigate to="/blog" replace />;
 
+  const paragraphs = post.content.split(/\n{2,}/).filter((p) => p.trim().length > 0);
+
   return (
     <PageShell>
-      <Helmet title={`${post.title} — مدونة رقيم`} description={post.excerpt} />
+      <Helmet
+        title={post.seoTitle || `${post.title} — مدونة رقيم`}
+        description={post.seoDescription || post.excerpt}
+        url={`https://r-aqim.com/blog/${post.slug}`}
+        image={post.coverImage ? `https://r-aqim.com${post.coverImage}` : undefined}
+      />
       <article className="px-6 py-20 lg:px-10 lg:py-28">
         <div className="mx-auto max-w-2xl">
           <Reveal>
@@ -22,7 +31,7 @@ export default function BlogPostPage() {
               <span>·</span>
               <span>{post.readTime}</span>
               <span>·</span>
-              <span>{post.date}</span>
+              <span>{formatArticleDate(post.publishedAt)}</span>
             </div>
           </Reveal>
           <Reveal delay={0.06}>
@@ -36,8 +45,19 @@ export default function BlogPostPage() {
             </div>
           </Reveal>
 
+          {post.coverImage && (
+            <Reveal delay={0.16}>
+              <img
+                src={post.coverImage}
+                alt={post.title}
+                className="mt-10 w-full rounded-[10px] object-cover"
+                loading="lazy"
+              />
+            </Reveal>
+          )}
+
           <div className="mt-12 space-y-6">
-            {post.body.map((para, i) => (
+            {paragraphs.map((para, i) => (
               <Reveal key={i} delay={0.05 * i}>
                 <p className="text-balance text-lg leading-loose text-ink-soft">{para}</p>
               </Reveal>
@@ -45,17 +65,16 @@ export default function BlogPostPage() {
           </div>
 
           <div className="mt-16 border-t border-beige pt-8 text-center space-y-4">
-  <Link to="/blog" className="block text-sm text-gold hover:underline">
-    العودة إلى المدونة
-  </Link>
+            <Link to="/blog" className="block text-sm text-gold hover:underline">
+              العودة إلى المدونة
+            </Link>
 
-  <Link to="/books" className="block text-sm text-ink hover:text-gold transition-colors">
-    تصفح كتب رقيم
-  </Link>
-</div>
+            <Link to="/books" className="block text-sm text-ink hover:text-gold transition-colors">
+              تصفح كتب رقيم
+            </Link>
+          </div>
         </div>
       </article>
     </PageShell>
   );
 }
-

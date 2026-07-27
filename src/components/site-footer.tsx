@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { LogoMark } from "./site-nav";
 import { GoldDivider } from "./ornaments";
+import { useSiteContent } from "../admin/context/SiteContentContext";
 
 const EXPLORE_LINKS = [
   { to: "/books", label: "الكتب" },
@@ -18,6 +19,8 @@ const SUPPORT_LINKS = [
 ];
 
 export function SiteFooter() {
+  const { getValue } = useSiteContent();
+
   return (
     <footer className="relative overflow-hidden bg-ink text-cream">
       <div className="pointer-events-none absolute inset-0 opacity-[0.06]">
@@ -39,15 +42,15 @@ export function SiteFooter() {
               <span className="font-logotype text-xl tracking-wide text-ivory">رقيم</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-loose text-cream/70">
-              دار نشر رقمية فاخرة، تصدر كتبًا للمرأة تجمع بين الجمال والعمق والإلهام.
+              {getValue("footer.tagline")}
             </p>
           </div>
 
-          <FooterColumn title="استكشفي" links={EXPLORE_LINKS} />
-          <FooterColumn title="الدعم" links={SUPPORT_LINKS} />
+          <FooterColumn title={getValue("footer.exploreTitle")} links={EXPLORE_LINKS} />
+          <FooterColumn title={getValue("footer.supportTitle")} links={SUPPORT_LINKS} />
 
           <div>
-            <h3 className="text-sm text-gold">تابعينا</h3>
+            <h3 className="text-sm text-gold">{getValue("footer.followTitle")}</h3>
             <div className="mt-4 flex gap-3">
               {["إنستغرام", "بينتريست", "تيك توك"].map((label) => (
                 <a
@@ -67,7 +70,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-6 flex flex-col-reverse items-center justify-between gap-4 text-xs text-cream/50 sm:flex-row">
-          <p>© ٢٠٢٦ رقيم. جميع الحقوق محفوظة.</p>
+          <p>{getValue("footer.copyright")}</p>
           <div className="flex gap-6">
             <Link to="/privacy" className="hover:text-gold">
               الخصوصية
@@ -102,16 +105,17 @@ function FooterColumn({ title, links }: { title: string; links: { to: string; la
 function NewsletterBand() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const { getValue } = useSiteContent();
 
   return (
     <div className="grid grid-cols-1 items-center gap-8 rounded-3xl border border-white/10 bg-white/[0.03] p-8 lg:grid-cols-2 lg:p-12">
       <div>
-        <p className="text-sm uppercase tracking-[0.2em] text-gold">النشرة البريدية</p>
+        <p className="text-sm uppercase tracking-[0.2em] text-gold">{getValue("footer.newsletterEyebrow")}</p>
         <h3 className="mt-3 font-display text-3xl leading-tight text-ivory">
-          انضمي إلى رقيم
+          {getValue("footer.newsletterTitle")}
         </h3>
         <p className="mt-3 max-w-sm text-sm leading-loose text-cream/70">
-          كوني أول من يعلم بكل إصدار جديد، ومقالات ملهمة تصل بريدك بلا إزعاج.
+          {getValue("footer.newsletterDescription")}
         </p>
       </div>
 

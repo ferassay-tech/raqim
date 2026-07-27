@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { PageShell, PageHeader } from "../components/page-shell";
-import { faqs } from "../lib/content";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
+import { useSiteContent } from "../admin/context/SiteContentContext";
 
 export default function FaqPage() {
   const [open, setOpen] = useState<number | null>(0);
+  const { faqs } = useSiteContent();
 
   return (
     <PageShell>
       <Helmet
         title="الأسئلة الشائعة — رقيم"
         description="إجابات على أكثر الأسئلة شيوعًا حول كتب رقيم وطريقة الشراء."
+        url="https://r-aqim.com/faq"
       />
       <PageHeader eyebrow="الدعم" title="الأسئلة الشائعة" description="كل ما تحتاجين معرفته قبل وبعد الشراء." />
 

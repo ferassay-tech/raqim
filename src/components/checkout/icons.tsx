@@ -97,11 +97,11 @@ export const IconSuccess: React.FC<{ className?: string }> = ({
   className,
 }) => (
   <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-    <circle cx="50" cy="50" r="46" fill="#f4ecd8" stroke="#b08d4f" strokeWidth="1.5" />
+    <circle cx="50" cy="50" r="46" fill="var(--color-beige)" stroke="var(--color-gold)" strokeWidth="1.5" />
     <path
       d="M32 51l12 12 24-26"
       fill="none"
-      stroke="#8a6d3b"
+      stroke="var(--color-gold-deep)"
       strokeWidth="4.5"
       strokeLinecap="round"
       strokeLinejoin="round"
