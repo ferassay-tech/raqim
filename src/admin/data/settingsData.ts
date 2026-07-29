@@ -68,6 +68,13 @@ export const INITIAL_SETTINGS: AdminSettings = {
       "رقيم دار نشر رقمية عربية فاخرة، تُحوّل المعرفة إلى أثر خالد عبر كتب أنيقة للمرأة والأم. اكتشفي كوني هاجر، إصدارنا الأول.",
     socialImage: BRAND_ASSETS.ogImage,
   },
+  // Unset by default so the homepage keeps rendering the featured book's own
+  // gallery image exactly as before — only once an admin picks a dedicated
+  // image here does the homepage switch to it.
+  homepage: {
+    heroImage: null,
+    heroImageMobile: null,
+  },
   contact: {
     email: CONTACT_EMAILS.contact,
     phone: "",

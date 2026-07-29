@@ -35,6 +35,8 @@ export default function BookPage() {
 
   const hasFullContent = book.placement !== "comingSoon";
   const faqItems = book.faq.length > 0 ? book.faq : globalFaqs;
+  const getDimensions = useAssetDimensions();
+  const coverDims = getDimensions(book.cover);
 
   const bookJsonLd = buildGraph([
     bookSchema(book),
@@ -53,6 +55,8 @@ export default function BookPage() {
           title={`${book.title} — رقيم`}
           description={book.description}
           image={book.cover ?? undefined}
+          imageWidth={coverDims?.width}
+          imageHeight={coverDims?.height}
           path={`/books/${book.id}`}
           type="book"
         />
@@ -68,6 +72,8 @@ export default function BookPage() {
         title={`${book.title} — رقيم`}
         description={book.description}
         image={book.cover ?? undefined}
+        imageWidth={coverDims?.width}
+        imageHeight={coverDims?.height}
         path={`/books/${book.id}`}
         type="book"
       />

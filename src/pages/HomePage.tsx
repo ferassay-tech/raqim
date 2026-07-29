@@ -14,6 +14,8 @@ import { useSettings } from "../admin/context/SettingsContext";
 import { useSiteContent } from "../admin/context/SiteContentContext";
 import { buildGraph, bookSchema, organizationSchema, websiteSchema } from "../lib/structuredData";
 import { useAssetDimensions } from "../lib/mediaDimensions";
+import { DEFAULT_OG_IMAGE } from "../lib/seo";
+import { BRAND_ASSETS } from "../config/brandAssets";
 // Every Hero* atmosphere component (HeroLight, HeroClouds, HeroParticles,
 // HeroBirds, HeroForeground) and the shared ambient mask are temporarily
 // not rendered anywhere on the homepage — components and assets are kept
@@ -41,19 +43,17 @@ export default function HomePage() {
   );
 
   const homeJsonLd = buildGraph([
-    organizationSchema(),
+    organizationSchema({
+      logo: settings.brand.logo ?? BRAND_ASSETS.logo,
+      image: settings.seo.socialImage ?? DEFAULT_OG_IMAGE,
+    }),
     websiteSchema(),
     ...(heroBook ? [bookSchema(heroBook)] : []),
   ]);
 
   return (
     <PageShell>
-      <Helmet
-        title={settings.seo.title}
-        description={settings.seo.description}
-        path="/"
-        image={settings.seo.socialImage ?? undefined}
-      />
+      <Helmet title={settings.seo.title} description={settings.seo.description} path="/" />
       <StructuredData json={homeJsonLd} />
       <HeroSection book={heroBook} />
       <PhilosophySection />
@@ -221,25 +221,34 @@ function PhilosophySection() {
 }
 
 function FeaturedBookSection({ book }: { book: AdminBook }) {
+  const { settings } = useSettings();
   const getDimensions = useAssetDimensions();
-  const backdropSrc = book.gallery[0] ?? "/assets/kuni-hajar-collection.webp";
-  const backdropDims = getDimensions(backdropSrc);
+  // Dashboard-controlled override (Settings → Home Page) takes priority;
+  // falls back to the featured book's own gallery image exactly as before
+  // this setting existed, so nothing visually changes until an admin sets it.
+  const fallbackSrc = book.gallery[0] ?? "/assets/kuni-hajar-collection.webp";
+  const desktopSrc = settings.homepage.heroImage ?? fallbackSrc;
+  const mobileSrc = settings.homepage.heroImageMobile ?? desktopSrc;
+  const desktopDims = getDimensions(desktopSrc);
   const coverDims = getDimensions(book.cover);
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-ivory via-ivory to-cream px-6 py-16 lg:px-10 lg:py-24">
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 lg:grid-cols-2">
         <Reveal className="relative order-2 lg:order-1">
           <div className="relative overflow-hidden rounded-[10px] shadow-[0_30px_60px_-25px_rgba(44,36,32,0.35)]">
-            <img
-              src={backdropSrc}
-              alt=""
-              width={backdropDims?.width}
-              height={backdropDims?.height}
-              className="h-[28rem] w-full object-cover lg:h-[34rem]"
-              style={{ objectPosition: "30% 35%" }}
-              loading="lazy"
-              decoding="async"
-            />
+            <picture>
+              {mobileSrc !== desktopSrc && <source media="(max-width: 1023px)" srcSet={mobileSrc} />}
+              <img
+                src={desktopSrc}
+                alt=""
+                width={desktopDims?.width}
+                height={desktopDims?.height}
+                className="h-[28rem] w-full object-cover lg:h-[34rem]"
+                style={{ objectPosition: "30% 35%" }}
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/25 via-transparent to-transparent" />
           </div>
           <CornerFlourish className="pointer-events-none absolute right-4 top-4 h-14 w-14 text-ivory/80" />

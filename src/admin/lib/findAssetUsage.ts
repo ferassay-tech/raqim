@@ -39,6 +39,10 @@ export function findAssetUsage(url: string, { books, articles, settings }: Asset
   if (settings.brand.favicon === url) refs.push({ label: "أيقونة الموقع (Favicon)", to: "/admin/settings/brand" });
   if (settings.brand.heroImage === url) refs.push({ label: "صورة الخلفية (Hero)", to: "/admin/settings/brand" });
   if (settings.seo.socialImage === url) refs.push({ label: "صورة المشاركة الاجتماعية (السيو)", to: "/admin/settings/seo" });
+  if (settings.homepage.heroImage === url)
+    refs.push({ label: "صورة الواجهة الرئيسية (سطح المكتب)", to: "/admin/settings/homepage" });
+  if (settings.homepage.heroImageMobile === url)
+    refs.push({ label: "صورة الواجهة الرئيسية (الجوال)", to: "/admin/settings/homepage" });
 
   return refs;
 }

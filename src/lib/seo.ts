@@ -7,9 +7,9 @@ export const SITE_NAME = "رقيم";
 
 /** The sitewide default social-share image and its real pixel dimensions —
  * only used as a fallback when a page doesn't supply its own image. */
-export const DEFAULT_OG_IMAGE = "/og-image-2026.png";
-export const DEFAULT_OG_IMAGE_WIDTH = 1536;
-export const DEFAULT_OG_IMAGE_HEIGHT = 1024;
+export const DEFAULT_OG_IMAGE = "/og-image.webp";
+export const DEFAULT_OG_IMAGE_WIDTH = 1730;
+export const DEFAULT_OG_IMAGE_HEIGHT = 909;
 
 /** Resolves any site-relative path to a full, absolute URL. */
 export function absoluteUrl(path: string): string {

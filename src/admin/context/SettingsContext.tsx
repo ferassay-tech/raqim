@@ -5,6 +5,7 @@ import type {
   BrandSettings,
   ContactSettings,
   GeneralSettings,
+  HomePageSettings,
   SeoSettings,
   StorageSettings,
   StoreSettings,
@@ -17,6 +18,7 @@ interface SettingsContextValue {
   updateGeneral: (values: Partial<GeneralSettings>) => void;
   updateBrand: (values: Partial<BrandSettings>) => void;
   updateSeo: (values: Partial<SeoSettings>) => void;
+  updateHomepage: (values: Partial<HomePageSettings>) => void;
   updateContact: (values: Partial<ContactSettings>) => void;
   updateStore: (values: Partial<StoreSettings>) => void;
   updateStorage: (values: Partial<StorageSettings>) => void;
@@ -48,6 +50,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         wordmark: { ...INITIAL_SETTINGS.brand.wordmark, ...rawSettings.brand?.wordmark },
       },
       storage: rawSettings.storage ?? INITIAL_SETTINGS.storage,
+      homepage: { ...INITIAL_SETTINGS.homepage, ...rawSettings.homepage },
     }),
     [rawSettings]
   );
@@ -64,6 +67,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => ({ ...prev, seo: { ...prev.seo, ...values } }));
   }, [setSettings]);
 
+  const updateHomepage = useCallback((values: Partial<HomePageSettings>) => {
+    setSettings((prev) => ({ ...prev, homepage: { ...prev.homepage, ...values } }));
+  }, [setSettings]);
+
   const updateContact = useCallback((values: Partial<ContactSettings>) => {
     setSettings((prev) => ({ ...prev, contact: { ...prev.contact, ...values } }));
   }, [setSettings]);
@@ -77,8 +84,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [setSettings]);
 
   const value = useMemo(
-    () => ({ settings, updateGeneral, updateBrand, updateSeo, updateContact, updateStore, updateStorage }),
-    [settings, updateGeneral, updateBrand, updateSeo, updateContact, updateStore, updateStorage]
+    () => ({
+      settings,
+      updateGeneral,
+      updateBrand,
+      updateSeo,
+      updateHomepage,
+      updateContact,
+      updateStore,
+      updateStorage,
+    }),
+    [settings, updateGeneral, updateBrand, updateSeo, updateHomepage, updateContact, updateStore, updateStorage]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

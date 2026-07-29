@@ -1,7 +1,6 @@
 import type { AdminBook } from "../admin/types/book";
 import type { AdminArticle } from "../admin/types/article";
 import { absoluteUrl, SITE_NAME, SITE_URL } from "./seo";
-import { BRAND_ASSETS } from "../config/brandAssets";
 import { CONTACT_EMAILS } from "../config/contactEmails";
 
 /** Combines any number of schema.org node objects into one JSON-LD script's
@@ -18,14 +17,21 @@ export function buildGraph(nodes: object[]): string {
 /** Sitewide Organization schema — real data only. `sameAs` is intentionally
  * omitted: every entry in src/config/socialLinks.ts is still `null` today,
  * so there are no real social profile URLs to list yet. Add them here (and
- * only here) once real ones exist. */
-export function organizationSchema() {
+ * only here) once real ones exist.
+ *
+ * `logo` and `image` are passed in by the caller (read live from
+ * `settings.brand.logo` / the resolved OG image) rather than read from a
+ * hardcoded config here — so this schema always reflects whatever the
+ * Dashboard currently has selected, the moment it changes, instead of
+ * freezing on whatever the seed values were when the site was built. */
+export function organizationSchema({ logo, image }: { logo: string; image: string }) {
   return {
     "@type": "Organization",
     "@id": `${SITE_URL}/#organization`,
     name: SITE_NAME,
     url: SITE_URL,
-    logo: absoluteUrl(BRAND_ASSETS.logo),
+    logo: absoluteUrl(logo),
+    image: absoluteUrl(image),
     email: CONTACT_EMAILS.contact,
   };
 }

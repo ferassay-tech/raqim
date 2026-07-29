@@ -96,6 +96,17 @@ export interface SeoSettings {
   socialImage: string | null;
 }
 
+/** The homepage's "beside the featured book" showcase image — a real,
+ * replaceable Media Library asset. `heroImage` is required for the section
+ * to show a dashboard-controlled image at all; `heroImageMobile` is an
+ * optional art-directed variant swapped in under the mobile breakpoint via
+ * `<picture>`. When both are unset, HomePage falls back to the featured
+ * book's own gallery image exactly as it did before this setting existed. */
+export interface HomePageSettings {
+  heroImage: string | null;
+  heroImageMobile: string | null;
+}
+
 export interface ContactSettings {
   email: string;
   phone: string;
@@ -123,6 +134,7 @@ export interface AdminSettings {
   general: GeneralSettings;
   brand: BrandSettings;
   seo: SeoSettings;
+  homepage: HomePageSettings;
   contact: ContactSettings;
   store: StoreSettings;
   storage: StorageSettings;

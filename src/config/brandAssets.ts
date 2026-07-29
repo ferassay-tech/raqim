@@ -12,7 +12,7 @@
  * tags by hand if this path ever changes.
  */
 export const BRAND_ASSETS = {
-  logo: "/logos/lumora-logo-signature.png",
+  logo: "/Raqim-logo.webp",
   heroImage: "/assets/arabesque-pattern.webp",
-  ogImage: "/og-image-2026.png",
+  ogImage: "/og-image.webp",
 } as const;

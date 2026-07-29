@@ -7,14 +7,17 @@ import { StructuredData } from "../components/StructuredData";
 import { useArticles } from "../admin/context/ArticlesContext";
 import { formatArticleDate } from "../admin/lib/articleStatus";
 import { buildGraph, articleSchema, breadcrumbSchema } from "../lib/structuredData";
+import { useAssetDimensions } from "../lib/mediaDimensions";
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const { articles } = useArticles();
   const post = articles.find((a) => a.slug === slug && a.status === "published");
+  const getDimensions = useAssetDimensions();
 
   if (!post) return <Navigate to="/blog" replace />;
 
+  const coverDims = getDimensions(post.coverImage);
   const paragraphs = post.content.split(/\n{2,}/).filter((p) => p.trim().length > 0);
 
   const postJsonLd = buildGraph([
@@ -33,6 +36,8 @@ export default function BlogPostPage() {
         description={post.seoDescription || post.excerpt}
         path={`/blog/${post.slug}`}
         image={post.coverImage ?? undefined}
+        imageWidth={coverDims?.width}
+        imageHeight={coverDims?.height}
         type="article"
         publishedTime={post.publishedAt ?? undefined}
         modifiedTime={post.updatedAt}

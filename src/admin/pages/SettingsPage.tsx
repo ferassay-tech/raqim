@@ -6,6 +6,7 @@ import { Tabs } from "../components/Tabs";
 import { GeneralSection } from "../components/settings/GeneralSection";
 import { BrandSection } from "../components/settings/BrandSection";
 import { SeoSection } from "../components/settings/SeoSection";
+import { HomePageSection } from "../components/settings/HomePageSection";
 import { ContactSection } from "../components/settings/ContactSection";
 import { StoreSection } from "../components/settings/StoreSection";
 import { StorageSection } from "../components/settings/StorageSection";
@@ -15,6 +16,7 @@ const TABS = [
   { key: "general", label: "عام" },
   { key: "brand", label: "الهوية البصرية" },
   { key: "seo", label: "السيو" },
+  { key: "homepage", label: "الصفحة الرئيسية" },
   { key: "contact", label: "التواصل" },
   { key: "store", label: "المتجر" },
   { key: "storage", label: "التخزين" },
@@ -57,6 +59,7 @@ export default function SettingsPage() {
         {activeSection === "general" && <GeneralSection onSaved={handleSaved} />}
         {activeSection === "brand" && <BrandSection onSaved={handleSaved} />}
         {activeSection === "seo" && <SeoSection onSaved={handleSaved} />}
+        {activeSection === "homepage" && <HomePageSection onSaved={handleSaved} />}
         {activeSection === "contact" && <ContactSection onSaved={handleSaved} />}
         {activeSection === "store" && <StoreSection onSaved={handleSaved} />}
         {activeSection === "storage" && <StorageSection onSaved={handleSaved} />}

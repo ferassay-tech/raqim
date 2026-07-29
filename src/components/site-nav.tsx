@@ -207,27 +207,37 @@ export function LogoMark({
     return <img src={logo ?? undefined} alt="رقيم" decoding="async" className={className} />;
   }
 
-  const explicitWidth = logoSizing.width ? `${logoSizing.width}px` : undefined;
-  const explicitHeight = logoSizing.height ? `${logoSizing.height}px` : undefined;
+  const hasExplicitWidth = Boolean(logoSizing.width);
+  const hasExplicitHeight = Boolean(logoSizing.height);
+
+  // A floor keeps a momentarily-empty or zeroed number field (e.g. while the
+  // admin retypes it) from collapsing the responsive height to 0 and making
+  // the logo vanish — these fixed sizes only ever act as a fallback when
+  // neither explicit width nor height is set below.
+  const safeDesktopSize = logoSizing.desktopSize > 0 ? logoSizing.desktopSize : 64;
+  const safeMobileSize = logoSizing.mobileSize > 0 ? logoSizing.mobileSize : 64;
 
   const style = {
     objectFit: logoSizing.objectFit,
     padding: logoSizing.padding ? `${logoSizing.padding}px` : undefined,
     maxWidth: logoSizing.maxWidth ? `${logoSizing.maxWidth}px` : undefined,
     maxHeight: logoSizing.maxHeight ? `${logoSizing.maxHeight}px` : undefined,
-    width: explicitWidth ?? "auto",
-    height: explicitHeight,
-    "--logo-size-mobile": `${logoSizing.mobileSize}px`,
-    "--logo-size-desktop": `${logoSizing.desktopSize}px`,
+    // Either explicit dimension takes over completely, with the other side
+    // left "auto" so the source image's real aspect ratio is preserved on
+    // its own — objectFit only needs to reshape the image when BOTH sides
+    // end up fixed (below), which is exactly when it's applied here too.
+    width: hasExplicitWidth ? `${logoSizing.width}px` : "auto",
+    height: hasExplicitHeight ? `${logoSizing.height}px` : "auto",
+    "--logo-size-mobile": `${safeMobileSize}px`,
+    "--logo-size-desktop": `${safeDesktopSize}px`,
   } as CSSProperties;
 
-  // Explicit height (when set) always wins; otherwise the responsive
-  // mobile/desktop sizes drive the visible height — aspect ratio is
-  // preserved either way since width is left to "auto" and objectFit
-  // guarantees the source image is never stretched.
-  const responsiveHeight = explicitHeight
-    ? ""
-    : "h-[length:var(--logo-size-mobile)] lg:h-[length:var(--logo-size-desktop)]";
+  // The responsive mobile/desktop size only drives the rendered height when
+  // the admin hasn't pinned an explicit width or height of their own.
+  const useResponsiveHeight = !hasExplicitWidth && !hasExplicitHeight;
+  const responsiveHeight = useResponsiveHeight
+    ? "h-[length:var(--logo-size-mobile)] lg:h-[length:var(--logo-size-desktop)]"
+    : "";
 
   return (
     <img

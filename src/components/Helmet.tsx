@@ -6,6 +6,8 @@ import {
   DEFAULT_OG_IMAGE_WIDTH,
   SITE_NAME,
 } from "../lib/seo";
+import { useSettings } from "../admin/context/SettingsContext";
+import { useAssetDimensions } from "../lib/mediaDimensions";
 
 type OgType = "website" | "book" | "article";
 
@@ -16,8 +18,11 @@ type HelmetProps = {
    * are both derived from this via `absoluteUrl`, so no page hand-builds
    * an "https://r-aqim.com/..." string itself. */
   path: string;
-  /** Site-relative or absolute image path. Falls back to the sitewide
-   * default OG image (with its real dimensions) when omitted. */
+  /** Site-relative or absolute image path. When a page doesn't supply its
+   * own, falls back to the Dashboard's Settings → SEO social image (kept in
+   * sync across every page instead of each one reading it individually),
+   * and only falls back further to the hardcoded sitewide default if the
+   * admin hasn't set one. */
   image?: string;
   /** Only applied when `image` is also provided — never guessed, so a
    * custom image without known dimensions simply omits the width/height
@@ -45,6 +50,23 @@ export function Helmet({
   publishedTime,
   modifiedTime,
 }: HelmetProps) {
+  const { settings } = useSettings();
+  const getDimensions = useAssetDimensions();
+
+  // Single resolution chain so og:image, twitter:image, and (via the same
+  // dashboard value read by structuredData.ts builders) structured-data
+  // images all end up showing the same picture: a page's own explicit
+  // `image` wins; otherwise the Dashboard's Settings → SEO social image;
+  // otherwise the hardcoded sitewide default. Dimensions are only ever
+  // reported when they're actually known (page-supplied or looked up in the
+  // Media Library) — never guessed.
+  const dashboardImage = settings.seo.socialImage;
+  const effectiveImage = image ?? dashboardImage ?? DEFAULT_OG_IMAGE;
+  const resolvedImage = absoluteUrl(effectiveImage);
+  const dashboardDims = !image && dashboardImage ? getDimensions(dashboardImage) : null;
+  const resolvedWidth = image ? imageWidth : dashboardImage ? dashboardDims?.width : DEFAULT_OG_IMAGE_WIDTH;
+  const resolvedHeight = image ? imageHeight : dashboardImage ? dashboardDims?.height : DEFAULT_OG_IMAGE_HEIGHT;
+
   useEffect(() => {
     document.title = title;
 
@@ -77,9 +99,6 @@ export function Helmet({
     };
 
     const url = absoluteUrl(path);
-    const resolvedImage = image ? absoluteUrl(image) : absoluteUrl(DEFAULT_OG_IMAGE);
-    const resolvedWidth = image ? imageWidth : DEFAULT_OG_IMAGE_WIDTH;
-    const resolvedHeight = image ? imageHeight : DEFAULT_OG_IMAGE_HEIGHT;
 
     if (description) {
       setMeta('meta[name="description"]', "name", description);
@@ -109,7 +128,18 @@ export function Helmet({
     else removeMeta('meta[property="article:published_time"]');
     if (modifiedTime) setMeta('meta[property="article:modified_time"]', "property", modifiedTime);
     else removeMeta('meta[property="article:modified_time"]');
-  }, [title, description, path, image, imageWidth, imageHeight, type, noindex, publishedTime, modifiedTime]);
+  }, [
+    title,
+    description,
+    path,
+    type,
+    noindex,
+    publishedTime,
+    modifiedTime,
+    resolvedImage,
+    resolvedWidth,
+    resolvedHeight,
+  ]);
 
   return null;
 }
