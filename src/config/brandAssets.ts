@@ -16,3 +16,11 @@ export const BRAND_ASSETS = {
   heroImage: "/assets/arabesque-pattern.webp",
   ogImage: "/og-image.webp",
 } as const;
+
+/** The logo path that was the default before the RAQIM rebrand. A browser
+ * that already persisted this exact value in Settings (before
+ * `BRAND_ASSETS.logo` changed) would otherwise keep showing it forever —
+ * persisted values always win over new defaults. `SettingsContext` uses
+ * this to self-heal exactly that one known-stale value; any other logo an
+ * admin has actually chosen is left untouched. */
+export const LEGACY_LOGO_PATH = "/logos/lumora-logo-signature.png";

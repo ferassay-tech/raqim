@@ -222,12 +222,14 @@ export function LogoMark({
     padding: logoSizing.padding ? `${logoSizing.padding}px` : undefined,
     maxWidth: logoSizing.maxWidth ? `${logoSizing.maxWidth}px` : undefined,
     maxHeight: logoSizing.maxHeight ? `${logoSizing.maxHeight}px` : undefined,
-    // Either explicit dimension takes over completely, with the other side
-    // left "auto" so the source image's real aspect ratio is preserved on
-    // its own — objectFit only needs to reshape the image when BOTH sides
-    // end up fixed (below), which is exactly when it's applied here too.
+    // Either explicit dimension takes over completely. Width's "auto"
+    // fallback is a real inline value (nothing else ever sizes width, so
+    // nothing conflicts) — but height must stay `undefined` (omitted
+    // entirely) rather than an explicit "auto", because a real inline
+    // height would silently override the responsiveHeight Tailwind class
+    // below, which is what actually renders the Desktop/Mobile Size.
     width: hasExplicitWidth ? `${logoSizing.width}px` : "auto",
-    height: hasExplicitHeight ? `${logoSizing.height}px` : "auto",
+    height: hasExplicitHeight ? `${logoSizing.height}px` : undefined,
     "--logo-size-mobile": `${safeMobileSize}px`,
     "--logo-size-desktop": `${safeDesktopSize}px`,
   } as CSSProperties;

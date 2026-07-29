@@ -12,6 +12,7 @@ import type {
 } from "../types/settings";
 import { INITIAL_SETTINGS } from "../data/settingsData";
 import { usePersistedState } from "../lib/usePersistedState";
+import { BRAND_ASSETS, LEGACY_LOGO_PATH } from "../../config/brandAssets";
 
 interface SettingsContextValue {
   settings: AdminSettings;
@@ -46,6 +47,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       brand: {
         ...INITIAL_SETTINGS.brand,
         ...rawSettings.brand,
+        // Heal a browser that persisted the pre-rebrand logo path before
+        // `BRAND_ASSETS.logo` changed to `/Raqim-logo.webp` — otherwise that
+        // stale value would keep winning over the new default forever. Any
+        // other logo an admin has actually chosen is left exactly as-is.
+        ...(rawSettings.brand?.logo === LEGACY_LOGO_PATH ? { logo: BRAND_ASSETS.logo } : {}),
         logoSizing: { ...INITIAL_SETTINGS.brand.logoSizing, ...rawSettings.brand?.logoSizing },
         wordmark: { ...INITIAL_SETTINGS.brand.wordmark, ...rawSettings.brand?.wordmark },
       },
