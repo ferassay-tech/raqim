@@ -188,13 +188,13 @@ export const INITIAL_MEDIA_ASSETS: AdminMediaAsset[] = [
   },
   {
     id: "media-favicon",
-    url: "/favicon.webp",
+    url: "/favicon.ico",
     name: "أيقونة الموقع (Favicon)",
     type: "image",
     folderId: "folder-brand",
-    size: 12_000,
-    width: 64,
-    height: 64,
+    size: 735,
+    width: 32,
+    height: 32,
     uploadedAt: "2026-05-20",
   },
   {

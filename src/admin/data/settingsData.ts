@@ -39,7 +39,7 @@ export const INITIAL_SETTINGS: AdminSettings = {
       fontSizeDesktop: 24,
       fontSizeMobile: 24,
     },
-    favicon: "/favicon.webp",
+    favicon: "/favicon.ico",
     colors: {
       ivory: "#fbf6ed",
       cream: "#f6efe2",
