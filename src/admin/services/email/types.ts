@@ -4,6 +4,15 @@ export interface SendDownloadEmailParams {
   to: string;
   orderId: string;
   downloadUrl: string;
+  /** Display-only fields for the email template — none of these affect
+   * sending/auth/routing, they're purely what the customer sees rendered
+   * in the email itself. All optional so existing callers keep compiling. */
+  bookTitle?: string;
+  /** Relative or absolute — the template resolves relative paths itself. */
+  bookCoverUrl?: string | null;
+  maxDownloads?: number | null;
+  /** ISO date string, same shape as DownloadToken.expiresAt. */
+  expiresAt?: string | null;
 }
 
 /**

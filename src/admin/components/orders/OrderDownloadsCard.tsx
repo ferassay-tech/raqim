@@ -7,10 +7,38 @@ import { can } from "../../lib/permissions";
 import { getEmailProvider } from "../../services/email";
 import { CopyIconButton } from "../CopyIconButton";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { Toast } from "../Toast";
+import type { ToastState } from "../Toast";
 import { IconArchive, IconMail, IconRefresh } from "../../icons";
 
 interface OrderDownloadsCardProps {
   order: AdminOrder;
+}
+
+type EmailSendStatus = "idle" | "sending" | "sent" | "error";
+
+/** UI-only, per-order "last email sent" memory — deliberately separate from
+ * DownloadToken/AdminOrder (neither is touched here); this is purely a
+ * display convenience, not part of the download/order data model. */
+const LAST_EMAIL_SENT_KEY = "raqim_admin:last_email_sent";
+
+function readLastEmailSentMap(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(LAST_EMAIL_SENT_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLastEmailSent(orderId: string, iso: string) {
+  try {
+    const map = readLastEmailSentMap();
+    map[orderId] = iso;
+    localStorage.setItem(LAST_EMAIL_SENT_KEY, JSON.stringify(map));
+  } catch {
+    /* ignore quota/availability errors */
+  }
 }
 
 /**
@@ -33,7 +61,14 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
   const canManage = can(currentUser?.role, "manageDownloads");
 
   const [confirmDisable, setConfirmDisable] = useState(false);
-  const [emailNotice, setEmailNotice] = useState<string | null>(null);
+  const [emailStatus, setEmailStatus] = useState<EmailSendStatus>("idle");
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [lastEmailSentAt, setLastEmailSentAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLastEmailSentAt(readLastEmailSentMap()[order.id] ?? null);
+    setEmailStatus("idle");
+  }, [order.id]);
 
   const linkedFiles = useMemo(() => {
     const seen = new Set<string>();
@@ -66,16 +101,29 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
   };
 
   const handleSendEmail = async () => {
-    if (!downloadUrl) return;
-    setEmailNotice(null);
+    // Guards against both a stale mid-flight click and a genuine
+    // double-click while the request is already pending.
+    if (!downloadUrl || emailStatus === "sending") return;
+    setEmailStatus("sending");
+    const book = order.items[0];
     try {
       await getEmailProvider("resend").sendDownloadEmail({
         to: order.customerEmail,
         orderId: order.id,
         downloadUrl,
+        bookTitle: book?.title,
+        bookCoverUrl: book?.cover ?? null,
+        maxDownloads: activeToken?.maxDownloads ?? null,
+        expiresAt: activeToken?.expiresAt ?? null,
       });
-    } catch (err) {
-      setEmailNotice(err instanceof Error ? err.message : "تعذّر إرسال البريد الإلكتروني.");
+      const now = new Date().toISOString();
+      writeLastEmailSent(order.id, now);
+      setLastEmailSentAt(now);
+      setEmailStatus("sent");
+      setToast({ variant: "success", message: "تم إرسال رابط التحميل إلى بريد العميل بنجاح." });
+    } catch {
+      setEmailStatus("error");
+      setToast({ variant: "error", message: "تعذر إرسال البريد الإلكتروني. يرجى المحاولة مرة أخرى." });
     }
   };
 
@@ -140,6 +188,14 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
               <dt className="text-ink-faint">الحد الأقصى للتحميلات</dt>
               <dd className="mt-0.5 text-ink" dir="ltr">{activeToken.maxDownloads ?? "بلا حد"}</dd>
             </div>
+            <div>
+              <dt className="text-ink-faint">آخر إرسال بريد</dt>
+              <dd className="mt-0.5 text-ink">
+                {lastEmailSentAt
+                  ? new Date(lastEmailSentAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })
+                  : "لم يُرسَل بعد"}
+              </dd>
+            </div>
           </dl>
 
           <div className="flex flex-wrap gap-2">
@@ -154,10 +210,29 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
             <button
               type="button"
               onClick={handleSendEmail}
-              className="inline-flex items-center gap-1.5 rounded-full border border-beige px-4 py-2 text-xs text-ink-soft transition-colors hover:border-gold hover:text-ink"
+              disabled={emailStatus === "sending"}
+              aria-busy={emailStatus === "sending"}
+              className="inline-flex items-center gap-1.5 rounded-full border border-beige px-4 py-2 text-xs text-ink-soft transition-colors hover:border-gold hover:text-ink disabled:cursor-wait disabled:opacity-60 disabled:hover:border-beige disabled:hover:text-ink-soft"
             >
-              <IconMail className="h-3.5 w-3.5" />
-              إرسال عبر البريد الإلكتروني
+              {emailStatus === "sending" ? (
+                <>
+                  <span
+                    aria-hidden
+                    className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-ink-faint border-t-transparent"
+                  />
+                  جاري إرسال البريد...
+                </>
+              ) : lastEmailSentAt ? (
+                <>
+                  <IconRefresh className="h-3.5 w-3.5" />
+                  إعادة إرسال
+                </>
+              ) : (
+                <>
+                  <IconMail className="h-3.5 w-3.5" />
+                  إرسال عبر البريد الإلكتروني
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -167,7 +242,6 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
               تعطيل الرابط
             </button>
           </div>
-          {emailNotice && <p className="text-xs text-ink-faint">{emailNotice}</p>}
         </div>
       )}
 
@@ -182,6 +256,7 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
         }}
         onCancel={() => setConfirmDisable(false)}
       />
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }
