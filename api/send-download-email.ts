@@ -1,7 +1,3 @@
-import { absoluteUrl, SITE_URL } from "../src/lib/seo";
-import { BRAND_ASSETS } from "../src/config/brandAssets";
-import { CONTACT_EMAILS } from "../src/config/contactEmails";
-
 /**
  * Vercel serverless function — the one place this app talks to Resend.
  * Exists because a Resend API key grants full send-as-this-domain access
@@ -12,7 +8,24 @@ import { CONTACT_EMAILS } from "../src/config/contactEmails";
  *
  * Everything below `buildEmailHtml` is presentation only — the auth,
  * validation, and Resend call are unchanged from the original integration.
+ *
+ * Deliberately self-contained: this used to import shared constants from
+ * src/lib/seo.ts, src/config/brandAssets.ts, and src/config/contactEmails.ts,
+ * which broke the deployed function (cross-directory imports out of api/
+ * failed at runtime — FUNCTION_INVOCATION_FAILED). The values below are
+ * copies, not imports, of exactly what those modules held — keep them in
+ * sync by hand if the site's real domain, logo path, or support address
+ * ever changes.
  */
+const SITE_URL = "https://r-aqim.com";
+const LOGO_PATH = "/Raqim-logo.webp";
+const SUPPORT_EMAIL = "support@r-aqim.com";
+
+function absoluteUrl(path: string): string {
+  if (/^https?:\/\//.test(path)) return path;
+  return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -95,7 +108,7 @@ function buildEmailHtml(params: {
   expiresAt?: string | null;
 }): string {
   const { orderId, downloadUrl, bookTitle, bookCoverUrl, maxDownloads, expiresAt } = params;
-  const logoUrl = absoluteUrl(BRAND_ASSETS.logo);
+  const logoUrl = absoluteUrl(LOGO_PATH);
   const coverUrl = bookCoverUrl ? absoluteUrl(bookCoverUrl) : null;
   const maxDownloadsLabel = maxDownloads == null ? "بلا حد" : String(maxDownloads);
   const expiryLabel = formatExpiry(expiresAt);
@@ -234,7 +247,7 @@ function buildEmailHtml(params: {
             <td align="center" style="background-color:#2c2420;padding:26px 24px;font-family:Tahoma,Arial,sans-serif;">
               <p style="margin:0 0 8px;color:#cfae6d;font-size:13px;font-family:Georgia,serif;letter-spacing:1px;">رقيم</p>
               <p style="margin:0 0 6px;color:#cbbfae;font-size:12px;">
-                لأي استفسار: <a href="mailto:${CONTACT_EMAILS.support}" style="color:#cfae6d;text-decoration:none;">${CONTACT_EMAILS.support}</a>
+                لأي استفسار: <a href="mailto:${SUPPORT_EMAIL}" style="color:#cfae6d;text-decoration:none;">${SUPPORT_EMAIL}</a>
               </p>
               <p style="margin:0;color:#8a7d70;font-size:11px;">© ${year} رقيم — ${SITE_URL.replace("https://", "")}. جميع الحقوق محفوظة.</p>
             </td>
