@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AdminOrder } from "../../types/order";
 import { useDownloads } from "../../context/DownloadsContext";
 import { useLibrary } from "../../context/LibraryContext";
@@ -18,6 +18,13 @@ interface OrderDownloadsCardProps {
  * form of Part 7's "Only Confirmed orders should unlock download
  * generation." A future real payment provider plugs into this the moment
  * it calls setOrderStatus(id, "paid"); nothing else here changes.
+ *
+ * Token generation itself is automatic (see the effect below): the moment an
+ * order is paid and has at least one linked library file, a token is minted
+ * without the admin needing to click anything — "approve the order" IS "the
+ * download link now exists." The manual button below only remains for the
+ * case where files get attached to the book *after* the order was approved
+ * (nothing to link yet at approval time), or to force a fresh link later.
  */
 export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
   const { getTokensForOrder, generateToken, regenerateToken, disableToken } = useDownloads();
@@ -44,6 +51,15 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
   const tokens = getTokensForOrder(order.id);
   const activeToken = tokens.find((t) => !t.disabled) ?? null;
   const downloadUrl = activeToken ? `${window.location.origin}/download/${activeToken.id}` : null;
+
+  useEffect(() => {
+    if (order.status === "paid" && canManage && linkedFiles.length > 0 && !activeToken) {
+      generateToken(order.id, linkedFiles.map((f) => f.id));
+    }
+    // Deliberately reacts to the order's approval and to files becoming
+    // available — not a one-time mount effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order.status, order.id, linkedFiles, activeToken, canManage]);
 
   const handleGenerate = () => {
     generateToken(order.id, linkedFiles.map((f) => f.id));
@@ -105,11 +121,24 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
           <dl className="grid grid-cols-2 gap-3 text-xs text-ink-soft">
             <div>
               <dt className="text-ink-faint">عدد مرات التحميل</dt>
-              <dd className="mt-0.5 text-ink">{activeToken.downloadCount.toLocaleString("en-US")}</dd>
+              <dd className="mt-0.5 text-ink" dir="ltr">
+                {activeToken.downloadCount.toLocaleString("en-US")}
+                {activeToken.maxDownloads !== null && ` / ${activeToken.maxDownloads.toLocaleString("en-US")}`}
+              </dd>
             </div>
             <div>
               <dt className="text-ink-faint">آخر تحميل</dt>
               <dd className="mt-0.5 text-ink">{activeToken.lastDownloadedAt ?? "لم يُحمَّل بعد"}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-faint">تنتهي الصلاحية</dt>
+              <dd className="mt-0.5 text-ink" dir="ltr">
+                {activeToken.expiresAt ? new Date(activeToken.expiresAt).toLocaleDateString("ar-EG") : "بلا انتهاء"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink-faint">الحد الأقصى للتحميلات</dt>
+              <dd className="mt-0.5 text-ink" dir="ltr">{activeToken.maxDownloads ?? "بلا حد"}</dd>
             </div>
           </dl>
 

@@ -1,24 +1,36 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell, PageHeader } from "../components/page-shell";
-import { books, blogPosts } from "../lib/content";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
+import { useBooks } from "../admin/context/BooksContext";
+import { useArticles } from "../admin/context/ArticlesContext";
+import { isInLibraryGrid } from "../admin/lib/bookPlacement";
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
+  const { books } = useBooks();
+  const { articles } = useArticles();
 
   const results = useMemo(() => {
     const q = query.trim();
     if (!q) return { books: [], posts: [] };
-    const matchedBooks = books.filter(
-      (b) => b.title.includes(q) || b.author.includes(q) || b.category.includes(q) || b.excerpt.includes(q),
+
+    // Same visibility rule as BooksIndexPage/HomePage: excludes deleted and
+    // hidden books, includes comingSoon — search must never surface what the
+    // public catalog itself wouldn't show.
+    const visibleBooks = books.filter((b) => b.deletedAt === null && isInLibraryGrid(b.placement));
+    // Same rule as BlogIndexPage — only published articles are public.
+    const publishedPosts = articles.filter((a) => a.status === "published");
+
+    const matchedBooks = visibleBooks.filter(
+      (b) => b.title.includes(q) || b.author.includes(q) || b.category.includes(q) || b.description.includes(q),
     );
-    const matchedPosts = blogPosts.filter(
+    const matchedPosts = publishedPosts.filter(
       (p) => p.title.includes(q) || p.excerpt.includes(q) || p.category.includes(q),
     );
     return { books: matchedBooks, posts: matchedPosts };
-  }, [query]);
+  }, [query, books, articles]);
 
   const hasQuery = query.trim().length > 0;
   const hasResults = results.books.length > 0 || results.posts.length > 0;
@@ -53,9 +65,9 @@ export default function SearchPage() {
               <p className="text-xs uppercase tracking-[0.2em] text-gold">الكتب</p>
               <div className="mt-4 space-y-3">
                 {results.books.map((b, i) => (
-                  <Reveal key={b.slug} delay={i * 0.04}>
+                  <Reveal key={b.id} delay={i * 0.04}>
                     <Link
-                      to={`/books/${b.slug}`}
+                      to={`/books/${b.id}`}
                       className="flex items-center justify-between rounded-[10px] border border-beige bg-ivory px-5 py-4 transition-colors hover:border-gold"
                     >
                       <span className="font-display text-lg text-ink">{b.title}</span>

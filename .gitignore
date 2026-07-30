@@ -4,3 +4,9 @@ dist/
 
 pnpm-lock.yaml
 pnpm-workspace.yaml
+
+# Real secrets (Supabase URL/anon key, etc.) — see .env.example for the
+# variable names this project expects.
+.env
+.env.local
+.env.*.local

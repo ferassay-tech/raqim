@@ -55,6 +55,12 @@ export function OrderPaymentCard({ order, onStatusChange }: OrderPaymentCardProp
           <dt className="text-ink-faint">طريقة الدفع</dt>
           <dd className="text-ink">{order.paymentMethod}</dd>
         </div>
+        <div className="flex items-center justify-between">
+          <dt className="text-ink-faint">رقم العملية</dt>
+          <dd className="text-ink" dir={order.transactionId ? "ltr" : undefined}>
+            {order.transactionId || "غير متوفر"}
+          </dd>
+        </div>
       </dl>
 
       <div className="mt-5 border-t border-beige pt-5">

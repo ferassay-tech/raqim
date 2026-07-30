@@ -9,6 +9,8 @@ export interface CreateOrderInput {
   customerName: string;
   customerEmail: string;
   paymentMethod: string;
+  transactionId?: string | null;
+  customerNotes?: string | null;
   items: OrderItem[];
   discount?: number;
 }
@@ -53,6 +55,8 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         customerEmail: input.customerEmail,
         status: "pending",
         paymentMethod: input.paymentMethod,
+        transactionId: input.transactionId ?? null,
+        customerNotes: input.customerNotes ?? null,
         items: input.items,
         discount: input.discount ?? 0,
         createdAt: new Date().toISOString().slice(0, 10),

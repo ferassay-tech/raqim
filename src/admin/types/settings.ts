@@ -128,6 +128,14 @@ export interface StoreSettings {
  * see src/admin/services/storage for the adapter interface itself. */
 export interface StorageSettings {
   activeProvider: StorageProviderId;
+  /** Days a newly generated/regenerated download link stays valid — null
+   * means it never expires on its own. Applied at generation time only;
+   * already-issued tokens keep whatever expiry they were given then. */
+  downloadLinkExpiryDays: number | null;
+  /** How many times a newly generated/regenerated download link may be used
+   * before it stops working — null means unlimited. Same application
+   * timing as `downloadLinkExpiryDays`. */
+  downloadLinkMaxDownloads: number | null;
 }
 
 export interface AdminSettings {

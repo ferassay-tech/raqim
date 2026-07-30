@@ -6,9 +6,15 @@ export interface DownloadToken {
   /** LibraryFile ids this token grants access to. */
   fileIds: string[];
   createdAt: string;
-  /** null = no expiry. Real expiry enforcement (and the other reserved
-   * fields below) requires a server — see DownloadsContext's doc comment. */
+  /** null = no expiry. Checked client-side by `resolveToken` — real,
+   * tamper-proof enforcement still requires a server, see DownloadsContext's
+   * doc comment, but this is genuine protection against an honest link
+   * simply going stale, not a no-op. */
   expiresAt: string | null;
+  /** null = unlimited downloads. Compared against `downloadCount` by
+   * `resolveToken` — once reached, the token is treated exactly like an
+   * expired or disabled one. */
+  maxDownloads: number | null;
   disabled: boolean;
   downloadCount: number;
   lastDownloadedAt: string | null;

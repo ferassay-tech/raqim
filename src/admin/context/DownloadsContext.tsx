@@ -2,6 +2,16 @@ import { createContext, useCallback, useContext, useMemo } from "react";
 import type { ReactNode } from "react";
 import type { DownloadToken } from "../types/download";
 import { usePersistedState } from "../lib/usePersistedState";
+import { useSettings } from "./SettingsContext";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Applies Settings → Storage's download-link policy at the moment a token
+ * is (re)generated — already-issued tokens are never retroactively changed
+ * if the policy is edited later. `null` in either setting means "no limit". */
+function computeExpiresAt(expiryDays: number | null): string | null {
+  return expiryDays === null ? null : new Date(Date.now() + expiryDays * DAY_MS).toISOString();
+}
 
 interface DownloadsContextValue {
   tokens: DownloadToken[];
@@ -10,8 +20,9 @@ interface DownloadsContextValue {
   regenerateToken: (orderId: string) => DownloadToken | null;
   disableToken: (tokenId: string) => void;
   recordDownload: (tokenId: string) => void;
-  /** Returns the token only if it exists, isn't disabled, and hasn't
-   * expired — the one check the public DownloadPage relies on. */
+  /** Returns the token only if it exists, isn't disabled, hasn't expired,
+   * and hasn't reached its download limit — the one check the public
+   * DownloadPage relies on. */
   resolveToken: (tokenId: string) => DownloadToken | null;
 }
 
@@ -35,6 +46,8 @@ const now = () => new Date().toISOString();
  */
 export function DownloadsProvider({ children }: { children: ReactNode }) {
   const [tokens, setTokens] = usePersistedState<DownloadToken[]>("download_tokens", []);
+  const { settings } = useSettings();
+  const { downloadLinkExpiryDays, downloadLinkMaxDownloads } = settings.storage;
 
   const getTokensForOrder = useCallback(
     (orderId: string) => tokens.filter((t) => t.orderId === orderId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
@@ -48,7 +61,8 @@ export function DownloadsProvider({ children }: { children: ReactNode }) {
         orderId,
         fileIds,
         createdAt: now(),
-        expiresAt: null,
+        expiresAt: computeExpiresAt(downloadLinkExpiryDays),
+        maxDownloads: downloadLinkMaxDownloads,
         disabled: false,
         downloadCount: 0,
         lastDownloadedAt: null,
@@ -58,7 +72,7 @@ export function DownloadsProvider({ children }: { children: ReactNode }) {
       setTokens((prev) => [token, ...prev]);
       return token;
     },
-    [setTokens]
+    [setTokens, downloadLinkExpiryDays, downloadLinkMaxDownloads]
   );
 
   const regenerateToken = useCallback(
@@ -72,7 +86,8 @@ export function DownloadsProvider({ children }: { children: ReactNode }) {
         orderId,
         fileIds: mostRecent.fileIds,
         createdAt: now(),
-        expiresAt: null,
+        expiresAt: computeExpiresAt(downloadLinkExpiryDays),
+        maxDownloads: downloadLinkMaxDownloads,
         disabled: false,
         downloadCount: 0,
         lastDownloadedAt: null,
@@ -82,7 +97,7 @@ export function DownloadsProvider({ children }: { children: ReactNode }) {
       setTokens((prev) => [fresh, ...prev.map((t) => (t.orderId === orderId ? { ...t, disabled: true } : t))]);
       return fresh;
     },
-    [tokens, setTokens]
+    [tokens, setTokens, downloadLinkExpiryDays, downloadLinkMaxDownloads]
   );
 
   const disableToken = useCallback((tokenId: string) => {
@@ -101,6 +116,7 @@ export function DownloadsProvider({ children }: { children: ReactNode }) {
       if (!token) return null;
       if (token.disabled) return null;
       if (token.expiresAt && new Date(token.expiresAt) < new Date()) return null;
+      if (token.maxDownloads !== null && token.downloadCount >= token.maxDownloads) return null;
       return token;
     },
     [tokens]

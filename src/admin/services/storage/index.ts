@@ -1,5 +1,6 @@
 import type { StorageAdapter, StorageProviderId } from "./types";
 import { localAdapter } from "./localAdapter";
+import { supabaseAdapter } from "./supabaseAdapter";
 
 export type { StorageAdapter, StorageProviderId, StorageUploadResult, StorageDownloadUrlOptions } from "./types";
 
@@ -20,18 +21,18 @@ function notConfigured(providerId: StorageProviderId): StorageAdapter {
 
 /**
  * The provider registry — the concrete form of "keep the storage layer
- * abstract so providers can be swapped later." `local` is the only adapter
- * that actually works today (see localAdapter.ts); the rest are named,
- * selectable stubs that fail loudly and clearly instead of silently, so
- * wiring a real provider later means writing one adapter file and
- * replacing its entry here — nothing else in the app (LibraryContext,
- * DownloadsContext, DownloadPage) changes.
+ * abstract so providers can be swapped later." `local` and `supabase` are
+ * the two working adapters today (see localAdapter.ts / supabaseAdapter.ts);
+ * the rest are named, selectable stubs that fail loudly and clearly instead
+ * of silently, so wiring a real provider later means writing one adapter
+ * file and replacing its entry here — nothing else in the app
+ * (LibraryContext, DownloadsContext, DownloadPage) changes.
  */
 export const STORAGE_ADAPTERS: Record<StorageProviderId, StorageAdapter> = {
   local: localAdapter,
   r2: notConfigured("r2"),
   s3: notConfigured("s3"),
-  supabase: notConfigured("supabase"),
+  supabase: supabaseAdapter,
 };
 
 export const STORAGE_PROVIDER_OPTIONS: { value: StorageProviderId; label: string }[] = [

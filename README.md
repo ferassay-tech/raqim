@@ -18,7 +18,7 @@ bun run preview   # preview the production build
 - `src/App.tsx` — router (react-router-dom v7)
 - `src/pages/` — one file per route
 - `src/components/` — shared nav, footer, CTA buttons, ornaments, motion helpers
-- `src/lib/content.ts` — book/author/blog/FAQ content data
+- `src/admin/context/` — live, admin-managed data (books, articles, site content, settings, ...) shared by the public site and the Admin
 - `public/assets/` — all generated imagery (hero, book covers, patterns)
 
 ## Deploying

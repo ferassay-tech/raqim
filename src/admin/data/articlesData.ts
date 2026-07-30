@@ -1,7 +1,8 @@
 import type { AdminArticle } from "../types/article";
 
-// The real, live blog posts from the public site — migrated from
-// src/lib/content.ts's blogPosts (Milestone 3.1). Not demo content.
+// The real, live blog posts from the public site — migrated from the
+// project's early static content file's blogPosts (Milestone 3.1). Not demo
+// content.
 export const INITIAL_ARTICLES: AdminArticle[] = [
   {
     id: "athar-la-yunsa",

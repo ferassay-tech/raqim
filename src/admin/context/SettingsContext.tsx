@@ -55,7 +55,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         logoSizing: { ...INITIAL_SETTINGS.brand.logoSizing, ...rawSettings.brand?.logoSizing },
         wordmark: { ...INITIAL_SETTINGS.brand.wordmark, ...rawSettings.brand?.wordmark },
       },
-      storage: rawSettings.storage ?? INITIAL_SETTINGS.storage,
+      storage: { ...INITIAL_SETTINGS.storage, ...rawSettings.storage },
       homepage: { ...INITIAL_SETTINGS.homepage, ...rawSettings.homepage },
     }),
     [rawSettings]

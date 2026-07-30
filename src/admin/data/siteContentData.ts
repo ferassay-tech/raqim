@@ -98,7 +98,8 @@ export const INITIAL_SITE_CONTENT: SiteContentField[] = [
 ];
 
 // The site-wide FAQ list (FaqPage + BookPage's general FAQ fallback) — the
-// same 5 real questions previously hardcoded in src/lib/content.ts's `faqs`.
+// same 5 real questions originally hardcoded in the project's early static
+// content file, now migrated here as the live source.
 export const INITIAL_GLOBAL_FAQS: GlobalFaqItem[] = [
   {
     question: "كيف أستلم الكتاب بعد الشراء؟",

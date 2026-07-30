@@ -92,5 +92,11 @@ export const INITIAL_SETTINGS: AdminSettings = {
   },
   storage: {
     activeProvider: "local",
+    // Sensible secure-by-default policy for a real digital-goods store — a
+    // customer who paid gets a full week and several attempts to download
+    // (accounting for a failed attempt, a second device, etc.), while the
+    // link doesn't stay valid forever. Both are admin-editable.
+    downloadLinkExpiryDays: 7,
+    downloadLinkMaxDownloads: 5,
   },
 };

@@ -21,8 +21,7 @@ export interface AdminArticle {
   seoDescription: string;
 }
 
-// مها نصر is the one real author currently published on the site
-// (src/lib/content.ts's authors list) — kept as a single-item array rather
-// than a hardcoded string so a second real author can be added later
-// without changing this type's shape.
+// مها نصر is the one real author currently published on the site —
+// kept as a single-item array rather than a hardcoded string so a second
+// real author can be added later without changing this type's shape.
 export const ARTICLE_AUTHORS = ["مها نصر"] as const;

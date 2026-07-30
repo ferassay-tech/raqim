@@ -28,6 +28,13 @@ export function OrderCustomerCard({ order }: OrderCustomerCardProps) {
         </div>
       </div>
 
+      <div className="mt-5 border-t border-beige pt-5">
+        <p className="text-xs uppercase tracking-[0.15em] text-ink-faint">ملاحظات العميلة</p>
+        <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+          {order.customerNotes || "لا توجد ملاحظات من العميلة."}
+        </p>
+      </div>
+
       <Link
         to={`/admin/customers/${order.customerId}`}
         className="group mt-5 inline-flex items-center gap-1 text-xs text-gold-deep transition-colors hover:text-gold"

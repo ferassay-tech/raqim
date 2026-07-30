@@ -66,6 +66,8 @@ const PaymentMethodPage: React.FC = () => {
       customerName: values.fullName,
       customerEmail: values.email,
       paymentMethod: config.title,
+      transactionId: values.transactionId || null,
+      customerNotes: values.notes || null,
       items: [
         {
           bookId: book?.id ?? product.id,

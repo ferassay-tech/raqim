@@ -119,8 +119,22 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, [setFiles]);
 
   const deleteFile = useCallback((id: string) => {
+    const file = files.find((f) => f.id === id);
     setFiles((prev) => prev.filter((f) => f.id !== id));
-  }, [setFiles]);
+    if (!file) return;
+    // Best-effort remote cleanup — resolved by the file's own recorded
+    // provider (not necessarily the currently active one), so an old file
+    // uploaded under a different provider still gets cleaned up correctly.
+    // The Admin's own record is removed regardless of this outcome; a
+    // failed remote delete leaves an orphaned object behind rather than
+    // blocking the Admin's delete action on a network hiccup.
+    getStorageAdapter(file.storageProvider)
+      .delete(file.storageKey)
+      .catch(() => {
+        /* orphaned remote object — same honest limitation as any other
+         * best-effort cleanup; nothing further to do client-side */
+      });
+  }, [files, setFiles]);
 
   const attachToBook = useCallback((id: string, bookId: string) => {
     setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, bookId, updatedAt: today() } : f)));

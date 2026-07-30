@@ -1,8 +1,8 @@
 import type { AdminBook } from "../types/book";
 
-// The real, live content of the Raqim public site — migrated from
-// src/lib/content.ts / src/data/products.ts / src/config/paymentMethods.ts
-// (Milestone 3.1). "كوني هاجر" is the one real published title; the other
+// The real, live content of the Raqim public site — migrated from the
+// project's early static content file / src/data/products.ts /
+// src/config/paymentMethods.ts (Milestone 3.1). "كوني هاجر" is the one real published title; the other
 // three are the real "coming soon" placeholders already shown on
 // FutureReleasesPage today. This is not demo data — it's what the public
 // site is currently, actually showing.

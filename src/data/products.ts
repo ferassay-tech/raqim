@@ -1,9 +1,9 @@
 import type { Product } from "../types/product";
 
-// Matches the real "كوني هاجر" book defined in src/lib/content.ts — kept in
-// sync manually since Product and Book are different shapes (numeric vs.
-// localized-string price/pages). Update both files together if the price
-// or page count changes.
+// Matches the real "كوني هاجر" book defined in src/admin/data/booksData.ts
+// (AdminBook) — kept in sync manually since Product and AdminBook are
+// different shapes (numeric vs. localized-string price/pages). Update both
+// files together if the price or page count changes.
 export const products: Record<string, Product> = {
   "kuni-hajar": {
     id: "kuni-hajar",
