@@ -278,6 +278,26 @@ export const IconRefresh: FC<IconProps> = ({ className }) => (
   </svg>
 );
 
+export const IconBroadcast: FC<IconProps> = ({ className }) => (
+  <svg {...base} className={className}>
+    <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+    <path d="M8.8 15.2a4.5 4.5 0 0 1 0-6.4M15.2 8.8a4.5 4.5 0 0 1 0 6.4" {...strokeProps} />
+    <path d="M5.8 18.2a8.5 8.5 0 0 1 0-12.4M18.2 5.8a8.5 8.5 0 0 1 0 12.4" {...strokeProps} />
+  </svg>
+);
+
+export const IconArrowUp: FC<IconProps> = ({ className }) => (
+  <svg {...base} className={className}>
+    <path d="M12 19V5M6 10.5 12 5l6 5.5" {...strokeProps} />
+  </svg>
+);
+
+export const IconArrowDown: FC<IconProps> = ({ className }) => (
+  <svg {...base} className={className}>
+    <path d="M12 5v14M6 13.5 12 19l6-5.5" {...strokeProps} />
+  </svg>
+);
+
 export const IconPanelCollapse: FC<IconProps> = ({ className }) => (
   <svg {...base} className={className}>
     <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" {...strokeProps} />

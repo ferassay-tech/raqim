@@ -10,6 +10,7 @@ import {
   IconDocument,
   IconImage,
   IconMail,
+  IconBroadcast,
   IconGear,
   IconUser,
   IconPencil,
@@ -64,7 +65,10 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   },
   {
     label: "التواصل",
-    items: [{ to: "/admin/messages", label: "الرسائل", icon: IconMail }],
+    items: [
+      { to: "/admin/messages", label: "الرسائل", icon: IconMail },
+      { to: "/admin/communications", label: "نظام التواصل", icon: IconBroadcast },
+    ],
   },
   {
     label: "النظام",
@@ -95,6 +99,13 @@ export const ADMIN_SEGMENT_LABELS: Record<string, string> = {
   content: "محتوى الموقع",
   library: "المكتبة الرقمية",
   messages: "الرسائل",
+  communications: "نظام التواصل",
+  templates: "القوالب",
+  components: "المكوّنات المشتركة",
+  variables: "المتغيرات",
+  theme: "الهوية والتصميم",
+  "template-categories": "التصنيفات",
+  history: "السجل",
   settings: "الإعدادات",
   profile: "الملف الشخصي",
   general: "عام",

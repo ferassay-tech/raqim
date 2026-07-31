@@ -1,5 +1,5 @@
 import type { ArticleStatus } from "../types/article";
-import type { StatusBadgeVariant } from "../components/StatusBadge";
+import type { StatusBadgeVariant } from "../components/ui/StatusBadge";
 
 export const ARTICLE_STATUS_META: Record<ArticleStatus, { label: string; variant: StatusBadgeVariant }> = {
   published: { label: "منشور", variant: "success" },

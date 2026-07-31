@@ -1,5 +1,5 @@
 import type { AdminOrder } from "./order";
-import type { StatusBadgeVariant } from "../components/StatusBadge";
+import type { StatusBadgeVariant } from "../components/ui/StatusBadge";
 
 export type CustomerSegment = "new" | "returning";
 

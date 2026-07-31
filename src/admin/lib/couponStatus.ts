@@ -1,5 +1,5 @@
 import type { AdminCoupon, CouponStatus } from "../types/coupon";
-import type { StatusBadgeVariant } from "../components/StatusBadge";
+import type { StatusBadgeVariant } from "../components/ui/StatusBadge";
 
 export const COUPON_STATUS_META: Record<CouponStatus, { label: string; variant: StatusBadgeVariant }> = {
   active: { label: "نشط", variant: "success" },

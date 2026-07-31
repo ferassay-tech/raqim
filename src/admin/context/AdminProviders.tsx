@@ -8,6 +8,8 @@ import { CouponsProvider } from "./CouponsContext";
 import { ArticlesProvider } from "./ArticlesContext";
 import { MediaProvider } from "./MediaContext";
 import { MessagesProvider } from "./MessagesContext";
+import { CommunicationCategoriesProvider } from "./CommunicationCategoriesContext";
+import { CommunicationTemplatesProvider } from "./CommunicationTemplatesContext";
 import { SettingsProvider } from "./SettingsContext";
 import { SiteContentProvider } from "./SiteContentContext";
 import { LibraryProvider } from "./LibraryContext";
@@ -26,6 +28,8 @@ const PROVIDERS: FC<{ children: ReactNode }>[] = [
   ArticlesProvider,
   MediaProvider,
   MessagesProvider,
+  CommunicationCategoriesProvider,
+  CommunicationTemplatesProvider,
   // Both need SettingsProvider above them in this list (Library reads the
   // active storage provider; keeping them last is simplest, not required).
   LibraryProvider,

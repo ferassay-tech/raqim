@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { TextField } from "../components/form/TextField";
+import { TextField } from "../components/forms/TextField";
 
 export default function AdminLoginPage() {
   const { login, isAuthenticated, isReady } = useAuth();

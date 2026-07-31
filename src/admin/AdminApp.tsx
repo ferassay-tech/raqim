@@ -1,33 +1,34 @@
 import { Route, Routes } from "react-router-dom";
-import { AdminLayout } from "./layout/AdminLayout";
-import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminLayout } from "./components/layout/AdminLayout";
+import { ProtectedRoute } from "./components/ui/ProtectedRoute";
 import AdminLoginPage from "./pages/AdminLoginPage";
-import DashboardPage from "./pages/DashboardPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
-import BooksListPage from "./pages/BooksListPage";
-import BookNewPage from "./pages/BookNewPage";
-import BookEditPage from "./pages/BookEditPage";
-import OrdersListPage from "./pages/OrdersListPage";
-import OrderDetailPage from "./pages/OrderDetailPage";
-import CustomersListPage from "./pages/CustomersListPage";
-import CustomerProfilePage from "./pages/CustomerProfilePage";
-import CategoriesPage from "./pages/CategoriesPage";
-import CouponsPage from "./pages/CouponsPage";
-import ArticlesListPage from "./pages/ArticlesListPage";
-import ArticleNewPage from "./pages/ArticleNewPage";
-import ArticleEditPage from "./pages/ArticleEditPage";
-import MediaLibraryPage from "./pages/MediaLibraryPage";
-import LibraryListPage from "./pages/LibraryListPage";
-import MessagesPage from "./pages/MessagesPage";
-import SettingsPage from "./pages/SettingsPage";
-import SiteContentPage from "./pages/SiteContentPage";
-import ProfilePage from "./pages/ProfilePage";
 import AdminNotFoundPage from "./pages/AdminNotFoundPage";
+
+import { dashboardRoutes } from "./modules/dashboard/routes";
+import { analyticsRoutes } from "./modules/analytics/routes";
+import { booksRoutes } from "./modules/books/routes";
+import { categoriesRoutes } from "./modules/categories/routes";
+import { ordersRoutes } from "./modules/orders/routes";
+import { customersRoutes } from "./modules/customers/routes";
+import { marketingRoutes } from "./modules/marketing/routes";
+import { articlesRoutes } from "./modules/articles/routes";
+import { mediaRoutes } from "./modules/media/routes";
+import { downloadsRoutes } from "./modules/downloads/routes";
+import { communicationsRoutes } from "./modules/communications/routes";
+import { settingsRoutes } from "./modules/settings/routes";
 
 /**
  * Fully isolated from the public site's <Routes> in App.tsx — its own
  * layout (AdminLayout), its own nav, its own 404. Matched against "/admin/*"
  * from the root router, so every path below is relative (no "/admin" prefix).
+ *
+ * Each module owns its own routes.tsx — a Fragment of <Route> elements.
+ * React Router resolves <Route>/<Fragment> children structurally (not by
+ * rendering arbitrary components), so composing pre-built Fragments here
+ * works exactly like one flat list did before. Adding a future module means
+ * adding one import + one line below, not editing any route bodies. No path
+ * string changed in this split — every URL below is byte-identical to what
+ * it replaced.
  */
 export default function AdminApp() {
   return (
@@ -41,39 +42,18 @@ export default function AdminApp() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardPage />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="analytics" element={<AnalyticsPage />} />
-
-        <Route path="books" element={<BooksListPage />} />
-        <Route path="books/new" element={<BookNewPage />} />
-        <Route path="books/edit/:id" element={<BookEditPage />} />
-
-        <Route path="orders" element={<OrdersListPage />} />
-        <Route path="orders/:id" element={<OrderDetailPage />} />
-
-        <Route path="customers" element={<CustomersListPage />} />
-        <Route path="customers/:id" element={<CustomerProfilePage />} />
-
-        <Route path="categories" element={<CategoriesPage />} />
-        <Route path="coupons" element={<CouponsPage />} />
-
-        <Route path="articles" element={<ArticlesListPage />} />
-        <Route path="articles/new" element={<ArticleNewPage />} />
-        <Route path="articles/edit/:id" element={<ArticleEditPage />} />
-
-        <Route path="media" element={<MediaLibraryPage />} />
-        <Route path="library" element={<LibraryListPage />} />
-
-        <Route path="messages" element={<MessagesPage />} />
-        <Route path="messages/:id" element={<MessagesPage />} />
-
-        <Route path="settings" element={<SettingsPage />} />
-        <Route path="settings/:section" element={<SettingsPage />} />
-
-        <Route path="content" element={<SiteContentPage />} />
-
-        <Route path="profile" element={<ProfilePage />} />
+        {dashboardRoutes}
+        {analyticsRoutes}
+        {booksRoutes}
+        {categoriesRoutes}
+        {ordersRoutes}
+        {customersRoutes}
+        {marketingRoutes}
+        {articlesRoutes}
+        {mediaRoutes}
+        {downloadsRoutes}
+        {communicationsRoutes}
+        {settingsRoutes}
 
         <Route path="*" element={<AdminNotFoundPage />} />
       </Route>

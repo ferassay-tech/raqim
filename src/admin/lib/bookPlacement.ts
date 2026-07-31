@@ -1,5 +1,5 @@
 import type { BookPlacement } from "../types/book";
-import type { StatusBadgeVariant } from "../components/StatusBadge";
+import type { StatusBadgeVariant } from "../components/ui/StatusBadge";
 
 export const BOOK_PLACEMENT_META: Record<BookPlacement, { label: string; variant: StatusBadgeVariant }> = {
   hero: { label: "بطل الصفحة الرئيسية", variant: "success" },

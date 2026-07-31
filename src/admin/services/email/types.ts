@@ -4,11 +4,14 @@ export interface SendDownloadEmailParams {
   to: string;
   orderId: string;
   downloadUrl: string;
-  /** Display-only fields for the email template — none of these affect
-   * sending/auth/routing, they're purely what the customer sees rendered
-   * in the email itself. All optional so existing callers keep compiling. */
+  /** The Download Email template's sections, already rendered to HTML via
+   * renderTemplateToHtml() on the caller's side (only the browser has
+   * access to Communication Templates — this serverless function does
+   * not). The server uses this directly as the email body. */
+  contentHtml: string;
+  /** No longer used to build the email body (contentHtml replaced that) —
+   * kept optional so existing callers keep compiling without changes. */
   bookTitle?: string;
-  /** Relative or absolute — the template resolves relative paths itself. */
   bookCoverUrl?: string | null;
   maxDownloads?: number | null;
   /** ISO date string, same shape as DownloadToken.expiresAt. */
@@ -16,12 +19,11 @@ export interface SendDownloadEmailParams {
 }
 
 /**
- * The seam a real transactional-email provider plugs into later — mirrors
- * services/storage's shape exactly. Nothing implements this for real yet
- * (no backend to call a provider's API from), but every call site
- * (OrderDownloadsCard) already calls through this interface, so wiring
- * Resend (or any other provider) later is writing one adapter file and
- * registering it in ./index.ts — not adding a new call site.
+ * The seam a real transactional-email provider plugs into — mirrors
+ * services/storage's shape exactly. resendAdapter.ts is the real
+ * implementation (calls api/send-download-email.ts); wiring an additional
+ * provider later is writing one more adapter file and registering it in
+ * ./index.ts, not adding a new call site.
  */
 export interface EmailProvider {
   id: EmailProviderId;

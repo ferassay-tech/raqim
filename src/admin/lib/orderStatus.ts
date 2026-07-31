@@ -1,5 +1,5 @@
 import type { OrderStatus } from "../types/order";
-import type { StatusBadgeVariant } from "../components/StatusBadge";
+import type { StatusBadgeVariant } from "../components/ui/StatusBadge";
 
 export const ORDER_STATUS_META: Record<OrderStatus, { label: string; variant: StatusBadgeVariant }> = {
   paid: { label: "مدفوع", variant: "success" },

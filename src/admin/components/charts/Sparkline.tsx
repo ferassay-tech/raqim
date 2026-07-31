@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { buildSmoothPath, scaleToViewBox } from "../../lib/chartPath";
+import { buildSmoothPath, scaleToViewBox } from "@/admin/lib/chartPath";
 
 interface SparklineProps {
   data: number[];
