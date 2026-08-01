@@ -9,8 +9,8 @@ import { IconDocument } from "@/admin/icons";
 export default function ArticleEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getArticle, updateArticle, deleteArticle } = useArticles();
-  const article = id ? getArticle(id) : undefined;
+  const { getRawArticle, updateArticle, deleteArticle } = useArticles();
+  const article = id ? getRawArticle(id) : undefined;
 
   if (!article) {
     return (
@@ -25,14 +25,16 @@ export default function ArticleEditPage() {
     );
   }
 
+  const articleTitle = article.title.ar || article.title.en;
+
   const handleSave = (values: ArticleFormValues) => {
     updateArticle(article.id, values);
-    navigate("/admin/articles", { state: { flash: `تم حفظ التغييرات على «${values.title}»` } });
+    navigate("/admin/articles", { state: { flash: `تم حفظ التغييرات على «${values.title.ar || values.title.en}»` } });
   };
 
   const handleDelete = () => {
     deleteArticle(article.id);
-    navigate("/admin/articles", { state: { flash: `تم حذف «${article.title}»` } });
+    navigate("/admin/articles", { state: { flash: `تم حذف «${articleTitle}»` } });
   };
 
   return (

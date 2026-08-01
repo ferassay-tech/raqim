@@ -1,15 +1,17 @@
 import type { ReactNode } from "react";
 import { SiteNav } from "./site-nav";
 import { SiteFooter } from "./site-footer";
+import { useLanguage } from "../context/LanguageContext";
 
 export function PageShell({ children }: { children: ReactNode }) {
+  const { t } = useLanguage();
   return (
     <div className="flex min-h-dvh flex-col bg-ivory">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:start-2 focus:z-50 focus:rounded-full focus:bg-ink focus:px-5 focus:py-2.5 focus:text-sm focus:text-ivory"
       >
-        تخطي إلى المحتوى
+        {t("nav.skipToContent")}
       </a>
       <SiteNav />
       <main id="main-content" className="flex-1">{children}</main>

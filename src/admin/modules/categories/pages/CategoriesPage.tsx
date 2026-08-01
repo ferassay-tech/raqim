@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useCategories } from "@/admin/context/CategoriesContext";
 import { useBooks } from "@/admin/context/BooksContext";
-import type { AdminCategory } from "@/admin/types/category";
+import type { AdminCategory, AdminCategoryRaw } from "@/admin/types/category";
 import { PageHeader } from "@/admin/components/ui/PageHeader";
 import { DataTable } from "@/admin/components/ui/DataTable";
 import type { DataTableColumn } from "@/admin/components/ui/DataTable";
@@ -15,20 +15,21 @@ interface CategoryRow extends AdminCategory {
 }
 
 export default function CategoriesPage() {
-  const { categories, createCategory, updateCategory, deleteCategory } = useCategories();
+  const { categories, rawCategories, getCategoryMatchName, createCategory, updateCategory, deleteCategory } =
+    useCategories();
   const { books } = useBooks();
 
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<AdminCategory | null>(null);
+  const [editing, setEditing] = useState<AdminCategoryRaw | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CategoryRow | null>(null);
 
   const rows: CategoryRow[] = useMemo(
     () =>
       categories.map((c) => ({
         ...c,
-        bookCount: books.filter((b) => b.deletedAt === null && b.category === c.name).length,
+        bookCount: books.filter((b) => b.deletedAt === null && b.category === getCategoryMatchName(c.id)).length,
       })),
-    [categories, books]
+    [categories, books, getCategoryMatchName]
   );
 
   const openCreate = () => {
@@ -37,7 +38,7 @@ export default function CategoriesPage() {
   };
 
   const openEdit = (category: AdminCategory) => {
-    setEditing(category);
+    setEditing(rawCategories.find((c) => c.id === category.id) ?? null);
     setFormOpen(true);
   };
 
@@ -130,7 +131,7 @@ export default function CategoriesPage() {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         initialCategory={editing}
-        existingNames={categories.map((c) => c.name)}
+        existingCategories={rawCategories}
         onSave={(values) => {
           if (editing) updateCategory(editing.id, values);
           else createCategory(values);

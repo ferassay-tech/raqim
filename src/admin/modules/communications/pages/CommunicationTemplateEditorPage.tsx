@@ -10,10 +10,11 @@ import { IconArrowDown, IconArrowUp, IconDocument, IconEye, IconPencil, IconPlus
 import { useCommunicationTemplates } from "@/admin/context/CommunicationTemplatesContext";
 import type { CommunicationTemplateFormValues } from "@/admin/context/CommunicationTemplatesContext";
 import { useCommunicationCategories } from "@/admin/context/CommunicationCategoriesContext";
+import type { Language } from "@/context/LanguageContext";
 import { listChannels } from "../services/channelRegistry";
 import { TemplateSectionFormModal } from "../components/TemplateSectionFormModal";
 import { TemplatePreviewModal } from "../components/TemplatePreviewModal";
-import type { TemplateSection, TemplateSectionType } from "../types/section";
+import type { TemplateSection, TemplateSectionRaw, TemplateSectionType } from "../types/section";
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "مسودة" },
@@ -28,18 +29,42 @@ const SECTION_TYPE_LABEL: Record<TemplateSectionType, string> = {
   footer: "تذييل",
 };
 
+const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
+  { value: "ar", label: "العربية" },
+  { value: "en", label: "English" },
+];
+
 /** One-line preview so a collapsed section card still says something
- * useful without opening it. */
-function previewFor(section: TemplateSection): string {
+ * useful without opening it — reads whichever language is currently being
+ * edited, falling back to Arabic. */
+function previewFor(section: TemplateSectionRaw, language: Language): string {
+  const resolve = (v: { ar: string; en: string }) => v[language] || v.ar || "";
   switch (section.type) {
     case "header":
-      return section.fields.title || "بدون عنوان";
+      return resolve(section.fields.title) || "بدون عنوان";
     case "body":
-      return section.fields.richText || "بدون نص";
+      return resolve(section.fields.richText) || "بدون نص";
     case "button":
-      return section.fields.label || "بدون نص للزر";
+      return resolve(section.fields.label) || "بدون نص للزر";
     case "footer":
-      return section.fields.text || "بدون نص";
+      return resolve(section.fields.text) || "بدون نص";
+  }
+}
+
+function resolveSectionForPreview(section: TemplateSectionRaw, language: Language): TemplateSection {
+  const resolve = (v: { ar: string; en: string }) => v[language] || v.ar || "";
+  switch (section.type) {
+    case "header":
+      return {
+        ...section,
+        fields: { title: resolve(section.fields.title), subtitle: resolve(section.fields.subtitle) },
+      };
+    case "body":
+      return { ...section, fields: { richText: resolve(section.fields.richText) } };
+    case "button":
+      return { ...section, fields: { label: resolve(section.fields.label), url: section.fields.url } };
+    case "footer":
+      return { ...section, fields: { text: resolve(section.fields.text) } };
   }
 }
 
@@ -52,7 +77,7 @@ export default function CommunicationTemplateEditorPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const {
-    templates,
+    getRawTemplate,
     updateTemplate,
     addSection,
     updateSection,
@@ -63,11 +88,12 @@ export default function CommunicationTemplateEditorPage() {
   const { categories } = useCommunicationCategories();
   const channels = listChannels();
 
-  const template = templates.find((t) => t.id === id);
+  const template = id ? getRawTemplate(id) : undefined;
   const [values, setValues] = useState<CommunicationTemplateFormValues | null>(null);
+  const [editingLanguage, setEditingLanguage] = useState<Language>("ar");
   const [sectionModalOpen, setSectionModalOpen] = useState(false);
-  const [editingSection, setEditingSection] = useState<TemplateSection | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<TemplateSection | null>(null);
+  const [editingSection, setEditingSection] = useState<TemplateSectionRaw | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<TemplateSectionRaw | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
@@ -85,6 +111,10 @@ export default function CommunicationTemplateEditorPage() {
   const sortedSections = useMemo(
     () => (template ? [...template.draft].sort((a, b) => a.order - b.order) : []),
     [template]
+  );
+  const previewSections = useMemo(
+    () => sortedSections.map((s) => resolveSectionForPreview(s, editingLanguage)),
+    [sortedSections, editingLanguage]
   );
 
   if (!template || !values) {
@@ -115,7 +145,7 @@ export default function CommunicationTemplateEditorPage() {
     setSectionModalOpen(true);
   };
 
-  const openEditSection = (section: TemplateSection) => {
+  const openEditSection = (section: TemplateSectionRaw) => {
     setEditingSection(section);
     setSectionModalOpen(true);
   };
@@ -188,6 +218,20 @@ export default function CommunicationTemplateEditorPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 rounded-full border border-beige p-1">
+              {EDITING_LANGUAGE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setEditingLanguage(option.value)}
+                  className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
+                    editingLanguage === option.value ? "bg-ink text-ivory" : "text-ink-soft hover:text-ink"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => setPreviewOpen(true)}
@@ -224,7 +268,7 @@ export default function CommunicationTemplateEditorPage() {
                   <span className="rounded-full bg-cream px-2.5 py-0.5 text-[11px] font-medium text-ink-soft">
                     {SECTION_TYPE_LABEL[section.type]}
                   </span>
-                  <p className="mt-1.5 truncate text-sm text-ink">{previewFor(section)}</p>
+                  <p className="mt-1.5 truncate text-sm text-ink">{previewFor(section, editingLanguage)}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <button
@@ -272,6 +316,7 @@ export default function CommunicationTemplateEditorPage() {
         open={sectionModalOpen}
         onClose={() => setSectionModalOpen(false)}
         initialSection={editingSection}
+        editingLanguage={editingLanguage}
         onSave={({ type, fields }) => {
           if (editingSection) {
             updateSection(template.id, editingSection.id, fields);
@@ -285,7 +330,7 @@ export default function CommunicationTemplateEditorPage() {
       <TemplatePreviewModal
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}
-        sections={sortedSections}
+        sections={previewSections}
       />
 
       <ConfirmDialog

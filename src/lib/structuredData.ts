@@ -1,7 +1,9 @@
 import type { AdminBook } from "../admin/types/book";
 import type { AdminArticle } from "../admin/types/article";
+import type { Language } from "../context/LanguageContext";
 import { absoluteUrl, SITE_NAME, SITE_URL } from "./seo";
 import { CONTACT_EMAILS } from "../config/contactEmails";
+import { localizeProperName } from "./properNames";
 
 /** Combines any number of schema.org node objects into one JSON-LD script's
  * worth of content via `@graph` — one `<script>` tag per page instead of
@@ -24,11 +26,11 @@ export function buildGraph(nodes: object[]): string {
  * hardcoded config here — so this schema always reflects whatever the
  * Dashboard currently has selected, the moment it changes, instead of
  * freezing on whatever the seed values were when the site was built. */
-export function organizationSchema({ logo, image }: { logo: string; image: string }) {
+export function organizationSchema({ logo, image, language }: { logo: string; image: string; language: Language }) {
   return {
     "@type": "Organization",
     "@id": `${SITE_URL}/#organization`,
-    name: SITE_NAME,
+    name: localizeProperName(SITE_NAME, language),
     url: SITE_URL,
     logo: absoluteUrl(logo),
     image: absoluteUrl(image),
@@ -38,12 +40,12 @@ export function organizationSchema({ logo, image }: { logo: string; image: strin
 
 /** Sitewide WebSite schema with a real SearchAction — /search is a real,
  * working query page, not a placeholder. */
-export function websiteSchema() {
+export function websiteSchema(language: Language) {
   return {
     "@type": "WebSite",
     "@id": `${SITE_URL}/#website`,
     url: SITE_URL,
-    name: SITE_NAME,
+    name: localizeProperName(SITE_NAME, language),
     publisher: { "@id": `${SITE_URL}/#organization` },
     potentialAction: {
       "@type": "SearchAction",
@@ -76,15 +78,15 @@ export function breadcrumbSchema(items: BreadcrumbItem[]) {
   };
 }
 
-export function bookSchema(book: AdminBook) {
+export function bookSchema(book: AdminBook, language: Language) {
   const usdPrice = book.prices.USD;
   return {
     "@type": "Book",
     name: book.title,
     description: book.description,
     url: absoluteUrl(`/books/${book.id}`),
-    author: { "@type": "Person", name: book.author },
-    inLanguage: "ar",
+    author: { "@type": "Person", name: localizeProperName(book.author, language) },
+    inLanguage: language,
     bookFormat: "https://schema.org/EBook",
     ...(usdPrice && {
       offers: {
@@ -98,14 +100,14 @@ export function bookSchema(book: AdminBook) {
   };
 }
 
-export function articleSchema(article: AdminArticle) {
+export function articleSchema(article: AdminArticle, language: Language) {
   return {
     "@type": "Article",
     headline: article.title,
     description: article.excerpt,
     url: absoluteUrl(`/blog/${article.slug}`),
-    inLanguage: "ar",
-    author: { "@type": "Person", name: article.author },
+    inLanguage: language,
+    author: { "@type": "Person", name: localizeProperName(article.author, language) },
     publisher: { "@id": `${SITE_URL}/#organization` },
     datePublished: article.publishedAt ?? article.updatedAt,
     dateModified: article.updatedAt,

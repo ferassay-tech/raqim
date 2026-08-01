@@ -43,8 +43,10 @@ const PROVIDERS: FC<{ children: ReactNode }>[] = [
  * instances. That's what makes "single source of truth" real without a
  * backend: an edit in the Admin is visible on the public pages instantly
  * (same in-memory state) and survives a refresh (each store persists to
- * localStorage via usePersistedState). Order doesn't matter today — none of
- * these depend on each other — just append new providers to the list above.
+ * localStorage via usePersistedState). Order within the list below doesn't
+ * matter — none of these depend on each other — just append new providers.
+ * SiteContentProvider does depend on useLanguage(), though, so this whole
+ * block must stay mounted inside LanguageProvider in App.tsx.
  */
 export function AdminProviders({ children }: { children: ReactNode }) {
   return PROVIDERS.reduceRight<ReactNode>(

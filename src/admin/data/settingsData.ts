@@ -1,12 +1,14 @@
-import type { AdminSettings } from "../types/settings";
+import type { AdminSettingsRaw } from "../types/settings";
 import { CONTACT_EMAILS } from "../../config/contactEmails";
 import { BRAND_ASSETS } from "../../config/brandAssets";
 
 // Seeded from the real, live values already hardcoded across index.html,
 // src/index.css's @theme, and the (previously non-persisted) Settings
 // section components — so turning Settings into a real, persisted store
-// changes nothing visually until an admin actually edits a field.
-export const INITIAL_SETTINGS: AdminSettings = {
+// changes nothing visually until an admin actually edits a field. seo.title/
+// .description and contact.hours are bilingual ({ar, en}) — en starts empty
+// (admin fills it in later), same convention as every other migration.
+export const INITIAL_SETTINGS: AdminSettingsRaw = {
   general: {
     siteName: "رقيم",
     description:
@@ -63,9 +65,11 @@ export const INITIAL_SETTINGS: AdminSettings = {
     shadowMd: "0 20px 45px -20px rgba(44,36,32,0.25)",
   },
   seo: {
-    title: "رقيم — دار نشر رقمية فاخرة للمرأة",
-    description:
-      "رقيم دار نشر رقمية عربية فاخرة، تُحوّل المعرفة إلى أثر خالد عبر كتب أنيقة للمرأة والأم. اكتشفي كوني هاجر، إصدارنا الأول.",
+    title: { ar: "رقيم — دار نشر رقمية فاخرة للمرأة", en: "Raqim — A Luxury Digital Publishing House for Women" },
+    description: {
+      ar: "رقيم دار نشر رقمية عربية فاخرة، تُحوّل المعرفة إلى أثر خالد عبر كتب أنيقة للمرأة والأم. اكتشفي كوني هاجر، إصدارنا الأول.",
+      en: "Raqim is a luxury Arabic digital publishing house, transforming knowledge into a lasting impact through elegant books for women and mothers. Discover Be Hajar, our first release.",
+    },
     socialImage: BRAND_ASSETS.ogImage,
   },
   // Unset by default so the homepage keeps rendering the featured book's own
@@ -79,7 +83,7 @@ export const INITIAL_SETTINGS: AdminSettings = {
     email: CONTACT_EMAILS.contact,
     phone: "",
     address: "",
-    hours: "من الأحد إلى الخميس، ٩ص - ٥م",
+    hours: { ar: "من الأحد إلى الخميس، ٩ص - ٥م", en: "Sunday to Thursday, 9 AM - 5 PM" },
     instagram: "",
     pinterest: "",
     tiktok: "",

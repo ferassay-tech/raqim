@@ -15,6 +15,7 @@ import SearchPage from "./pages/SearchPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ScrollToTop from "./components/ScrollToTop";
 import { CheckoutProvider } from "./context/CheckoutContext";
+import { LanguageProvider } from "./context/LanguageContext";
 
 import CheckoutPage from "./pages/CheckoutPage";
 import PaymentMethodPage from "./pages/PaymentMethodPage";
@@ -26,6 +27,7 @@ import { AdminProviders } from "./admin/context/AdminProviders";
 export default function App() {
   return (
     <BrowserRouter>
+    <LanguageProvider>
     <AdminProviders>
     <CheckoutProvider>
     <ScrollToTop />
@@ -53,6 +55,7 @@ export default function App() {
      </Routes>
   </CheckoutProvider>
   </AdminProviders>
+  </LanguageProvider>
 </BrowserRouter>
   );
 }

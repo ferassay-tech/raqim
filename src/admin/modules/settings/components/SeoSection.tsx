@@ -4,27 +4,53 @@ import { TextArea } from "@/admin/components/forms/TextArea";
 import { FileDropzone } from "@/admin/components/forms/FileDropzone";
 import { MediaPickerModal } from "@/admin/modules/media/components/MediaPickerModal";
 import { useSettings } from "@/admin/context/SettingsContext";
+import type { Language } from "@/context/LanguageContext";
 import { SettingsRow } from "./SettingsRow";
 
 interface SeoSectionProps {
   onSaved: (message: string) => void;
 }
 
+const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
+  { value: "ar", label: "العربية" },
+  { value: "en", label: "English" },
+];
+
 export function SeoSection({ onSaved }: SeoSectionProps) {
-  const { settings, updateSeo } = useSettings();
-  const { title, description, socialImage } = settings.seo;
+  const { rawSettings, updateSeo } = useSettings();
+  const { title, description, socialImage } = rawSettings.seo;
+  const [editingLanguage, setEditingLanguage] = useState<Language>("ar");
   const [pickerOpen, setPickerOpen] = useState(false);
 
   return (
     <div>
+      <div className="mb-6 flex items-center gap-1 self-start rounded-full border border-beige p-1">
+        {EDITING_LANGUAGE_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => setEditingLanguage(option.value)}
+            className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
+              editingLanguage === option.value ? "bg-ink text-ivory" : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
       <SettingsRow title="بيانات السيو" description="العنوان والوصف الافتراضيان الظاهران في نتائج البحث.">
         <div className="flex flex-col gap-6">
-          <TextField label="عنوان الصفحة الرئيسية" value={title} onChange={(v) => updateSeo({ title: v })} />
+          <TextField
+            label="عنوان الصفحة الرئيسية"
+            value={title[editingLanguage]}
+            onChange={(v) => updateSeo({ title: { ...title, [editingLanguage]: v } })}
+          />
           <TextArea
             label="الوصف التعريفي (Meta Description)"
             rows={3}
-            value={description}
-            onChange={(v) => updateSeo({ description: v })}
+            value={description[editingLanguage]}
+            onChange={(v) => updateSeo({ description: { ...description, [editingLanguage]: v } })}
             maxLength={160}
           />
         </div>

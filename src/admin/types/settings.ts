@@ -1,5 +1,6 @@
 import type { BookCurrency } from "./book";
 import type { StorageProviderId } from "../services/storage";
+import type { LocalizedText } from "./siteContent";
 
 export interface GeneralSettings {
   siteName: string;
@@ -144,6 +145,39 @@ export interface AdminSettings {
   seo: SeoSettings;
   homepage: HomePageSettings;
   contact: ContactSettings;
+  store: StoreSettings;
+  storage: StorageSettings;
+}
+
+/** Raw, bilingual storage shape for the two genuinely reader-facing
+ * SettingsContext strings — the default public SEO title/description
+ * (rendered in HomePage's <Helmet>) and the contact page's response-hours
+ * text. Everything else in Settings has zero public display consumer today
+ * (GeneralSettings, StoreSettings) or is structural/non-prose (email, phone,
+ * address, social URLs, brand design tokens, storage config) — converting
+ * those would be unused surface area, not a real localization gap. */
+export interface SeoSettingsRaw {
+  title: LocalizedText;
+  description: LocalizedText;
+  socialImage: string | null;
+}
+
+export interface ContactSettingsRaw {
+  email: string;
+  phone: string;
+  address: string;
+  hours: LocalizedText;
+  instagram: string;
+  pinterest: string;
+  tiktok: string;
+}
+
+export interface AdminSettingsRaw {
+  general: GeneralSettings;
+  brand: BrandSettings;
+  seo: SeoSettingsRaw;
+  homepage: HomePageSettings;
+  contact: ContactSettingsRaw;
   store: StoreSettings;
   storage: StorageSettings;
 }

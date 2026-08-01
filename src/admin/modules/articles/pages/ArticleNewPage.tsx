@@ -9,7 +9,7 @@ export default function ArticleNewPage() {
 
   const handleSave = (values: ArticleFormValues) => {
     createArticle(values);
-    navigate("/admin/articles", { state: { flash: `تم حفظ «${values.title}» بنجاح` } });
+    navigate("/admin/articles", { state: { flash: `تم حفظ «${values.title.ar || values.title.en}» بنجاح` } });
   };
 
   return <ArticleEditor mode="create" onSave={handleSave} onCancel={() => navigate("/admin/articles")} />;

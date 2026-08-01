@@ -2,12 +2,16 @@ import { createContext, useCallback, useContext, useMemo } from "react";
 import type { ReactNode } from "react";
 import type {
   CommunicationTemplate,
+  CommunicationTemplateRaw,
   CommunicationTemplateStatus,
 } from "../modules/communications/types/template";
 import type { CommunicationChannelId } from "../modules/communications/types/channel";
-import type { TemplateSection, TemplateSectionType } from "../modules/communications/types/section";
+import type { TemplateSection, TemplateSectionRaw, TemplateSectionType } from "../modules/communications/types/section";
+import type { LocalizedText } from "../types/siteContent";
 import { INITIAL_COMMUNICATION_TEMPLATES } from "../data/communicationTemplatesData";
 import { usePersistedState } from "../lib/usePersistedState";
+import { useLanguage } from "../../context/LanguageContext";
+import type { Language } from "../../context/LanguageContext";
 
 export interface CommunicationTemplateFormValues {
   name: string;
@@ -18,14 +22,24 @@ export interface CommunicationTemplateFormValues {
 }
 
 interface CommunicationTemplatesContextValue {
+  /** Resolved for the active site language — unchanged public contract. */
   templates: CommunicationTemplate[];
-  createTemplate: (values: CommunicationTemplateFormValues) => CommunicationTemplate;
+  /** Raw, bilingual — Template Editor only. */
+  getRawTemplate: (id: string) => CommunicationTemplateRaw | undefined;
+  /** Resolves a template for actually sending a message — always Arabic,
+   * regardless of the admin's own active site-language toggle. There is no
+   * real recipient-language signal yet (no order.customerLanguage or
+   * equivalent), so email rendering is an independent pipeline from the
+   * public site's language state: it must never depend on whatever an admin
+   * happens to have the site set to when they click "send". */
+  resolveTemplateForSending: (id: string) => CommunicationTemplate | undefined;
+  createTemplate: (values: CommunicationTemplateFormValues) => CommunicationTemplateRaw;
   updateTemplate: (id: string, values: CommunicationTemplateFormValues) => void;
   duplicateTemplate: (id: string) => void;
   archiveTemplate: (id: string) => void;
   deleteTemplate: (id: string) => void;
-  addSection: (templateId: string, type: TemplateSectionType, fields: TemplateSection["fields"]) => void;
-  updateSection: (templateId: string, sectionId: string, fields: TemplateSection["fields"]) => void;
+  addSection: (templateId: string, type: TemplateSectionType, fields: TemplateSectionRaw["fields"]) => void;
+  updateSection: (templateId: string, sectionId: string, fields: TemplateSectionRaw["fields"]) => void;
   deleteSection: (templateId: string, sectionId: string) => void;
   moveSectionUp: (templateId: string, sectionId: string) => void;
   moveSectionDown: (templateId: string, sectionId: string) => void;
@@ -33,9 +47,72 @@ interface CommunicationTemplatesContextValue {
 
 const CommunicationTemplatesContext = createContext<CommunicationTemplatesContextValue | null>(null);
 
+const FALLBACK_LANGUAGE: Language = "ar";
+
+function resolveText(value: LocalizedText, language: Language): string {
+  return value[language] || value[FALLBACK_LANGUAGE] || "";
+}
+
+// Older localStorage records (and the original seed data) stored section
+// copy fields as plain strings. Wrapping any plain string into
+// { ar: value, en: "" } on read means existing template data is never
+// lost — a pure, idempotent transform, so already-migrated data just passes
+// through unchanged. Mirrors the SiteContent/Books/Categories/Articles
+// migration.
+function migrateLocalizedText(value: unknown): LocalizedText {
+  if (typeof value === "string") {
+    return { ar: value, en: "" };
+  }
+  if (value && typeof value === "object") {
+    const v = value as Partial<LocalizedText>;
+    return { ar: v.ar ?? "", en: v.en ?? "" };
+  }
+  return { ar: "", en: "" };
+}
+
+function migrateSection(raw: TemplateSectionRaw): TemplateSectionRaw {
+  switch (raw.type) {
+    case "header":
+      return {
+        ...raw,
+        fields: { title: migrateLocalizedText(raw.fields.title), subtitle: migrateLocalizedText(raw.fields.subtitle) },
+      };
+    case "body":
+      return { ...raw, fields: { richText: migrateLocalizedText(raw.fields.richText) } };
+    case "button":
+      return { ...raw, fields: { label: migrateLocalizedText(raw.fields.label), url: raw.fields.url } };
+    case "footer":
+      return { ...raw, fields: { text: migrateLocalizedText(raw.fields.text) } };
+  }
+}
+
+function resolveSection(raw: TemplateSectionRaw, language: Language): TemplateSection {
+  switch (raw.type) {
+    case "header":
+      return {
+        ...raw,
+        fields: { title: resolveText(raw.fields.title, language), subtitle: resolveText(raw.fields.subtitle, language) },
+      };
+    case "body":
+      return { ...raw, fields: { richText: resolveText(raw.fields.richText, language) } };
+    case "button":
+      return { ...raw, fields: { label: resolveText(raw.fields.label, language), url: raw.fields.url } };
+    case "footer":
+      return { ...raw, fields: { text: resolveText(raw.fields.text, language) } };
+  }
+}
+
+function migrateTemplate(raw: CommunicationTemplateRaw): CommunicationTemplateRaw {
+  return { ...raw, draft: raw.draft.map(migrateSection) };
+}
+
+function resolveTemplate(raw: CommunicationTemplateRaw, language: Language): CommunicationTemplate {
+  return { ...raw, draft: raw.draft.map((s) => resolveSection(s, language)) };
+}
+
 /** Keeps `order` authoritative and in sync with array position after any
  * add/delete/move — the editor renders sections sorted by `order`. */
-function reindex(sections: TemplateSection[]): TemplateSection[] {
+function reindex(sections: TemplateSectionRaw[]): TemplateSectionRaw[] {
   return sections.map((s, i) => ({ ...s, order: i }));
 }
 
@@ -46,15 +123,29 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
   // OrderDownloadsCard) should load templates from that source instead —
   // renderTemplateToHtml() itself only takes sections and doesn't care
   // where they came from.
-  const [templates, setTemplates] = usePersistedState<CommunicationTemplate[]>(
+  const [storedTemplates, setTemplates] = usePersistedState<CommunicationTemplateRaw[]>(
     "communicationTemplates",
     INITIAL_COMMUNICATION_TEMPLATES
+  );
+  const { language } = useLanguage();
+
+  const rawTemplates = useMemo(() => storedTemplates.map(migrateTemplate), [storedTemplates]);
+  const templates = useMemo(() => rawTemplates.map((t) => resolveTemplate(t, language)), [rawTemplates, language]);
+
+  const getRawTemplate = useCallback((id: string) => rawTemplates.find((t) => t.id === id), [rawTemplates]);
+
+  const resolveTemplateForSending = useCallback(
+    (id: string) => {
+      const raw = rawTemplates.find((t) => t.id === id);
+      return raw ? resolveTemplate(raw, "ar") : undefined;
+    },
+    [rawTemplates]
   );
 
   const createTemplate = useCallback(
     (values: CommunicationTemplateFormValues) => {
       const now = new Date().toISOString();
-      const template: CommunicationTemplate = {
+      const template: CommunicationTemplateRaw = {
         id: crypto.randomUUID(),
         channelId: values.channelId,
         categoryId: values.categoryId,
@@ -100,7 +191,7 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
         const source = prev.find((t) => t.id === id);
         if (!source) return prev;
         const now = new Date().toISOString();
-        const copy: CommunicationTemplate = {
+        const copy: CommunicationTemplateRaw = {
           ...source,
           id: crypto.randomUUID(),
           name: `${source.name} (نسخة)`,
@@ -140,7 +231,7 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
   );
 
   const addSection = useCallback(
-    (templateId: string, type: TemplateSectionType, fields: TemplateSection["fields"]) => {
+    (templateId: string, type: TemplateSectionType, fields: TemplateSectionRaw["fields"]) => {
       setTemplates((prev) =>
         prev.map((t) => {
           if (t.id !== templateId) return t;
@@ -149,7 +240,7 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
             type,
             order: t.draft.length,
             fields,
-          } as TemplateSection;
+          } as TemplateSectionRaw;
           return { ...t, draft: [...t.draft, section], updatedAt: new Date().toISOString() };
         })
       );
@@ -158,13 +249,13 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
   );
 
   const updateSection = useCallback(
-    (templateId: string, sectionId: string, fields: TemplateSection["fields"]) => {
+    (templateId: string, sectionId: string, fields: TemplateSectionRaw["fields"]) => {
       setTemplates((prev) =>
         prev.map((t) =>
           t.id === templateId
             ? {
                 ...t,
-                draft: t.draft.map((s) => (s.id === sectionId ? ({ ...s, fields } as TemplateSection) : s)),
+                draft: t.draft.map((s) => (s.id === sectionId ? ({ ...s, fields } as TemplateSectionRaw) : s)),
                 updatedAt: new Date().toISOString(),
               }
             : t
@@ -218,6 +309,8 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
   const value = useMemo(
     () => ({
       templates,
+      getRawTemplate,
+      resolveTemplateForSending,
       createTemplate,
       updateTemplate,
       duplicateTemplate,
@@ -231,6 +324,8 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
     }),
     [
       templates,
+      getRawTemplate,
+      resolveTemplateForSending,
       createTemplate,
       updateTemplate,
       duplicateTemplate,

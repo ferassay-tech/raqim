@@ -1,5 +1,5 @@
 import type { CommunicationChannelId } from "./channel";
-import type { TemplateSection } from "./section";
+import type { TemplateSection, TemplateSectionRaw } from "./section";
 
 export type CommunicationTemplateStatus = "draft" | "published" | "archived";
 
@@ -20,6 +20,26 @@ export interface CommunicationTemplate {
   description: string;
   status: CommunicationTemplateStatus;
   draft: TemplateSection[];
+  publishedVersionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Raw, bilingual storage shape — the Template Editor reads/writes this
+ * directly. Public/send-time consumers use the resolved CommunicationTemplate
+ * shape above, never this type. `name`/`description` stay plain strings even
+ * here — they're Admin-only organizational labels (identify a template in
+ * the list), never seen by an email recipient, so there's nothing to
+ * localize about them. */
+export interface CommunicationTemplateRaw {
+  id: string;
+  channelId: CommunicationChannelId;
+  categoryId: string | null;
+  type: string;
+  name: string;
+  description: string;
+  status: CommunicationTemplateStatus;
+  draft: TemplateSectionRaw[];
   publishedVersionId: string | null;
   createdAt: string;
   updatedAt: string;

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(node -e ' *)",
-      "Bash(pnpm remove *)"
+      "Bash(pnpm remove *)",
+      "Bash(node \"C:\\\\Users\\\\SAADSA~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d-----------------------raqim-house\\\\5ea21713-33ee-42d4-b834-fca4680181f0\\\\scratchpad\\\\phase3_cleanup_final.mjs\")"
     ]
   }
 }

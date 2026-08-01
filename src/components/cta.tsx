@@ -59,16 +59,22 @@ export function UnderlineLink({
   to,
   children,
   className = "",
+  interactive = true,
 }: {
   to: string;
   children: ReactNode;
   className?: string;
+  /** Set false when this sits inside another interactive element (e.g. a
+   * card that's already one big <Link>) — renders a <span> instead of a
+   * nested <a>, keeping the exact same look and its own hover-triggered
+   * underline animation, without invalid nested-anchor markup. The
+   * ancestor element is expected to already handle the click/navigation. */
+  interactive?: boolean;
 }) {
-  return (
-    <Link
-      to={to}
-      className={`group relative inline-flex items-center gap-2 text-gold focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-deep ${className}`}
-    >
+  const classes = `group relative inline-flex items-center gap-2 text-gold focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-deep ${className}`;
+
+  const inner = (
+    <>
       <span className="relative">
         {children}
         <svg
@@ -93,6 +99,16 @@ export function UnderlineLink({
       <span className="transition-transform duration-300 group-hover:-translate-x-1 rtl:group-hover:translate-x-1">
         ←
       </span>
+    </>
+  );
+
+  if (!interactive) {
+    return <span className={classes}>{inner}</span>;
+  }
+
+  return (
+    <Link to={to} className={classes}>
+      {inner}
     </Link>
   );
 }

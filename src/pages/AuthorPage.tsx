@@ -10,11 +10,14 @@ import { buildGraph, breadcrumbSchema } from "../lib/structuredData";
 import { useAssetDimensions } from "../lib/mediaDimensions";
 import { useBooks } from "../admin/context/BooksContext";
 import { isInLibraryGrid } from "../admin/lib/bookPlacement";
+import { useLanguage } from "../context/LanguageContext";
+import { localizeProperName } from "../lib/properNames";
 
 export default function AuthorPage() {
   const { slug } = useParams<{ slug: string }>();
   const { books } = useBooks();
   const getDimensions = useAssetDimensions();
+  const { t, language } = useLanguage();
 
   // There is no separate Author record — author identity lives on AdminBook
   // itself (author/authorSlug/authorBio). Every visible book matching this
@@ -33,32 +36,37 @@ export default function AuthorPage() {
 
   const authorName = primaryBook.author;
   const authorBio = primaryBook.authorBio;
+  const displayName = localizeProperName(authorName, language);
 
   const authorJsonLd = buildGraph([
     {
       "@type": "Person",
-      name: authorName,
+      name: displayName,
       description: authorBio,
     },
     breadcrumbSchema([
-      { name: "الرئيسية", path: "/" },
-      { name: authorName, path: `/authors/${primaryBook.authorSlug}` },
+      { name: t("about.breadcrumb.home"), path: "/" },
+      { name: displayName, path: `/authors/${primaryBook.authorSlug}` },
     ]),
   ]);
 
   return (
     <PageShell>
-      <Helmet title={`${authorName} — رقيم`} description={authorBio} path={`/authors/${primaryBook.authorSlug}`} />
+      <Helmet
+        title={`${displayName}${t("author.seoTitleSuffix")}`}
+        description={authorBio}
+        path={`/authors/${primaryBook.authorSlug}`}
+      />
       <StructuredData json={authorJsonLd} />
       <section className="px-6 py-20 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[0.6fr_1.4fr]">
           <Reveal className="flex justify-center">
             <div className="flex h-56 w-56 items-center justify-center rounded-full bg-gradient-to-br from-cream to-lavender/40 font-logotype text-7xl text-gold">
-              {authorName.trim().charAt(0) || "؟"}
+              {displayName.trim().charAt(0) || "؟"}
             </div>
           </Reveal>
           <Reveal delay={0.1} className="text-center lg:text-right">
-            <h1 className="mt-4 font-display text-4xl text-ink md:text-5xl">{authorName}</h1>
+            <h1 className="mt-4 font-display text-4xl text-ink md:text-5xl">{displayName}</h1>
             <div className="mt-5 flex justify-center lg:justify-end">
               <GoldDivider className="h-4 w-44 text-gold" />
             </div>
@@ -74,8 +82,11 @@ export default function AuthorPage() {
       <section className="bg-cream px-6 py-20 lg:px-10 lg:py-24">
         <div className="mx-auto max-w-6xl">
           <Reveal className="text-center">
-            <p className="text-sm uppercase tracking-[0.25em] text-gold">الإصدارات</p>
-            <h2 className="mt-4 font-display text-3xl text-ink md:text-4xl">أعمال {authorName}</h2>
+            <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("author.releasesEyebrow")}</p>
+            <h2 className="mt-4 font-display text-3xl text-ink md:text-4xl">
+              {t("author.worksTitlePrefix")}
+              {displayName}
+            </h2>
           </Reveal>
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {authorBooks.map((book, i) => (
@@ -100,9 +111,9 @@ export default function AuthorPage() {
                   <div className="p-5 text-right">
                     <h3 className="font-display text-lg text-ink">{book.title}</h3>
                     <div className="mt-3">
-                      <UnderlineLink to={`/books/${book.id}`}>
-  {book.placement === "comingSoon" ? "ترقبوا قريبًا" : "عرض الكتاب"}
-</UnderlineLink>
+                      <UnderlineLink to={`/books/${book.id}`} interactive={false}>
+                        {book.placement === "comingSoon" ? t("author.comingSoonLink") : t("author.viewBook")}
+                      </UnderlineLink>
                     </div>
                   </div>
                 </Link>

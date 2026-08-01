@@ -5,28 +5,26 @@ import { Helmet } from "../components/Helmet";
 import { StructuredData } from "../components/StructuredData";
 import { useSiteContent } from "../admin/context/SiteContentContext";
 import { buildGraph, breadcrumbSchema, faqPageSchema } from "../lib/structuredData";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function FaqPage() {
   const [open, setOpen] = useState<number | null>(0);
   const { faqs } = useSiteContent();
+  const { t } = useLanguage();
 
   const faqJsonLd = buildGraph([
     faqPageSchema(faqs),
     breadcrumbSchema([
-      { name: "الرئيسية", path: "/" },
-      { name: "الأسئلة الشائعة", path: "/faq" },
+      { name: t("about.breadcrumb.home"), path: "/" },
+      { name: t("book.faq.eyebrow"), path: "/faq" },
     ]),
   ]);
 
   return (
     <PageShell>
-      <Helmet
-        title="الأسئلة الشائعة — رقيم"
-        description="إجابات على أكثر الأسئلة شيوعًا حول كتب رقيم وطريقة الشراء."
-        path="/faq"
-      />
+      <Helmet title={t("faq.seo.title")} description={t("faq.seo.description")} path="/faq" />
       <StructuredData json={faqJsonLd} />
-      <PageHeader eyebrow="الدعم" title="الأسئلة الشائعة" description="كل ما تحتاجين معرفته قبل وبعد الشراء." />
+      <PageHeader eyebrow={t("faq.eyebrow")} title={t("book.faq.eyebrow")} description={t("faq.description")} />
 
       <section className="px-6 py-20 lg:px-10">
         <div className="mx-auto max-w-3xl divide-y divide-beige border-y border-beige">

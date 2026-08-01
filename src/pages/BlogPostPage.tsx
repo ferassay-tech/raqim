@@ -5,15 +5,17 @@ import { GoldDivider } from "../components/ornaments";
 import { Helmet } from "../components/Helmet";
 import { StructuredData } from "../components/StructuredData";
 import { useArticles } from "../admin/context/ArticlesContext";
-import { formatArticleDate } from "../admin/lib/articleStatus";
+import { formatArticleDate, formatReadTime } from "../admin/lib/articleStatus";
 import { buildGraph, articleSchema, breadcrumbSchema } from "../lib/structuredData";
 import { useAssetDimensions } from "../lib/mediaDimensions";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const { articles } = useArticles();
   const post = articles.find((a) => a.slug === slug && a.status === "published");
   const getDimensions = useAssetDimensions();
+  const { t, language } = useLanguage();
 
   if (!post) return <Navigate to="/blog" replace />;
 
@@ -21,10 +23,10 @@ export default function BlogPostPage() {
   const paragraphs = post.content.split(/\n{2,}/).filter((p) => p.trim().length > 0);
 
   const postJsonLd = buildGraph([
-    articleSchema(post),
+    articleSchema(post, language),
     breadcrumbSchema([
-      { name: "الرئيسية", path: "/" },
-      { name: "المدونة", path: "/blog" },
+      { name: t("about.breadcrumb.home"), path: "/" },
+      { name: t("blog.breadcrumb.title"), path: "/blog" },
       { name: post.title, path: `/blog/${post.slug}` },
     ]),
   ]);
@@ -32,7 +34,7 @@ export default function BlogPostPage() {
   return (
     <PageShell>
       <Helmet
-        title={post.seoTitle || `${post.title} — مدونة رقيم`}
+        title={post.seoTitle || `${post.title}${t("blog.post.seoTitleSuffix")}`}
         description={post.seoDescription || post.excerpt}
         path={`/blog/${post.slug}`}
         image={post.coverImage ?? undefined}
@@ -49,9 +51,9 @@ export default function BlogPostPage() {
             <div className="flex items-center justify-center gap-3 text-xs text-ink-soft">
               <span className="text-gold">{post.category}</span>
               <span>·</span>
-              <span>{post.readTime}</span>
+              <span>{formatReadTime(post.readTime, language)}</span>
               <span>·</span>
-              <span>{formatArticleDate(post.publishedAt)}</span>
+              <span>{formatArticleDate(post.publishedAt, language)}</span>
             </div>
           </Reveal>
           <Reveal delay={0.06}>
@@ -87,11 +89,11 @@ export default function BlogPostPage() {
 
           <div className="mt-16 border-t border-beige pt-8 text-center space-y-4">
             <Link to="/blog" className="block text-sm text-gold hover:underline">
-              العودة إلى المدونة
+              {t("blog.post.backToBlog")}
             </Link>
 
             <Link to="/books" className="block text-sm text-ink hover:text-gold transition-colors">
-              تصفح كتب رقيم
+              {t("blog.post.browseBooks")}
             </Link>
           </div>
         </div>

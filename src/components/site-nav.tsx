@@ -6,6 +6,8 @@ import { useBooks } from "../admin/context/BooksContext";
 import { isInLibraryGrid } from "../admin/lib/bookPlacement";
 import { useSettings } from "../admin/context/SettingsContext";
 import { FONT_STACKS } from "../admin/context/ThemeContext";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useLanguage } from "../context/LanguageContext";
 
 function IconMenu({ size = 22 }: { size?: number }) {
   return (
@@ -55,6 +57,7 @@ export function SiteNav() {
   const { books } = useBooks();
   const { settings } = useSettings();
   const { wordmark } = settings.brand;
+  const { t } = useLanguage();
 
   const wordmarkStyle = {
     fontFamily: FONT_STACKS[wordmark.arabicFontFamily],
@@ -105,17 +108,18 @@ export function SiteNav() {
             style={wordmarkStyle}
             className="text-[length:var(--wordmark-size-mobile)] text-ink lg:text-[length:var(--wordmark-size-desktop)]"
           >
-            رقيم
+            {t("home.hero.titleFallback")}
           </span>
         </Link>
 
-        <nav aria-label="التصفح الرئيسي" className="hidden items-center gap-8 lg:flex">
+        <nav aria-label={t("nav.mainLabel")} className="hidden items-center gap-8 lg:flex">
           {navLinks.map((link) => (
             <NavLink key={link.to} to={link.to} label={link.label} active={pathname === link.to} />
           ))}
         </nav>
 
         <div className="hidden items-center gap-4 lg:flex">
+          <LanguageSwitcher />
           <Link
             to="/search"
             aria-label={getValue("nav.search")}
@@ -136,7 +140,7 @@ export function SiteNav() {
         <button
           onClick={() => setOpen((v) => !v)}
           className="grid h-10 w-10 place-items-center text-ink lg:hidden"
-          aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
+          aria-label={open ? t("nav.closeMenu") : t("nav.openMenu")}
           aria-expanded={open}
           aria-controls="mobile-nav"
         >
@@ -146,7 +150,7 @@ export function SiteNav() {
 
       {open && (
         <div id="mobile-nav" className="border-t border-beige bg-ivory px-6 pb-8 pt-4 lg:hidden">
-          <nav aria-label="قائمة الجوال" className="flex flex-col gap-1">
+          <nav aria-label={t("nav.mobileMenuLabel")} className="flex flex-col gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
@@ -159,12 +163,13 @@ export function SiteNav() {
             <Link to="/search" className="rounded-lg px-3 py-3 text-base text-ink hover:bg-cream">
               {getValue("nav.search")}
             </Link>
+            <LanguageSwitcher className="px-3 py-3" />
             {ctaBook && (
               <Link
                 to={`/books/${ctaBook.id}`}
                 className="mt-3 rounded-full bg-ink px-5 py-3 text-center text-sm text-ivory"
               >
-                اطلبي {ctaBook.title}
+                {t("nav.orderPrefix")}{ctaBook.title}
               </Link>
             )}
           </nav>
@@ -202,9 +207,10 @@ export function LogoMark({
 }) {
   const { settings } = useSettings();
   const { logo, logoSizing } = settings.brand;
+  const { t } = useLanguage();
 
   if (!useConfiguredSize) {
-    return <img src={logo ?? undefined} alt="رقيم" decoding="async" className={className} />;
+    return <img src={logo ?? undefined} alt={t("home.hero.titleFallback")} decoding="async" className={className} />;
   }
 
   const hasExplicitWidth = Boolean(logoSizing.width);
@@ -244,7 +250,7 @@ export function LogoMark({
   return (
     <img
       src={logo ?? undefined}
-      alt="رقيم"
+      alt={t("home.hero.titleFallback")}
       decoding="async"
       style={style}
       className={`${responsiveHeight} ${className}`}

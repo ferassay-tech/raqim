@@ -10,7 +10,7 @@ export default function BookNewPage() {
 
   const handleSave = (values: BookFormValues) => {
     createBook(values);
-    navigate("/admin/books", { state: { flash: `تم إضافة «${values.title}» بنجاح` } });
+    navigate("/admin/books", { state: { flash: `تم إضافة «${values.title.ar || values.title.en}» بنجاح` } });
   };
 
   return (

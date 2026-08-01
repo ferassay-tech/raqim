@@ -11,10 +11,12 @@ import { useBooks } from "../admin/context/BooksContext";
 import type { AdminBook } from "../admin/types/book";
 import { isInLibraryGrid } from "../admin/lib/bookPlacement";
 import { useSettings } from "../admin/context/SettingsContext";
-import { useSiteContent } from "../admin/context/SiteContentContext";
+import { useCategories } from "../admin/context/CategoriesContext";
+import { useLanguage } from "../context/LanguageContext";
 import { buildGraph, bookSchema, organizationSchema, websiteSchema } from "../lib/structuredData";
 import { useAssetDimensions } from "../lib/mediaDimensions";
 import { DEFAULT_OG_IMAGE } from "../lib/seo";
+import { localizeProperName } from "../lib/properNames";
 import { BRAND_ASSETS } from "../config/brandAssets";
 // Every Hero* atmosphere component (HeroLight, HeroClouds, HeroParticles,
 // HeroBirds, HeroForeground) and the shared ambient mask are temporarily
@@ -27,6 +29,7 @@ const byOrder = (a: AdminBook, b: AdminBook) => a.displayOrder - b.displayOrder;
 export default function HomePage() {
   const { books } = useBooks();
   const { settings } = useSettings();
+  const { language } = useLanguage();
 
   const activeBooks = useMemo(() => books.filter((b) => b.deletedAt === null), [books]);
   const heroBook = useMemo(
@@ -46,9 +49,10 @@ export default function HomePage() {
     organizationSchema({
       logo: settings.brand.logo ?? BRAND_ASSETS.logo,
       image: settings.seo.socialImage ?? DEFAULT_OG_IMAGE,
+      language,
     }),
-    websiteSchema(),
-    ...(heroBook ? [bookSchema(heroBook)] : []),
+    websiteSchema(language),
+    ...(heroBook ? [bookSchema(heroBook, language)] : []),
   ]);
 
   return (
@@ -66,6 +70,7 @@ export default function HomePage() {
 }
 
 function HeroSection({ book }: { book: AdminBook | null }) {
+  const { t } = useLanguage();
   return (
     <section className="isolate relative overflow-hidden px-6 pb-14 pt-14 lg:px-10 lg:pb-20 lg:pt-20">
       {/* background watercolor plate, muted — fades into Philosophy's cream by the bottom edge so the two sections read as one continuous scene */}
@@ -150,11 +155,11 @@ function HeroSection({ book }: { book: AdminBook | null }) {
         {/* headline block — top-right, RTL primary reading direction */}
         <div className="order-1 text-center lg:order-2 lg:text-right">
           <Reveal>
-            <p className="text-sm uppercase tracking-[0.25em] text-gold">رقيم للنشر الرقمي</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("home.hero.eyebrow")}</p>
           </Reveal>
           <Reveal delay={0.08}>
             <h1 className="mt-5 text-balance font-display text-5xl leading-[1.15] text-ink md:text-7xl">
-              {book?.title ?? "رقيم"}
+              {book?.title ?? t("home.hero.titleFallback")}
             </h1>
           </Reveal>
           <Reveal delay={0.14}>
@@ -164,13 +169,13 @@ function HeroSection({ book }: { book: AdminBook | null }) {
           </Reveal>
           <Reveal delay={0.2}>
             <p className="mx-auto mt-6 max-w-xl text-balance text-lg leading-loose text-ink-soft lg:mx-0">
-              دليلك للثبات والوعي والأثر الذي لا يُنسى. للمرأة التي تختار أن تكون بدايةً لحكاية تُلهم.
+              {t("home.hero.subtitle")}
             </p>
           </Reveal>
           <Reveal delay={0.26}>
             <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-end">
-              {book && <StampCTA to={`/books/${book.id}`}>{book.ctaLabel || "اطلبي نسختك الآن"}</StampCTA>}
-              <UnderlineLink to="/about">تعرّفي على الدار</UnderlineLink>
+              {book && <StampCTA to={`/books/${book.id}`}>{book.ctaLabel || t("home.cta.orderNow")}</StampCTA>}
+              <UnderlineLink to="/about">{t("home.hero.aboutLink")}</UnderlineLink>
             </div>
           </Reveal>
         </div>
@@ -180,7 +185,7 @@ function HeroSection({ book }: { book: AdminBook | null }) {
 }
 
 function PhilosophySection() {
-  const { getValue } = useSiteContent();
+  const { t } = useLanguage();
   const getDimensions = useAssetDimensions();
   const patternDims = getDimensions("/assets/arabesque-pattern.webp");
   return (
@@ -189,13 +194,13 @@ function PhilosophySection() {
         <Reveal className="relative z-10">
           <div className="flex items-center gap-3">
             <CornerFlourish className="h-8 w-8 text-gold/60" />
-            <p className="text-sm uppercase tracking-[0.25em] text-gold">{getValue("homepage.philosophy.eyebrow")}</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("home.philosophy.eyebrow")}</p>
           </div>
           <h2 className="mt-5 text-balance font-display text-4xl leading-tight text-ink md:text-6xl">
-            {getValue("homepage.philosophy.title")}
+            {t("home.philosophy.title")}
           </h2>
           <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">
-            {getValue("homepage.philosophy.body")}
+            {t("home.philosophy.body")}
           </p>
         </Reveal>
 
@@ -222,6 +227,7 @@ function PhilosophySection() {
 
 function FeaturedBookSection({ book }: { book: AdminBook }) {
   const { settings } = useSettings();
+  const { t } = useLanguage();
   const getDimensions = useAssetDimensions();
   // Dashboard-controlled override (Settings → Home Page) takes priority;
   // falls back to the featured book's own gallery image exactly as before
@@ -270,7 +276,7 @@ function FeaturedBookSection({ book }: { book: AdminBook }) {
 
         <div className="order-1 text-center lg:order-2 lg:text-right">
           <Reveal>
-            <p className="text-sm uppercase tracking-[0.25em] text-gold">الكتاب المميز</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("home.featuredBook.eyebrow")}</p>
           </Reveal>
           <Reveal delay={0.08}>
             <h2 className="mt-4 font-display text-4xl leading-tight text-ink md:text-5xl">
@@ -289,7 +295,7 @@ function FeaturedBookSection({ book }: { book: AdminBook }) {
           </Reveal>
           <Reveal delay={0.26}>
             <div className="mt-8 flex justify-center lg:justify-end">
-              <UnderlineLink to={`/books/${book.id}`}>اقرئي المزيد</UnderlineLink>
+              <UnderlineLink to={`/books/${book.id}`}>{t("home.featuredBook.readMore")}</UnderlineLink>
             </div>
           </Reveal>
         </div>
@@ -300,12 +306,14 @@ function FeaturedBookSection({ book }: { book: AdminBook }) {
 
 function BooksGridSection({ books }: { books: AdminBook[] }) {
   const getDimensions = useAssetDimensions();
+  const { t, language } = useLanguage();
+  const { getCategoryLabel } = useCategories();
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-cream via-cream to-mauve/25 px-6 py-16 lg:px-10 lg:py-24">
       <div className="relative mx-auto max-w-7xl">
         <Reveal className="text-center">
-          <p className="text-sm uppercase tracking-[0.25em] text-gold">أحدث الإصدارات</p>
-          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">مكتبة رقيم</h2>
+          <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("home.booksGrid.eyebrow")}</p>
+          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">{t("home.booksGrid.title")}</h2>
           <div className="mt-5 flex justify-center">
             <GoldDivider className="h-4 w-44 text-gold" />
           </div>
@@ -335,14 +343,14 @@ function BooksGridSection({ books }: { books: AdminBook[] }) {
                   </span>
                   {book.placement === "comingSoon" && (
                     <span className="absolute left-4 top-4 rounded-full bg-lavender/80 px-3 py-1 text-xs text-ink">
-                      قريبًا
+                      {t("home.booksGrid.comingSoon")}
                     </span>
                   )}
                 </div>
                 <div className="border-t border-beige p-5 text-right">
-                  <p className="text-xs text-gold">{book.category}</p>
+                  <p className="text-xs text-gold">{getCategoryLabel(book.category)}</p>
                   <h3 className="mt-1.5 font-display text-lg text-ink">{book.title}</h3>
-                  <p className="mt-1 text-xs text-ink-soft">{book.author}</p>
+                  <p className="mt-1 text-xs text-ink-soft">{localizeProperName(book.author, language)}</p>
                 </div>
               </Link>
             </Reveal>
@@ -350,7 +358,7 @@ function BooksGridSection({ books }: { books: AdminBook[] }) {
         </div>
 
         <Reveal delay={0.3} className="mt-12 text-center">
-          <UnderlineLink to="/books">عرض جميع الكتب</UnderlineLink>
+          <UnderlineLink to="/books">{t("home.booksGrid.viewAll")}</UnderlineLink>
         </Reveal>
       </div>
     </section>
@@ -358,7 +366,7 @@ function BooksGridSection({ books }: { books: AdminBook[] }) {
 }
 
 function QuoteSection() {
-  const { getValue } = useSiteContent();
+  const { t } = useLanguage();
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-mauve/25 via-mauve/25 to-ivory px-6 py-20 lg:px-10 lg:py-24">
       <div className="relative mx-auto max-w-3xl rounded-[10px] border border-mauve/40 bg-ivory/50 px-6 py-14 text-center shadow-[0_20px_50px_-30px_rgba(44,36,32,0.35)] backdrop-blur-sm lg:px-14 lg:py-16">
@@ -367,11 +375,11 @@ function QuoteSection() {
         </Reveal>
         <Reveal delay={0.1}>
           <blockquote className="mt-8 text-balance font-display text-4xl leading-relaxed text-ink md:text-5xl">
-            {getValue("homepage.quote.text")}
+            {t("home.quote.text")}
           </blockquote>
         </Reveal>
         <Reveal delay={0.18}>
-          <cite className="mt-6 block text-sm not-italic text-ink-soft">{getValue("homepage.quote.citation")}</cite>
+          <cite className="mt-6 block text-sm not-italic text-ink-soft">{t("home.quote.citation")}</cite>
         </Reveal>
       </div>
     </section>
@@ -379,27 +387,27 @@ function QuoteSection() {
 }
 
 function FinalCTASection({ book }: { book: AdminBook | null }) {
-  const { getValue } = useSiteContent();
+  const { t } = useLanguage();
   return (
     <section className="relative overflow-hidden px-6 py-16 lg:px-10 lg:py-20">
       <div className="relative mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 rounded-[10px] border border-beige bg-cream/60 p-10 text-center sm:grid-cols-3 lg:p-14">
         <CornerFlourish className="pointer-events-none absolute right-4 top-4 h-12 w-12 text-gold/50" />
         <CornerFlourish className="pointer-events-none absolute bottom-4 left-4 h-12 w-12 rotate-180 text-gold/50" />
-        <FeatureIcon icon={<IconBook className="h-8 w-8" />} label="كتاب فاخر يُقتنى" />
-        <FeatureIcon icon={<IconHeart className="h-8 w-8" />} label="محتوى بقلب صادق" />
-        <FeatureIcon icon={<IconOpenHands className="h-8 w-8" />} label="أثر يبقى بعدك" />
+        <FeatureIcon icon={<IconBook className="h-8 w-8" />} label={t("home.finalCta.featureLuxuryBook")} />
+        <FeatureIcon icon={<IconHeart className="h-8 w-8" />} label={t("home.finalCta.featureHonestContent")} />
+        <FeatureIcon icon={<IconOpenHands className="h-8 w-8" />} label={t("home.finalCta.featureLastingImpact")} />
       </div>
 
       <Reveal className="mx-auto mt-16 max-w-2xl text-center">
         <h2 className="text-balance font-display text-3xl leading-tight text-ink md:text-4xl">
-          {book ? `ابدئي رحلتك مع ${book.title} اليوم` : "ابدئي رحلتك مع رقيم اليوم"}
+          {book ? t("home.finalCta.titleWithBook").replace("{{book}}", book.title) : t("home.finalCta.titleDefault")}
         </h2>
         <p className="mt-4 text-balance leading-loose text-ink-soft">
-          {getValue("homepage.finalCta.body")}
+          {t("home.finalCta.body")}
         </p>
         {book && (
           <div className="mt-8 flex justify-center">
-            <StampCTA to={`/books/${book.id}`}>{book.ctaLabel || "اطلبي نسختك الآن"}</StampCTA>
+            <StampCTA to={`/books/${book.id}`}>{book.ctaLabel || t("home.cta.orderNow")}</StampCTA>
           </div>
         )}
       </Reveal>

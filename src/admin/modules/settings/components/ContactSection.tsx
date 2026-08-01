@@ -1,19 +1,42 @@
+import { useState } from "react";
 import { TextField } from "@/admin/components/forms/TextField";
 import { TextArea } from "@/admin/components/forms/TextArea";
 import { useSettings } from "@/admin/context/SettingsContext";
+import type { Language } from "@/context/LanguageContext";
 import { SettingsRow } from "./SettingsRow";
 
 interface ContactSectionProps {
   onSaved: (message: string) => void;
 }
 
+const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
+  { value: "ar", label: "العربية" },
+  { value: "en", label: "English" },
+];
+
 export function ContactSection({ onSaved }: ContactSectionProps) {
-  const { settings, updateContact } = useSettings();
-  const { email, phone, address, hours, instagram, pinterest, tiktok } = settings.contact;
+  const { rawSettings, updateContact } = useSettings();
+  const { email, phone, address, hours, instagram, pinterest, tiktok } = rawSettings.contact;
+  const [editingLanguage, setEditingLanguage] = useState<Language>("ar");
 
   return (
     <div>
       <SettingsRow title="معلومات التواصل" description="تظهر هذه البيانات في صفحة تواصل معنا العامة.">
+        <div className="mb-6 flex items-center gap-1 self-start rounded-full border border-beige p-1">
+          {EDITING_LANGUAGE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setEditingLanguage(option.value)}
+              className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
+                editingLanguage === option.value ? "bg-ink text-ivory" : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <p className="mb-4 -mt-3 text-xs text-ink-faint">التبديل أعلاه يغيّر لغة تحرير «ساعات الرد» فقط.</p>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <TextField
             label="البريد الإلكتروني"
@@ -29,7 +52,11 @@ export function ContactSection({ onSaved }: ContactSectionProps) {
             placeholder="+966 5X XXX XXXX"
             dir="ltr"
           />
-          <TextField label="ساعات الرد" value={hours} onChange={(v) => updateContact({ hours: v })} />
+          <TextField
+            label="ساعات الرد"
+            value={hours[editingLanguage]}
+            onChange={(v) => updateContact({ hours: { ...hours, [editingLanguage]: v } })}
+          />
           <div className="sm:col-span-2">
             <TextArea
               label="العنوان"

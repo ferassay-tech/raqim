@@ -8,6 +8,8 @@ import {
 } from "../lib/seo";
 import { useSettings } from "../admin/context/SettingsContext";
 import { useAssetDimensions } from "../lib/mediaDimensions";
+import { useLanguage } from "../context/LanguageContext";
+import { localizeProperName } from "../lib/properNames";
 
 type OgType = "website" | "book" | "article";
 
@@ -52,6 +54,7 @@ export function Helmet({
 }: HelmetProps) {
   const { settings } = useSettings();
   const getDimensions = useAssetDimensions();
+  const { language } = useLanguage();
 
   // Single resolution chain so og:image, twitter:image, and (via the same
   // dashboard value read by structuredData.ts builders) structured-data
@@ -106,7 +109,7 @@ export function Helmet({
       setMeta('meta[name="twitter:description"]', "name", description);
     }
 
-    setMeta('meta[property="og:site_name"]', "property", SITE_NAME);
+    setMeta('meta[property="og:site_name"]', "property", localizeProperName(SITE_NAME, language));
     setMeta('meta[property="og:type"]', "property", type);
     setMeta('meta[property="og:title"]', "property", title);
     setMeta('meta[name="twitter:card"]', "name", "summary_large_image");
@@ -139,6 +142,7 @@ export function Helmet({
     resolvedImage,
     resolvedWidth,
     resolvedHeight,
+    language,
   ]);
 
   return null;

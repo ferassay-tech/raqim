@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type {
-  AdminBook,
-  BookChapter,
+  AdminBookRaw,
+  BookChapterRaw,
   BookCurrency,
-  BookFaqItem,
-  BookFeature,
+  BookFaqItemRaw,
+  BookFeatureRaw,
   BookPlacement,
-  BookReview,
+  BookReviewRaw,
   BookStatus,
 } from "@/admin/types/book";
 import { BOOK_FEATURE_ICONS, CURRENCY_LABELS } from "@/admin/types/book";
+import type { LocalizedText } from "@/admin/types/siteContent";
+import type { Language } from "@/context/LanguageContext";
 import { BOOK_PLACEMENT_OPTIONS } from "@/admin/lib/bookPlacement";
 import { useCategories } from "@/admin/context/CategoriesContext";
 import { Tabs } from "@/admin/components/ui/Tabs";
@@ -26,14 +28,16 @@ import { MediaPickerModal } from "@/admin/modules/media/components/MediaPickerMo
 import { BookFilesPanel } from "./BookFilesPanel";
 import { IconTrash } from "@/admin/icons";
 
-export type BookFormValues = Omit<AdminBook, "id" | "sales" | "updatedAt">;
+export type BookFormValues = Omit<AdminBookRaw, "id" | "sales" | "updatedAt">;
+
+const EMPTY_LOCALIZED: LocalizedText = { ar: "", en: "" };
 
 const EMPTY_BOOK: BookFormValues = {
-  title: "",
-  subtitle: "",
+  title: { ...EMPTY_LOCALIZED },
+  subtitle: { ...EMPTY_LOCALIZED },
   author: "",
   authorSlug: "",
-  authorBio: "",
+  authorBio: { ...EMPTY_LOCALIZED },
   category: "",
   cover: null,
   backCoverImage: null,
@@ -48,18 +52,18 @@ const EMPTY_BOOK: BookFormValues = {
   language: "العربية",
   format: "كتاب رقمي PDF فاخر",
   pages: 0,
-  description: "",
-  longDescription: "",
+  description: { ...EMPTY_LOCALIZED },
+  longDescription: { ...EMPTY_LOCALIZED },
   whoFor: [],
   features: [],
   chapters: [],
   reviews: [],
   faq: [],
-  ctaLabel: "اطلبي نسختك الآن",
+  ctaLabel: { ar: "اطلبي نسختك الآن", en: "" },
   badges: [],
   accentColor: null,
-  seoTitle: "",
-  seoDescription: "",
+  seoTitle: { ...EMPTY_LOCALIZED },
+  seoDescription: { ...EMPTY_LOCALIZED },
   deletedAt: null,
 };
 
@@ -85,18 +89,24 @@ const STATUS_OPTIONS: { value: BookStatus; label: string }[] = [
 
 const CURRENCIES: BookCurrency[] = ["USD", "EGP", "ILS"];
 
+const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
+  { value: "ar", label: "العربية" },
+  { value: "en", label: "English" },
+];
+
 interface BookFormProps {
   mode: "create" | "edit";
-  initialBook?: AdminBook;
+  initialBook?: AdminBookRaw;
   onSave: (values: BookFormValues) => void;
   onCancel: () => void;
   onDelete?: () => void;
 }
 
 export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: BookFormProps) {
-  const { categories } = useCategories();
-  const initialValues: BookFormValues = initialBook ?? { ...EMPTY_BOOK, category: categories[0]?.name ?? "" };
+  const { rawCategories } = useCategories();
+  const initialValues: BookFormValues = initialBook ?? { ...EMPTY_BOOK, category: rawCategories[0]?.name.ar ?? "" };
   const [values, setValues] = useState<BookFormValues>(initialValues);
+  const [editingLanguage, setEditingLanguage] = useState<Language>("ar");
   const [activeTab, setActiveTab] = useState("hero");
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -105,6 +115,7 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
   const coverObjectUrlRef = useRef<string | null>(null);
 
   const isDirty = JSON.stringify(values) !== JSON.stringify(initialValues);
+  const displayTitle = values.title.ar || values.title.en;
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -125,6 +136,10 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
     setValues((prev) => ({ ...prev, [key]: value }));
   };
 
+  const setLocalized = (key: "title" | "subtitle" | "authorBio" | "ctaLabel" | "description" | "longDescription" | "seoTitle" | "seoDescription", value: string) => {
+    setValues((prev) => ({ ...prev, [key]: { ...prev[key], [editingLanguage]: value } }));
+  };
+
   const handleCoverFileSelected = (file: File) => {
     if (coverObjectUrlRef.current) URL.revokeObjectURL(coverObjectUrlRef.current);
     const url = URL.createObjectURL(file);
@@ -139,7 +154,8 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!values.title.trim()) {
+    if (!values.title.ar.trim()) {
+      setEditingLanguage("ar");
       setActiveTab("hero");
       return;
     }
@@ -149,18 +165,37 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <div className="rounded-[10px] border border-beige bg-white/70 backdrop-blur">
-        <div className="px-6 pt-2">
+        <div className="flex items-center justify-between gap-4 px-6 pt-2">
           <Tabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
+          <div className="flex shrink-0 items-center gap-1 rounded-full border border-beige p-1">
+            {EDITING_LANGUAGE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setEditingLanguage(option.value)}
+                className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
+                  editingLanguage === option.value ? "bg-ink text-ivory" : "text-ink-soft hover:text-ink"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="px-6 py-7">
           {activeTab === "hero" && (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <TextField label="عنوان الكتاب" value={values.title} onChange={(v) => set("title", v)} required />
+                <TextField
+                  label="عنوان الكتاب"
+                  value={values.title[editingLanguage]}
+                  onChange={(v) => setLocalized("title", v)}
+                  required={editingLanguage === "ar"}
+                />
               </div>
               <div className="sm:col-span-2">
-                <TextField label="العنوان الفرعي" value={values.subtitle} onChange={(v) => set("subtitle", v)} />
+                <TextField label="العنوان الفرعي" value={values.subtitle[editingLanguage]} onChange={(v) => setLocalized("subtitle", v)} />
               </div>
               <TextField label="المؤلفة" value={values.author} onChange={(v) => set("author", v)} required />
               <TextField
@@ -174,15 +209,15 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
                 <TextArea
                   label="نبذة عن المؤلفة (تظهر في صفحة هذا الكتاب)"
                   rows={3}
-                  value={values.authorBio}
-                  onChange={(v) => set("authorBio", v)}
+                  value={values.authorBio[editingLanguage]}
+                  onChange={(v) => setLocalized("authorBio", v)}
                 />
               </div>
               <Select
                 label="التصنيف"
                 value={values.category}
                 onChange={(v) => set("category", v)}
-                options={categories.map((c) => ({ value: c.name, label: c.name }))}
+                options={rawCategories.map((c) => ({ value: c.name.ar, label: c.name.ar }))}
               />
               <Select
                 label="الظهور على الموقع"
@@ -198,18 +233,23 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
                 hint="الأصغر يظهر أولًا"
               />
               <div className="sm:col-span-2">
-                <TextField label="نص زر الشراء (CTA)" value={values.ctaLabel} onChange={(v) => set("ctaLabel", v)} />
+                <TextField label="نص زر الشراء (CTA)" value={values.ctaLabel[editingLanguage]} onChange={(v) => setLocalized("ctaLabel", v)} />
               </div>
               <div className="sm:col-span-2">
-                <Repeater<string>
+                <Repeater<LocalizedText>
                   label="الشارات"
                   items={values.badges}
                   onChange={(v) => set("badges", v)}
-                  newItem={() => ""}
+                  newItem={() => ({ ...EMPTY_LOCALIZED })}
                   addLabel="إضافة شارة"
                   emptyLabel="لا توجد شارات بعد."
                   renderItem={(item, update) => (
-                    <TextField label="نص الشارة" value={item} onChange={update} placeholder="مثال: إصدار رقيم الأول" />
+                    <TextField
+                      label="نص الشارة"
+                      value={item[editingLanguage]}
+                      onChange={(v) => update({ ...item, [editingLanguage]: v })}
+                      placeholder="مثال: إصدار رقيم الأول"
+                    />
                   )}
                 />
               </div>
@@ -217,15 +257,15 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
           )}
 
           {activeTab === "whoFor" && (
-            <Repeater<string>
+            <Repeater<LocalizedText>
               label="لمن هذا الكتاب"
               items={values.whoFor}
               onChange={(v) => set("whoFor", v)}
-              newItem={() => ""}
+              newItem={() => ({ ...EMPTY_LOCALIZED })}
               addLabel="إضافة سطر"
               emptyLabel="لا توجد عناصر بعد."
               renderItem={(item, update) => (
-                <TextArea label="الوصف" rows={2} value={item} onChange={update} />
+                <TextArea label="الوصف" rows={2} value={item[editingLanguage]} onChange={(v) => update({ ...item, [editingLanguage]: v })} />
               )}
             />
           )}
@@ -235,43 +275,47 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
               <TextArea
                 label="نبذة قصيرة (الوصف)"
                 rows={4}
-                value={values.description}
-                onChange={(v) => set("description", v)}
+                value={values.description[editingLanguage]}
+                onChange={(v) => setLocalized("description", v)}
                 placeholder="نبذة عن الكتاب تظهر في القوائم وبطاقات الكتب..."
               />
               <TextArea
                 label="القصة الكاملة"
                 rows={8}
-                value={values.longDescription}
-                onChange={(v) => set("longDescription", v)}
+                value={values.longDescription[editingLanguage]}
+                onChange={(v) => setLocalized("longDescription", v)}
                 placeholder="القصة الموسعة التي تظهر في قسم «رحلة التحول» بصفحة الكتاب..."
               />
             </div>
           )}
 
           {activeTab === "chapters" && (
-            <Repeater<BookChapter>
+            <Repeater<BookChapterRaw>
               label="الفصول"
               items={values.chapters}
               onChange={(v) => set("chapters", v)}
-              newItem={() => ({ number: String(values.chapters.length + 1), title: "" })}
+              newItem={() => ({ number: String(values.chapters.length + 1), title: { ...EMPTY_LOCALIZED } })}
               addLabel="إضافة فصل"
               emptyLabel="لا توجد فصول بعد."
               renderItem={(item, update) => (
                 <div className="grid grid-cols-[80px_1fr] gap-3">
                   <TextField label="الرقم" value={item.number} onChange={(v) => update({ ...item, number: v })} />
-                  <TextField label="عنوان الفصل" value={item.title} onChange={(v) => update({ ...item, title: v })} />
+                  <TextField
+                    label="عنوان الفصل"
+                    value={item.title[editingLanguage]}
+                    onChange={(v) => update({ ...item, title: { ...item.title, [editingLanguage]: v } })}
+                  />
                 </div>
               )}
             />
           )}
 
           {activeTab === "features" && (
-            <Repeater<BookFeature>
+            <Repeater<BookFeatureRaw>
               label="المزايا"
               items={values.features}
               onChange={(v) => set("features", v)}
-              newItem={() => ({ icon: BOOK_FEATURE_ICONS[0].value, title: "", body: "" })}
+              newItem={() => ({ icon: BOOK_FEATURE_ICONS[0].value, title: { ...EMPTY_LOCALIZED }, body: { ...EMPTY_LOCALIZED } })}
               addLabel="إضافة ميزة"
               emptyLabel="لا توجد مزايا بعد."
               renderItem={(item, update) => (
@@ -283,28 +327,46 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
                       onChange={(v) => update({ ...item, icon: v })}
                       options={[...BOOK_FEATURE_ICONS]}
                     />
-                    <TextField label="العنوان" value={item.title} onChange={(v) => update({ ...item, title: v })} />
+                    <TextField
+                      label="العنوان"
+                      value={item.title[editingLanguage]}
+                      onChange={(v) => update({ ...item, title: { ...item.title, [editingLanguage]: v } })}
+                    />
                   </div>
-                  <TextArea label="الوصف" rows={2} value={item.body} onChange={(v) => update({ ...item, body: v })} />
+                  <TextArea
+                    label="الوصف"
+                    rows={2}
+                    value={item.body[editingLanguage]}
+                    onChange={(v) => update({ ...item, body: { ...item.body, [editingLanguage]: v } })}
+                  />
                 </div>
               )}
             />
           )}
 
           {activeTab === "reviews" && (
-            <Repeater<BookReview>
+            <Repeater<BookReviewRaw>
               label="آراء القارئات"
               items={values.reviews}
               onChange={(v) => set("reviews", v)}
-              newItem={() => ({ quote: "", name: "", role: "" })}
+              newItem={() => ({ quote: { ...EMPTY_LOCALIZED }, name: "", role: { ...EMPTY_LOCALIZED } })}
               addLabel="إضافة رأي"
               emptyLabel="لا توجد آراء بعد."
               renderItem={(item, update) => (
                 <div className="flex flex-col gap-3">
-                  <TextArea label="النص" rows={2} value={item.quote} onChange={(v) => update({ ...item, quote: v })} />
+                  <TextArea
+                    label="النص"
+                    rows={2}
+                    value={item.quote[editingLanguage]}
+                    onChange={(v) => update({ ...item, quote: { ...item.quote, [editingLanguage]: v } })}
+                  />
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <TextField label="الاسم" value={item.name} onChange={(v) => update({ ...item, name: v })} />
-                    <TextField label="الوصف" value={item.role} onChange={(v) => update({ ...item, role: v })} />
+                    <TextField
+                      label="الوصف"
+                      value={item.role[editingLanguage]}
+                      onChange={(v) => update({ ...item, role: { ...item.role, [editingLanguage]: v } })}
+                    />
                   </div>
                 </div>
               )}
@@ -427,17 +489,26 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
           )}
 
           {activeTab === "faq" && (
-            <Repeater<BookFaqItem>
+            <Repeater<BookFaqItemRaw>
               label="الأسئلة الشائعة"
               items={values.faq}
               onChange={(v) => set("faq", v)}
-              newItem={() => ({ question: "", answer: "" })}
+              newItem={() => ({ question: { ...EMPTY_LOCALIZED }, answer: { ...EMPTY_LOCALIZED } })}
               addLabel="إضافة سؤال"
               emptyLabel="لا توجد أسئلة بعد."
               renderItem={(item, update) => (
                 <div className="flex flex-col gap-3">
-                  <TextField label="السؤال" value={item.question} onChange={(v) => update({ ...item, question: v })} />
-                  <TextArea label="الإجابة" rows={2} value={item.answer} onChange={(v) => update({ ...item, answer: v })} />
+                  <TextField
+                    label="السؤال"
+                    value={item.question[editingLanguage]}
+                    onChange={(v) => update({ ...item, question: { ...item.question, [editingLanguage]: v } })}
+                  />
+                  <TextArea
+                    label="الإجابة"
+                    rows={2}
+                    value={item.answer[editingLanguage]}
+                    onChange={(v) => update({ ...item, answer: { ...item.answer, [editingLanguage]: v } })}
+                  />
                 </div>
               )}
             />
@@ -447,15 +518,15 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
             <div className="flex max-w-xl flex-col gap-5">
               <TextField
                 label="عنوان السيو"
-                value={values.seoTitle}
-                onChange={(v) => set("seoTitle", v)}
-                placeholder={values.title ? `${values.title} — رقيم` : undefined}
+                value={values.seoTitle[editingLanguage]}
+                onChange={(v) => setLocalized("seoTitle", v)}
+                placeholder={values.title[editingLanguage] ? `${values.title[editingLanguage]} — رقيم` : undefined}
               />
               <TextArea
                 label="وصف السيو"
                 rows={3}
-                value={values.seoDescription}
-                onChange={(v) => set("seoDescription", v)}
+                value={values.seoDescription[editingLanguage]}
+                onChange={(v) => setLocalized("seoDescription", v)}
                 maxLength={160}
                 hint="يظهر هذا الوصف في نتائج البحث ومشاركات التواصل الاجتماعي."
               />
@@ -525,7 +596,7 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
         <ConfirmDialog
           open={confirmDelete}
           title="حذف الكتاب"
-          description={`هل تريدين نقل «${values.title}» إلى المحذوفات؟ يمكنك استعادته لاحقًا من صفحة الكتب.`}
+          description={`هل تريدين نقل «${displayTitle}» إلى المحذوفات؟ يمكنك استعادته لاحقًا من صفحة الكتب.`}
           confirmLabel="نقل إلى المحذوفات"
           tone="danger"
           onConfirm={onDelete}

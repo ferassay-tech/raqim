@@ -9,19 +9,22 @@ import { useCategories } from "../admin/context/CategoriesContext";
 import { isInLibraryGrid } from "../admin/lib/bookPlacement";
 import { buildGraph, breadcrumbSchema } from "../lib/structuredData";
 import { useAssetDimensions } from "../lib/mediaDimensions";
-
-const booksJsonLd = buildGraph([
-  breadcrumbSchema([
-    { name: "الرئيسية", path: "/" },
-    { name: "الكتب", path: "/books" },
-  ]),
-]);
+import { useLanguage } from "../context/LanguageContext";
+import { localizeProperName } from "../lib/properNames";
 
 export default function BooksIndexPage() {
   const { books } = useBooks();
-  const { categories } = useCategories();
+  const { categories, getCategoryMatchName, getCategoryLabel } = useCategories();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const getDimensions = useAssetDimensions();
+  const { t, language } = useLanguage();
+
+  const booksJsonLd = buildGraph([
+    breadcrumbSchema([
+      { name: t("about.breadcrumb.home"), path: "/" },
+      { name: t("books.breadcrumb.title"), path: "/books" },
+    ]),
+  ]);
 
   const libraryBooks = useMemo(
     () =>
@@ -38,23 +41,26 @@ export default function BooksIndexPage() {
 
   // Only offer categories that actually have a book in them right now —
   // an empty filter pill would just be a dead end for the reader.
+  // AdminBook.category always stores a category's raw Arabic name (Books
+  // wasn't converted), so matching must go through getCategoryMatchName(id)
+  // rather than the resolved (active-language) display name below.
   const availableCategories = useMemo(
-    () => categories.filter((c) => libraryBooks.some((b) => b.category === c.name)),
-    [categories, libraryBooks]
+    () => categories.filter((c) => libraryBooks.some((b) => b.category === getCategoryMatchName(c.id))),
+    [categories, libraryBooks, getCategoryMatchName]
   );
 
   return (
     <PageShell>
       <Helmet
-        title="الكتب — رقيم"
-        description="استكشفي مكتبة رقيم الكاملة من الكتب الفاخرة للمرأة والأم في التطوير الذاتي والروحانية والإلهام الإسلامي."
+        title={t("books.seo.title")}
+        description={t("books.seo.description")}
         path="/books"
       />
       <StructuredData json={booksJsonLd} />
       <PageHeader
-        eyebrow="المكتبة"
-        title="كل كتب رقيم"
-        description="مجموعة مختارة بعناية من الكتب الفاخرة للمرأة والأم، تجمع بين الجمال والعمق."
+        eyebrow={t("books.header.eyebrow")}
+        title={t("books.header.title")}
+        description={t("books.header.description")}
       />
 
       <section className="px-6 py-20 lg:px-10">
@@ -70,27 +76,30 @@ export default function BooksIndexPage() {
                     : "border-beige text-ink-soft hover:border-gold hover:text-ink"
                 }`}
               >
-                الكل
+                {t("books.filters.all")}
               </button>
-              {availableCategories.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => setActiveCategory(category.name)}
-                  className={`rounded-full border px-4 py-2 text-sm transition-colors ${
-                    activeCategory === category.name
-                      ? "border-ink bg-ink text-ivory"
-                      : "border-beige text-ink-soft hover:border-gold hover:text-ink"
-                  }`}
-                >
-                  {category.name}
-                </button>
-              ))}
+              {availableCategories.map((category) => {
+                const matchName = getCategoryMatchName(category.id);
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setActiveCategory(matchName)}
+                    className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                      activeCategory === matchName
+                        ? "border-ink bg-ink text-ivory"
+                        : "border-beige text-ink-soft hover:border-gold hover:text-ink"
+                    }`}
+                  >
+                    {category.name}
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {visibleBooks.length === 0 ? (
-            <p className="text-center text-ink-soft">لا توجد كتب في هذا التصنيف حاليًا.</p>
+            <p className="text-center text-ink-soft">{t("books.emptyState")}</p>
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {visibleBooks.map((book, i) => (
@@ -113,25 +122,25 @@ export default function BooksIndexPage() {
                       )}
                       {book.placement === "comingSoon" && (
                         <span className="absolute left-4 top-4 rounded-full bg-lavender/80 px-3 py-1 text-xs text-ink">
-                          قريبًا
+                          {t("home.booksGrid.comingSoon")}
                         </span>
                       )}
                     </div>
                     <div className="p-6 text-right">
-                      <p className="text-xs text-gold">{book.category}</p>
+                      <p className="text-xs text-gold">{getCategoryLabel(book.category)}</p>
                       <h2 className="mt-2 font-display text-xl text-ink">{book.title}</h2>
-                      <p className="mt-1.5 text-sm text-ink-soft">{book.author}</p>
+                      <p className="mt-1.5 text-sm text-ink-soft">{localizeProperName(book.author, language)}</p>
                       <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-ink-soft">{book.description}</p>
                       <div className="mt-4 flex items-center justify-between border-t border-beige pt-4">
                         <span className="text-sm text-ink">
                           {book.placement === "comingSoon"
-                            ? "قريبًا"
+                            ? t("home.booksGrid.comingSoon")
                             : book.prices.USD
                               ? `$${book.prices.USD.price}`
                               : "—"}
                         </span>
                         <span className="text-xs text-gold opacity-0 transition-opacity group-hover:opacity-100">
-                          {book.placement === "comingSoon" ? "اعرف المزيد ←" : "عرض التفاصيل ←"}
+                          {book.placement === "comingSoon" ? t("books.card.learnMore") : t("books.card.viewDetails")}
                         </span>
                       </div>
                     </div>

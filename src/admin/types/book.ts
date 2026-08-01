@@ -1,3 +1,5 @@
+import type { LocalizedText } from "./siteContent";
+
 export type BookStatus = "published" | "draft" | "archived";
 
 /**
@@ -89,6 +91,83 @@ export interface AdminBook {
   sales: number;
   /** Soft delete — excluded from the public site and default Admin views,
    * but restorable from the "المحذوفة" trash view. */
+  deletedAt: string | null;
+  updatedAt: string;
+}
+
+/** Raw, bilingual storage shape for a book's copy fields — the Admin Book
+ * Editor reads/writes this directly, one language at a time. Public pages
+ * and every other Admin module consume the resolved AdminBook shape above
+ * (via useBooks()), never this type. Structural/non-copy fields (ids,
+ * images, pricing, placement, author's own name/slug, category, and the
+ * book's own language/format metadata) are intentionally NOT localized here
+ * — same plain-string shape as AdminBook, since converting them isn't part
+ * of this migration (author/reviewer names are proper nouns; category
+ * still matches CategoriesContext by plain-string name, which is untouched
+ * this phase; language/format have no Admin UI to edit at all today). */
+export interface BookFeatureRaw {
+  icon: string;
+  title: LocalizedText;
+  body: LocalizedText;
+}
+
+export interface BookChapterRaw {
+  number: string;
+  title: LocalizedText;
+}
+
+export interface BookReviewRaw {
+  quote: LocalizedText;
+  name: string;
+  role: LocalizedText;
+}
+
+export interface BookFaqItemRaw {
+  question: LocalizedText;
+  answer: LocalizedText;
+}
+
+export interface AdminBookRaw {
+  id: string;
+  title: LocalizedText;
+  subtitle: LocalizedText;
+  author: string;
+  authorSlug: string;
+  authorBio: LocalizedText;
+  category: string;
+
+  cover: string | null;
+  backCoverImage: string | null;
+  previewPages: string[];
+  gallery: string[];
+
+  placement: BookPlacement;
+  displayOrder: number;
+
+  prices: Partial<Record<BookCurrency, BookPriceEntry>>;
+  stock: number;
+  sku: string;
+  status: BookStatus;
+
+  language: string;
+  format: string;
+  pages: number;
+
+  description: LocalizedText;
+  longDescription: LocalizedText;
+  whoFor: LocalizedText[];
+  features: BookFeatureRaw[];
+  chapters: BookChapterRaw[];
+  reviews: BookReviewRaw[];
+  faq: BookFaqItemRaw[];
+  ctaLabel: LocalizedText;
+  badges: LocalizedText[];
+  accentColor: string | null;
+
+  seoTitle: LocalizedText;
+  seoDescription: LocalizedText;
+
+  sales: number;
   deletedAt: string | null;
   updatedAt: string;
 }

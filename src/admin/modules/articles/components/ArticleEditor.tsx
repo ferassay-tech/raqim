@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import type { AdminArticle, ArticleStatus } from "@/admin/types/article";
+import type { AdminArticleRaw, ArticleStatus } from "@/admin/types/article";
 import { ARTICLE_AUTHORS } from "@/admin/types/article";
+import type { LocalizedText } from "@/admin/types/siteContent";
+import type { Language } from "@/context/LanguageContext";
 import { ARTICLE_STATUS_META, ARTICLE_STATUS_OPTIONS, estimateReadingMinutes } from "@/admin/lib/articleStatus";
 import { Drawer } from "@/admin/components/ui/Drawer";
 import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
@@ -15,23 +17,30 @@ import { MediaPickerModal } from "@/admin/modules/media/components/MediaPickerMo
 import { ArticlePreviewDrawer } from "./ArticlePreviewDrawer";
 import { IconChevronStart, IconEye, IconGear, IconTrash } from "@/admin/icons";
 
-export type ArticleFormValues = Omit<AdminArticle, "id" | "updatedAt">;
+export type ArticleFormValues = Omit<AdminArticleRaw, "id" | "updatedAt">;
+
+const EMPTY_LOCALIZED: LocalizedText = { ar: "", en: "" };
 
 const EMPTY_ARTICLE: ArticleFormValues = {
-  title: "",
+  title: { ...EMPTY_LOCALIZED },
   slug: "",
-  excerpt: "",
-  content: "",
+  excerpt: { ...EMPTY_LOCALIZED },
+  content: { ...EMPTY_LOCALIZED },
   coverImage: null,
   author: ARTICLE_AUTHORS[0],
-  category: "",
+  category: { ...EMPTY_LOCALIZED },
   readTime: "",
   status: "draft",
   scheduledFor: null,
   publishedAt: null,
-  seoTitle: "",
-  seoDescription: "",
+  seoTitle: { ...EMPTY_LOCALIZED },
+  seoDescription: { ...EMPTY_LOCALIZED },
 };
+
+const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
+  { value: "ar", label: "العربية" },
+  { value: "en", label: "English" },
+];
 
 function slugify(title: string) {
   return (
@@ -45,7 +54,7 @@ function slugify(title: string) {
 
 interface ArticleEditorProps {
   mode: "create" | "edit";
-  initialArticle?: AdminArticle;
+  initialArticle?: AdminArticleRaw;
   onSave: (values: ArticleFormValues) => void;
   onCancel: () => void;
   onDelete?: () => void;
@@ -57,10 +66,16 @@ interface ArticleEditorProps {
  * organizational field (slug, excerpt, cover, author, publish schedule,
  * SEO) lives behind the settings Drawer so the writing surface stays
  * distraction-free, closer to Ghost/Notion than a database record editor.
+ *
+ * Copy fields are bilingual ({ar, en}); the AR/EN toggle in the header
+ * scopes every field's editing to one language at a time. Slug generation
+ * always keys off the Arabic title, regardless of which language is being
+ * edited — the slug is a stable identifier, not translated content.
  */
 export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete }: ArticleEditorProps) {
   const initialValues: ArticleFormValues = initialArticle ?? EMPTY_ARTICLE;
   const [values, setValues] = useState<ArticleFormValues>(initialValues);
+  const [editingLanguage, setEditingLanguage] = useState<Language>("ar");
   const [slugTouched, setSlugTouched] = useState(mode === "edit");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -70,11 +85,10 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
   const objectUrlRef = useRef<string | null>(null);
 
   const isDirty = JSON.stringify(values) !== JSON.stringify(initialValues);
-  const readingMinutes = useMemo(() => estimateReadingMinutes(values.content), [values.content]);
-  const wordCount = useMemo(
-    () => values.content.trim().split(/\s+/).filter(Boolean).length,
-    [values.content]
-  );
+  const displayTitle = values.title.ar || values.title.en;
+  const currentContent = values.content[editingLanguage];
+  const readingMinutes = useMemo(() => estimateReadingMinutes(currentContent), [currentContent]);
+  const wordCount = useMemo(() => currentContent.trim().split(/\s+/).filter(Boolean).length, [currentContent]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -95,9 +109,16 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
     setValues((prev) => ({ ...prev, [key]: value }));
   };
 
+  const setLocalized = (key: "title" | "excerpt" | "content" | "category" | "seoTitle" | "seoDescription", value: string) => {
+    setValues((prev) => ({ ...prev, [key]: { ...prev[key], [editingLanguage]: value } }));
+  };
+
   const handleTitleChange = (title: string) => {
-    set("title", title);
-    if (!slugTouched) set("slug", slugify(title));
+    setLocalized("title", title);
+    // Slug always tracks the Arabic title specifically — typing an English
+    // title (or any title once the admin has manually edited the slug)
+    // never touches it.
+    if (!slugTouched && editingLanguage === "ar") set("slug", slugify(title));
   };
 
   const handleFileSelected = (file: File) => {
@@ -114,13 +135,14 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!values.title.trim()) {
+    if (!values.title.ar.trim()) {
+      setEditingLanguage("ar");
       setSettingsOpen(false);
       return;
     }
     const publishedAt =
       values.status === "published" ? values.publishedAt ?? new Date().toISOString().slice(0, 10) : values.publishedAt;
-    onSave({ ...values, slug: values.slug || slugify(values.title), publishedAt });
+    onSave({ ...values, slug: values.slug || slugify(values.title.ar), publishedAt });
   };
 
   const primaryLabel =
@@ -133,6 +155,17 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
           : "حفظ كمسودة";
 
   const statusMeta = ARTICLE_STATUS_META[values.status];
+
+  const previewArticle = previewOpen
+    ? {
+        title: values.title[editingLanguage],
+        excerpt: values.excerpt[editingLanguage],
+        content: values.content[editingLanguage],
+        coverImage: values.coverImage,
+        author: values.author,
+        status: values.status,
+      }
+    : null;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 py-2">
@@ -148,6 +181,20 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
 
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge variant={statusMeta.variant}>{statusMeta.label}</StatusBadge>
+          <div className="flex items-center gap-1 rounded-full border border-beige p-1">
+            {EDITING_LANGUAGE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setEditingLanguage(option.value)}
+                className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
+                  editingLanguage === option.value ? "bg-ink text-ivory" : "text-ink-soft hover:text-ink"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             onClick={() => setPreviewOpen(true)}
@@ -175,7 +222,7 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
 
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
         <textarea
-          value={values.title}
+          value={values.title[editingLanguage]}
           onChange={(e) => handleTitleChange(e.target.value)}
           placeholder="عنوان المقالة"
           rows={1}
@@ -188,8 +235,8 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
         />
 
         <textarea
-          value={values.content}
-          onChange={(e) => set("content", e.target.value)}
+          value={values.content[editingLanguage]}
+          onChange={(e) => setLocalized("content", e.target.value)}
           placeholder="ابدئي الكتابة هنا..."
           rows={16}
           className="min-h-[50vh] resize-none border-none bg-transparent text-lg leading-loose text-ink-soft placeholder:text-ink-faint/60 focus:outline-none"
@@ -228,7 +275,12 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
 
           <section className="flex flex-col gap-4 border-t border-beige pt-6">
             <h3 className="text-xs uppercase tracking-[0.15em] text-ink-faint">التصنيف ووقت القراءة</h3>
-            <TextField label="التصنيف" value={values.category} onChange={(v) => set("category", v)} placeholder="مثال: الأمومة" />
+            <TextField
+              label="التصنيف"
+              value={values.category[editingLanguage]}
+              onChange={(v) => setLocalized("category", v)}
+              placeholder="مثال: الأمومة"
+            />
             <TextField
               label="وقت القراءة"
               value={values.readTime}
@@ -253,8 +305,8 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
             <TextArea
               label="الملخص"
               rows={3}
-              value={values.excerpt}
-              onChange={(v) => set("excerpt", v)}
+              value={values.excerpt[editingLanguage]}
+              onChange={(v) => setLocalized("excerpt", v)}
               placeholder="سطر أو سطران يلخصان المقالة لعرضها في القائمة"
             />
           </section>
@@ -273,15 +325,15 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
             <h3 className="text-xs uppercase tracking-[0.15em] text-ink-faint">السيو</h3>
             <TextField
               label="عنوان السيو"
-              value={values.seoTitle}
-              onChange={(v) => set("seoTitle", v)}
-              placeholder={values.title ? `${values.title} — مدونة رقيم` : undefined}
+              value={values.seoTitle[editingLanguage]}
+              onChange={(v) => setLocalized("seoTitle", v)}
+              placeholder={values.title[editingLanguage] ? `${values.title[editingLanguage]} — مدونة رقيم` : undefined}
             />
             <TextArea
               label="وصف السيو"
               rows={3}
-              value={values.seoDescription}
-              onChange={(v) => set("seoDescription", v)}
+              value={values.seoDescription[editingLanguage]}
+              onChange={(v) => setLocalized("seoDescription", v)}
               maxLength={160}
             />
           </section>
@@ -301,7 +353,7 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
         </div>
       </Drawer>
 
-      <ArticlePreviewDrawer article={previewOpen ? values : null} onClose={() => setPreviewOpen(false)} />
+      <ArticlePreviewDrawer article={previewArticle} onClose={() => setPreviewOpen(false)} />
 
       <MediaPickerModal
         open={mediaPickerOpen}
@@ -326,7 +378,7 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
         <ConfirmDialog
           open={confirmDelete}
           title="حذف المقالة"
-          description={`هل تريدين حذف «${values.title}»؟ لا يمكن التراجع عن هذا الإجراء.`}
+          description={`هل تريدين حذف «${displayTitle}»؟ لا يمكن التراجع عن هذا الإجراء.`}
           confirmLabel="حذف نهائي"
           onConfirm={onDelete}
           onCancel={() => setConfirmDelete(false)}

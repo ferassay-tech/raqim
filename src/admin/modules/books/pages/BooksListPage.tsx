@@ -47,7 +47,7 @@ const SORT_ACCESSORS: Record<SortKey, (b: AdminBook) => string | number> = {
 export default function BooksListPage() {
   const { books, deleteBooks, deleteBook, duplicateBook, setBooksStatus, restoreBook, restoreBooks, permanentlyDeleteBook } =
     useBooks();
-  const { categories } = useCategories();
+  const { categories, getCategoryMatchName } = useCategories();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -286,7 +286,10 @@ export default function BooksListPage() {
             ariaLabel="التصنيف"
             value={categoryFilter}
             onChange={setCategoryFilter}
-            options={[{ value: "all", label: "جميع التصنيفات" }, ...categories.map((c) => ({ value: c.name, label: c.name }))]}
+            options={[
+              { value: "all", label: "جميع التصنيفات" },
+              ...categories.map((c) => ({ value: getCategoryMatchName(c.id), label: c.name })),
+            ]}
           />
           <FilterSelect
             ariaLabel="الحالة"

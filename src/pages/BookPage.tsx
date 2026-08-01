@@ -10,9 +10,12 @@ import PremiumBook3D from "../components/PremiumBook3D";
 import { useBooks } from "../admin/context/BooksContext";
 import { useSiteContent } from "../admin/context/SiteContentContext";
 import { useSettings } from "../admin/context/SettingsContext";
+import { useCategories } from "../admin/context/CategoriesContext";
 import type { AdminBook } from "../admin/types/book";
 import { buildGraph, bookSchema, breadcrumbSchema, faqPageSchema } from "../lib/structuredData";
 import { useAssetDimensions } from "../lib/mediaDimensions";
+import { useLanguage } from "../context/LanguageContext";
+import { localizeProperName } from "../lib/properNames";
 
 /** Arabic-Indic digit formatting — matches the original site's own numeral
  * style ("١٨٦ صفحة", " $10") instead of the Latin digits a raw number/
@@ -29,6 +32,7 @@ export default function BookPage() {
   const { slug } = useParams<{ slug: string }>();
   const { getBook } = useBooks();
   const { faqs: globalFaqs } = useSiteContent();
+  const { t, language } = useLanguage();
   const book = slug ? getBook(slug) : undefined;
 
   if (!book || book.deletedAt !== null) return <Navigate to="/books" replace />;
@@ -39,10 +43,10 @@ export default function BookPage() {
   const coverDims = getDimensions(book.cover);
 
   const bookJsonLd = buildGraph([
-    bookSchema(book),
+    bookSchema(book, language),
     breadcrumbSchema([
-      { name: "الرئيسية", path: "/" },
-      { name: "الكتب", path: "/books" },
+      { name: t("about.breadcrumb.home"), path: "/" },
+      { name: t("books.breadcrumb.title"), path: "/books" },
       { name: book.title, path: `/books/${book.id}` },
     ]),
     ...(hasFullContent && faqItems.length > 0 ? [faqPageSchema(faqItems)] : []),
@@ -52,7 +56,7 @@ export default function BookPage() {
     return (
       <PageShell>
         <Helmet
-          title={`${book.title} — رقيم`}
+          title={`${book.title} — ${t("home.hero.titleFallback")}`}
           description={book.description}
           image={book.cover ?? undefined}
           imageWidth={coverDims?.width}
@@ -69,7 +73,7 @@ export default function BookPage() {
   return (
     <PageShell>
       <Helmet
-        title={`${book.title} — رقيم`}
+        title={`${book.title} — ${t("home.hero.titleFallback")}`}
         description={book.description}
         image={book.cover ?? undefined}
         imageWidth={coverDims?.width}
@@ -97,6 +101,7 @@ function BookHero({ book }: { book: AdminBook }) {
   const { settings } = useSettings();
   const getDimensions = useAssetDimensions();
   const heroDims = getDimensions(settings.brand.heroImage);
+  const { t } = useLanguage();
   return (
     <section className="relative overflow-hidden px-6 pb-20 pt-14 lg:px-10 lg:pb-28 lg:pt-20">
       <div className="pointer-events-none absolute inset-0">
@@ -147,8 +152,8 @@ function BookHero({ book }: { book: AdminBook }) {
           </Reveal>
           <Reveal delay={0.26}>
             <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-end">
-              <StampCTA href="#purchase">{book.ctaLabel || "اطلبي نسختك الآن"}</StampCTA>
-              <UnderlineLink to={`/authors/${book.authorSlug}`}>عن المؤلفة</UnderlineLink>
+              <StampCTA href="#purchase">{book.ctaLabel || t("home.cta.orderNow")}</StampCTA>
+              <UnderlineLink to={`/authors/${book.authorSlug}`}>{t("book.author.aboutLabel")}</UnderlineLink>
             </div>
           </Reveal>
         </div>
@@ -158,12 +163,13 @@ function BookHero({ book }: { book: AdminBook }) {
 }
 
 function WhoForSection({ book }: { book: AdminBook }) {
+  const { t } = useLanguage();
   return (
     <section className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-5xl">
         <Reveal className="text-center">
-          <p className="text-sm uppercase tracking-[0.25em] text-gold">لمن هذا الكتاب</p>
-          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">هل هذا الكتاب لكِ؟</h2>
+          <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("book.whoFor.eyebrow")}</p>
+          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">{t("book.whoFor.title")}</h2>
         </Reveal>
 
         <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -186,13 +192,14 @@ function WhoForSection({ book }: { book: AdminBook }) {
 function StorySection({ book }: { book: AdminBook }) {
   const getDimensions = useAssetDimensions();
   const galleryDims = getDimensions(book.gallery[0]);
+  const { t } = useLanguage();
   return (
     <section className="relative overflow-hidden px-6 py-24 lg:px-10 lg:py-32">
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 lg:grid-cols-2">
         <Reveal>
-          <p className="text-sm uppercase tracking-[0.25em] text-gold">رحلة التحول</p>
+          <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("book.story.eyebrow")}</p>
           <h2 className="mt-4 text-balance font-display text-4xl leading-tight text-ink md:text-5xl">
-            من الإرهاق إلى السكينة، خطوة بخطوة
+            {t("book.story.title")}
           </h2>
           <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">{book.longDescription}</p>
         </Reveal>
@@ -202,7 +209,7 @@ function StorySection({ book }: { book: AdminBook }) {
             <div className="relative overflow-hidden rounded-[10px]">
               <img
                 src={book.gallery[0]}
-                alt={`مجموعة كتاب ${book.title}`}
+                alt={`${t("book.story.imageAltPrefix")}${book.title}`}
                 width={galleryDims?.width}
                 height={galleryDims?.height}
                 className="h-full w-full object-cover"
@@ -218,12 +225,13 @@ function StorySection({ book }: { book: AdminBook }) {
 }
 
 function ChaptersSection({ book }: { book: AdminBook }) {
+  const { t } = useLanguage();
   return (
     <section className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-6xl">
         <Reveal className="text-center">
-          <p className="text-sm uppercase tracking-[0.25em] text-gold">لمحة من الداخل</p>
-          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">ماذا ستجدين بين الصفحات</h2>
+          <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("book.chapters.eyebrow")}</p>
+          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">{t("book.chapters.title")}</h2>
         </Reveal>
 
         <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -243,12 +251,13 @@ function ChaptersSection({ book }: { book: AdminBook }) {
 }
 
 function BenefitsSection({ book }: { book: AdminBook }) {
+  const { t } = useLanguage();
   return (
     <section className="px-6 py-24 lg:px-10 lg:py-32">
       <div className="mx-auto max-w-6xl">
         <Reveal className="text-center">
-          <p className="text-sm uppercase tracking-[0.25em] text-gold">لماذا هذا الكتاب</p>
-          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">كيف سيغيّر هذا الكتاب رحلتك</h2>
+          <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("book.benefits.eyebrow")}</p>
+          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">{t("book.benefits.title")}</h2>
         </Reveal>
 
         <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -271,22 +280,23 @@ function BenefitsSection({ book }: { book: AdminBook }) {
 }
 
 function TestimonialsSection({ book }: { book: AdminBook }) {
+  const { t } = useLanguage();
   return (
     <section className="bg-mauve/20 px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-6xl">
         <Reveal className="text-center">
-          <p className="text-sm uppercase tracking-[0.25em] text-gold">قالت قارئاتنا</p>
-          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">تجارب حقيقية</h2>
+          <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("book.testimonials.eyebrow")}</p>
+          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">{t("book.testimonials.title")}</h2>
         </Reveal>
 
         <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {book.reviews.map((t, i) => (
-            <Reveal key={t.name} delay={i * 0.1} className={i === 1 ? "lg:-translate-y-6" : ""}>
+          {book.reviews.map((review, i) => (
+            <Reveal key={review.name} delay={i * 0.1} className={i === 1 ? "lg:-translate-y-6" : ""}>
               <div className="h-full rounded-[10px] border border-gold/25 bg-ivory p-7">
                 <QuoteMark className="h-6 w-9 text-gold/70" />
-                <p className="mt-4 text-balance leading-loose text-ink">{t.quote}</p>
-                <p className="mt-5 text-sm text-gold">{t.name}</p>
-                <p className="text-xs text-ink-soft">{t.role}</p>
+                <p className="mt-4 text-balance leading-loose text-ink">{review.quote}</p>
+                <p className="mt-5 text-sm text-gold">{review.name}</p>
+                <p className="text-xs text-ink-soft">{review.role}</p>
               </div>
             </Reveal>
           ))}
@@ -297,22 +307,24 @@ function TestimonialsSection({ book }: { book: AdminBook }) {
 }
 
 function AuthorSection({ book }: { book: AdminBook }) {
+  const { t, language } = useLanguage();
+  const displayName = localizeProperName(book.author, language);
   return (
     <section className="px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[0.7fr_1.3fr]">
         <Reveal className="flex justify-center">
           <div className="flex h-56 w-56 items-center justify-center rounded-full bg-gradient-to-br from-cream to-lavender/40 text-6xl text-gold">
-            {book.author.trim().charAt(0) || "؟"}
+            {displayName.trim().charAt(0) || t("book.author.fallbackInitial")}
           </div>
         </Reveal>
         <Reveal delay={0.1} className="text-center lg:text-right">
-          <p className="text-sm uppercase tracking-[0.25em] text-gold">عن المؤلفة</p>
-          <h2 className="mt-4 font-display text-3xl text-ink md:text-4xl">{book.author}</h2>
+          <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("book.author.aboutLabel")}</p>
+          <h2 className="mt-4 font-display text-3xl text-ink md:text-4xl">{displayName}</h2>
           {book.authorBio && (
             <p className="mt-5 max-w-2xl text-balance leading-loose text-ink-soft">{book.authorBio}</p>
           )}
           <div className="mt-6 flex justify-center lg:justify-end">
-            <UnderlineLink to={`/authors/${book.authorSlug}`}>اقرئي المزيد عن {book.author.split(" ")[0]}</UnderlineLink>
+            <UnderlineLink to={`/authors/${book.authorSlug}`}>{t("book.author.readMorePrefix")}{displayName.split(" ")[0]}</UnderlineLink>
           </div>
         </Reveal>
       </div>
@@ -322,10 +334,11 @@ function AuthorSection({ book }: { book: AdminBook }) {
 
 function PurchaseSection({ book }: { book: AdminBook }) {
   const price = book.prices.USD;
+  const { t } = useLanguage();
   return (
     <section id="purchase" className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
       <Reveal className="mx-auto max-w-3xl rounded-[10px] border border-gold/30 bg-ivory p-10 text-center lg:p-14">
-        <p className="text-sm uppercase tracking-[0.25em] text-gold">اقتني نسختك</p>
+        <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("book.purchase.eyebrow")}</p>
         <h2 className="mt-4 font-display text-3xl text-ink md:text-4xl">{book.title}</h2>
         {price && (
           <div className="mt-6 flex items-center justify-center gap-3">
@@ -336,12 +349,12 @@ function PurchaseSection({ book }: { book: AdminBook }) {
           </div>
         )}
         <p className="mt-2 text-sm text-ink-soft">
-          {book.format} · {toArabicNumeral(book.pages)} صفحة · {book.language}
+          {book.format} · {toArabicNumeral(book.pages)} {t("book.purchase.pages")} · {book.language}
         </p>
         <div className="mt-8 flex justify-center">
-          <StampCTA to="/checkout">{book.ctaLabel || "اطلبي نسختك الآن"}</StampCTA>
+          <StampCTA to="/checkout">{book.ctaLabel || t("home.cta.orderNow")}</StampCTA>
         </div>
-        <p className="mt-4 text-xs text-ink-soft">تحميل فوري بعد إتمام الشراء · دعم فني على مدار الساعة</p>
+        <p className="mt-4 text-xs text-ink-soft">{t("book.purchase.helperText")}</p>
       </Reveal>
     </section>
   );
@@ -349,13 +362,14 @@ function PurchaseSection({ book }: { book: AdminBook }) {
 
 function GuaranteeSection() {
   const { getValue } = useSiteContent();
+  const { t } = useLanguage();
   return (
     <section className="px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-5xl grid grid-cols-1 gap-10 lg:grid-cols-2 items-center">
         <Reveal className="flex justify-center lg:justify-start">
           <NumeralCTA
             numeral="✓"
-            label="تحميل فوري بعد الشراء"
+            label={t("book.guarantee.instantDownloadLabel")}
             to="/faq"
           />
         </Reveal>
@@ -377,6 +391,7 @@ function GuaranteeSection() {
 function FaqSection({ book }: { book: AdminBook }) {
   const [open, setOpen] = useState<number | null>(0);
   const { faqs: globalFaqs } = useSiteContent();
+  const { t } = useLanguage();
   const faqItems = book.faq.length > 0 ? book.faq : globalFaqs;
 
   if (faqItems.length === 0) return null;
@@ -385,8 +400,8 @@ function FaqSection({ book }: { book: AdminBook }) {
     <section className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-3xl">
         <Reveal className="text-center">
-          <p className="text-sm uppercase tracking-[0.25em] text-gold">الأسئلة الشائعة</p>
-          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">لديك سؤال؟</h2>
+          <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("book.faq.eyebrow")}</p>
+          <h2 className="mt-4 font-display text-4xl text-ink md:text-5xl">{t("book.faq.title")}</h2>
         </Reveal>
 
         <div className="mt-12 divide-y divide-beige border-y border-beige">
@@ -432,6 +447,7 @@ function FinalCTASection({ book }: { book: AdminBook }) {
   const { getValue } = useSiteContent();
   const getDimensions = useAssetDimensions();
   const patternDims = getDimensions("/assets/arabesque-pattern.webp");
+  const { t } = useLanguage();
   return (
     <section className="relative overflow-hidden px-6 py-28 lg:px-10">
       <div className="pointer-events-none absolute inset-0">
@@ -449,10 +465,10 @@ function FinalCTASection({ book }: { book: AdminBook }) {
           {getValue("bookpage.finalCta.title")}
         </h2>
         <p className="mt-4 text-balance leading-loose text-ink-soft">
-          احصلي على نسختك من {book.title} اليوم، وابدئي رحلة الثبات والسكينة.
+          {t("book.finalCta.bodyPrefix")}{book.title}{t("book.finalCta.bodySuffix")}
         </p>
         <div className="mt-8 flex justify-center">
-          <StampCTA href="#purchase">{book.ctaLabel || "اطلبي نسختك الآن"}</StampCTA>
+          <StampCTA href="#purchase">{book.ctaLabel || t("home.cta.orderNow")}</StampCTA>
         </div>
       </Reveal>
     </section>
@@ -462,6 +478,8 @@ function FinalCTASection({ book }: { book: AdminBook }) {
 function SimpleBookPage({ book }: { book: AdminBook }) {
   const getDimensions = useAssetDimensions();
   const coverDims = getDimensions(book.cover);
+  const { t, language } = useLanguage();
+  const { getCategoryLabel } = useCategories();
   return (
     <>
       <section className="px-6 py-20 lg:px-10 lg:py-28">
@@ -481,23 +499,23 @@ function SimpleBookPage({ book }: { book: AdminBook }) {
             </div>
           </Reveal>
           <Reveal delay={0.1} className="text-center lg:text-right">
-            <p className="text-sm uppercase tracking-[0.25em] text-gold">{book.category}</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-gold">{getCategoryLabel(book.category)}</p>
             <h1 className="mt-4 font-display text-4xl text-ink md:text-5xl">{book.title}</h1>
             <p className="mt-4 text-balance leading-loose text-ink-soft">{book.subtitle}</p>
             <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">{book.description}</p>
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-end">
               <div className="rounded-[10px] border border-gold/30 bg-cream px-8 py-4 text-center">
-                <p className="font-display text-lg text-gold">هذا الإصدار قيد الإعداد</p>
-                <p className="mt-2 text-sm text-ink-soft">نعمل عليه بعناية، وسيكون متاحًا قريبًا بإذن الله.</p>
+                <p className="font-display text-lg text-gold">{t("book.comingSoon.badge")}</p>
+                <p className="mt-2 text-sm text-ink-soft">{t("book.comingSoon.helperText")}</p>
               </div>
-              <UnderlineLink to={`/authors/${book.authorSlug}`}>عن {book.author}</UnderlineLink>
+              <UnderlineLink to={`/authors/${book.authorSlug}`}>{t("book.comingSoon.aboutAuthorPrefix")}{localizeProperName(book.author, language)}</UnderlineLink>
             </div>
           </Reveal>
         </div>
       </section>
       <section className="bg-cream px-6 py-16 text-center lg:px-10">
         <Link to="/books" className="text-sm text-gold hover:underline">
-          العودة إلى جميع الكتب
+          {t("book.comingSoon.backToBooks")}
         </Link>
       </section>
     </>

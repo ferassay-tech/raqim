@@ -9,8 +9,8 @@ import { IconBook } from "@/admin/icons";
 export default function BookEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getBook, updateBook, deleteBook } = useBooks();
-  const book = id ? getBook(id) : undefined;
+  const { getRawBook, updateBook, deleteBook } = useBooks();
+  const book = id ? getRawBook(id) : undefined;
 
   if (!book) {
     return (
@@ -25,19 +25,21 @@ export default function BookEditPage() {
     );
   }
 
+  const bookTitle = book.title.ar || book.title.en;
+
   const handleSave = (values: BookFormValues) => {
     updateBook(book.id, values);
-    navigate("/admin/books", { state: { flash: `تم حفظ التغييرات على «${values.title}»` } });
+    navigate("/admin/books", { state: { flash: `تم حفظ التغييرات على «${values.title.ar || values.title.en}»` } });
   };
 
   const handleDelete = () => {
     deleteBook(book.id);
-    navigate("/admin/books", { state: { flash: `تم حذف «${book.title}»` } });
+    navigate("/admin/books", { state: { flash: `تم حذف «${bookTitle}»` } });
   };
 
   return (
     <div className="flex flex-col gap-6 py-2">
-      <PageHeader title={`تعديل «${book.title}»`} description="حدّثي بيانات الكتاب أدناه، ثم احفظي التغييرات." />
+      <PageHeader title={`تعديل «${bookTitle}»`} description="حدّثي بيانات الكتاب أدناه، ثم احفظي التغييرات." />
       <BookForm
         mode="edit"
         initialBook={book}

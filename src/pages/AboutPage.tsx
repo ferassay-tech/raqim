@@ -5,20 +5,23 @@ import { UnderlineLink } from "../components/cta";
 import { Helmet } from "../components/Helmet";
 import { StructuredData } from "../components/StructuredData";
 import { buildGraph, breadcrumbSchema } from "../lib/structuredData";
-
-const aboutJsonLd = buildGraph([
-  breadcrumbSchema([
-    { name: "الرئيسية", path: "/" },
-    { name: "عن الدار", path: "/about" },
-  ]),
-]);
+import { useLanguage } from "../context/LanguageContext";
 
 export default function AboutPage() {
+  const { t } = useLanguage();
+
+  const aboutJsonLd = buildGraph([
+    breadcrumbSchema([
+      { name: t("about.breadcrumb.home"), path: "/" },
+      { name: t("about.eyebrow"), path: "/about" },
+    ]),
+  ]);
+
   return (
     <PageShell>
       <Helmet
-        title="عن رقيم — دار نشر رقمية فاخرة للمرأة"
-        description="تعرّفي على رقيم، دار النشر الرقمية الفاخرة للمرأة العربية، ورسالتها في تحويل المعرفة إلى أثر خالد."
+        title={t("about.seo.title")}
+        description={t("about.seo.description")}
         path="/about"
       />
       <StructuredData json={aboutJsonLd} />
@@ -29,11 +32,11 @@ export default function AboutPage() {
         </div>
         <div className="relative mx-auto max-w-3xl text-center">
           <Reveal>
-            <p className="text-sm uppercase tracking-[0.25em] text-gold">عن الدار</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("about.eyebrow")}</p>
           </Reveal>
           <Reveal delay={0.08}>
             <h1 className="mt-5 font-display text-4xl leading-tight text-ink md:text-5xl">
-              رقيم: حيث تتحول المعرفة إلى أثر خالد
+              {t("about.hero.title")}
             </h1>
           </Reveal>
           <Reveal delay={0.14}>
@@ -43,8 +46,7 @@ export default function AboutPage() {
           </Reveal>
           <Reveal delay={0.2}>
             <p className="mt-6 text-balance text-lg leading-loose text-ink-soft">
-              رقيم دار نشر رقمية عربية فاخرة، متخصصة في الكتب والمنتجات الرقمية الراقية. نؤمن أن
-              كل فكرة تستحق أن تُوثَّق، وأن كل كتاب يترك أثرًا، وأن المعرفة الخالدة تتحول إلى رقيم.
+              {t("about.hero.body")}
             </p>
           </Reveal>
         </div>
@@ -53,24 +55,22 @@ export default function AboutPage() {
       <section className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-16 lg:grid-cols-2">
           <Reveal>
-            <p className="text-sm uppercase tracking-[0.25em] text-gold">قصتنا</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("about.story.eyebrow")}</p>
             <h2 className="mt-4 text-balance font-display text-3xl leading-tight text-ink md:text-4xl">
-              لماذا رقيم؟
+              {t("about.story.title")}
             </h2>
             <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">
-              اسم رقيم مستوحى من الرقيم، الأثر المكتوب الذي يحفظ المعرفة ويصونها عبر الزمن. أطلقنا
-              الدار لتكون مساحة تتحول فيها الأفكار إلى أثر يبقى، وتتحول فيها المعرفة الخالدة إلى
-              رقيم، عبر كتب رقمية فاخرة تُصمَّم بعناية فائقة، من اختيار الكلمة إلى تفاصيل التصميم.
+              {t("about.story.bodyOne")}
             </p>
            <p className="mt-4 max-w-lg text-balance leading-loose text-ink-soft">
-  رسالتنا هي صناعة تجربة معرفية تجمع بين الجمال والعمق والهوية العربية، لنقدم أعمالًا تترك أثرًا وترافق القارئ في مختلف مراحل رحلته.
+  {t("about.story.bodyTwo")}
 </p>
           </Reveal>
           <Reveal delay={0.15}>
             <div className="overflow-hidden rounded-[10px]">
               <img
   src="/assets/lumora-about.webp"
-  alt="رقيم للنشر والإصدارات الرقمية"
+  alt={t("about.story.imageAlt")}
   className="h-full w-full object-cover"
   loading="lazy"
 />
@@ -82,15 +82,15 @@ export default function AboutPage() {
       <section className="px-6 py-24 lg:px-10 lg:py-28">
         <div className="mx-auto max-w-6xl">
           <Reveal className="text-center">
-            <p className="text-sm uppercase tracking-[0.25em] text-gold">قيمنا</p>
-            <h2 className="mt-4 font-display text-3xl text-ink md:text-4xl">ما الذي يوجّهنا</h2>
+            <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("about.values.eyebrow")}</p>
+            <h2 className="mt-4 font-display text-3xl text-ink md:text-4xl">{t("about.values.title")}</h2>
           </Reveal>
           <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: <IconBook className="h-8 w-8" />, title: "جودة لا تُساوَم", body: "كل كتاب يمر بمراحل تحرير وتصميم دقيقة قبل أن يصل إليك." },
-              { icon: <IconHeart className="h-8 w-8" />, title: "صدق في الطرح", body: "نبتعد عن المبالغة، ونكتب بلغة صادقة تلامس واقعك." },
-              { icon: <IconCrescent className="h-8 w-8" />, title: "جذور أصيلة", body: "نستلهم من تراثنا الإسلامي والعربي بروح معاصرة." },
-              { icon: <IconJournal className="h-8 w-8" />, title: "أثر يدوم", body: "نصمم كل إصدار ليكون رفيقًا تعودين إليه مرارًا." },
+              { icon: <IconBook className="h-8 w-8" />, title: t("about.values.quality.title"), body: t("about.values.quality.body") },
+              { icon: <IconHeart className="h-8 w-8" />, title: t("about.values.honesty.title"), body: t("about.values.honesty.body") },
+              { icon: <IconCrescent className="h-8 w-8" />, title: t("about.values.roots.title"), body: t("about.values.roots.body") },
+              { icon: <IconJournal className="h-8 w-8" />, title: t("about.values.legacy.title"), body: t("about.values.legacy.body") },
             ].map((v, i) => (
               <Reveal key={v.title} delay={i * 0.06}>
                 <div className="h-full rounded-[10px] border border-beige bg-cream/50 p-7 text-center">
@@ -108,10 +108,10 @@ export default function AboutPage() {
 
       <section className="bg-cream px-6 py-20 text-center lg:px-10">
         <Reveal>
-          <h2 className="font-display text-3xl text-ink md:text-4xl">اكتشفي إصدارنا الأول</h2>
+          <h2 className="font-display text-3xl text-ink md:text-4xl">{t("about.finalCta.title")}</h2>
           <div className="mt-6 flex justify-center">
             <UnderlineLink to="/books/kuni-hajar">
-  اكتشفي كتاب «كوني هاجر»
+  {t("about.finalCta.link")}
 </UnderlineLink>
           </div>
         </Reveal>

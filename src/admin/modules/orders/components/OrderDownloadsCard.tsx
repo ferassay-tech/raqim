@@ -60,7 +60,7 @@ function writeLastEmailSent(orderId: string, iso: string) {
 export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
   const { getTokensForOrder, generateToken, regenerateToken, disableToken } = useDownloads();
   const { getFilesForBook } = useLibrary();
-  const { templates } = useCommunicationTemplates();
+  const { resolveTemplateForSending } = useCommunicationTemplates();
   const { currentUser } = useAuth();
   const canManage = can(currentUser?.role, "manageDownloads");
 
@@ -109,10 +109,14 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
     // double-click while the request is already pending.
     if (!downloadUrl || emailStatus === "sending") return;
 
-    // The single template this flow sends — no picker, no resolver. If it's
-    // missing (e.g. deleted), fail clearly rather than falling back to any
-    // default content.
-    const template = templates.find((t) => t.id === DOWNLOAD_EMAIL_TEMPLATE_ID);
+    // The single template this flow sends — no picker, no resolver. Resolved
+    // for sending always in Arabic, independent of whatever site language the
+    // admin's own browser currently has active: there is no real
+    // recipient-language signal yet (no order.customerLanguage or similar),
+    // so email rendering must not depend on the admin's UI language. If the
+    // template is missing (e.g. deleted), fail clearly rather than falling
+    // back to any default content.
+    const template = resolveTemplateForSending(DOWNLOAD_EMAIL_TEMPLATE_ID);
     if (!template) {
       setEmailStatus("error");
       setToast({ variant: "error", message: "تعذر إرسال البريد الإلكتروني: قالب رابط التحميل غير موجود." });

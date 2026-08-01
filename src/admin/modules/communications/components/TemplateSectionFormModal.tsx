@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import type { TemplateSection, TemplateSectionType } from "../types/section";
+import type { TemplateSectionRaw, TemplateSectionType } from "../types/section";
+import type { LocalizedText } from "@/admin/types/siteContent";
+import type { Language } from "@/context/LanguageContext";
 import { Modal } from "@/admin/components/ui/Modal";
 import { TextField } from "@/admin/components/forms/TextField";
 import { TextArea } from "@/admin/components/forms/TextArea";
@@ -10,8 +12,12 @@ interface TemplateSectionFormModalProps {
   open: boolean;
   onClose: () => void;
   /** Absent when adding a new section — a type must be chosen first. */
-  initialSection?: TemplateSection | null;
-  onSave: (values: { type: TemplateSectionType; fields: TemplateSection["fields"] }) => void;
+  initialSection?: TemplateSectionRaw | null;
+  /** The template editor's own AR/EN toggle — this modal has no toggle of
+   * its own, so every bilingual field here reads/writes whichever language
+   * the editor page currently has selected. */
+  editingLanguage: Language;
+  onSave: (values: { type: TemplateSectionType; fields: TemplateSectionRaw["fields"] }) => void;
 }
 
 const SECTION_TYPE_OPTIONS: { value: TemplateSectionType; label: string }[] = [
@@ -21,18 +27,27 @@ const SECTION_TYPE_OPTIONS: { value: TemplateSectionType; label: string }[] = [
   { value: "footer", label: "تذييل (Footer)" },
 ];
 
+const EMPTY_LOCALIZED: LocalizedText = { ar: "", en: "" };
+
 type FieldsState = {
-  title: string;
-  subtitle: string;
-  richText: string;
-  label: string;
+  title: LocalizedText;
+  subtitle: LocalizedText;
+  richText: LocalizedText;
+  label: LocalizedText;
   url: string;
-  text: string;
+  text: LocalizedText;
 };
 
-const EMPTY_FIELDS: FieldsState = { title: "", subtitle: "", richText: "", label: "", url: "", text: "" };
+const EMPTY_FIELDS: FieldsState = {
+  title: { ...EMPTY_LOCALIZED },
+  subtitle: { ...EMPTY_LOCALIZED },
+  richText: { ...EMPTY_LOCALIZED },
+  label: { ...EMPTY_LOCALIZED },
+  url: "",
+  text: { ...EMPTY_LOCALIZED },
+};
 
-function fieldsToState(section: TemplateSection): FieldsState {
+function fieldsToState(section: TemplateSectionRaw): FieldsState {
   switch (section.type) {
     case "header":
       return { ...EMPTY_FIELDS, title: section.fields.title, subtitle: section.fields.subtitle };
@@ -45,33 +60,39 @@ function fieldsToState(section: TemplateSection): FieldsState {
   }
 }
 
-function stateToFields(type: TemplateSectionType, state: FieldsState): TemplateSection["fields"] {
+function trimLocalized(v: LocalizedText): LocalizedText {
+  return { ar: v.ar.trim(), en: v.en.trim() };
+}
+
+function stateToFields(type: TemplateSectionType, state: FieldsState): TemplateSectionRaw["fields"] {
   switch (type) {
     case "header":
-      return { title: state.title.trim(), subtitle: state.subtitle.trim() };
+      return { title: trimLocalized(state.title), subtitle: trimLocalized(state.subtitle) };
     case "body":
-      return { richText: state.richText.trim() };
+      return { richText: trimLocalized(state.richText) };
     case "button":
-      return { label: state.label.trim(), url: state.url.trim() };
+      return { label: trimLocalized(state.label), url: state.url.trim() };
     case "footer":
-      return { text: state.text.trim() };
+      return { text: trimLocalized(state.text) };
   }
 }
 
-/** Required-field check per type — this is the milestone's whole
- * validation requirement: prevent saving empty required content. */
+/** Required-field check per type — always against the Arabic value,
+ * regardless of which language is currently being edited, matching every
+ * other bilingual editor in this app (Arabic is the required source of
+ * truth; English is optional). */
 function validate(type: TemplateSectionType, state: FieldsState): string | null {
   switch (type) {
     case "header":
-      return state.title.trim() ? null : "عنوان الرأس مطلوب.";
+      return state.title.ar.trim() ? null : "عنوان الرأس مطلوب (بالعربية).";
     case "body":
-      return state.richText.trim() ? null : "محتوى النص مطلوب.";
+      return state.richText.ar.trim() ? null : "محتوى النص مطلوب (بالعربية).";
     case "button":
-      if (!state.label.trim()) return "نص الزر مطلوب.";
+      if (!state.label.ar.trim()) return "نص الزر مطلوب (بالعربية).";
       if (!state.url.trim()) return "رابط الزر مطلوب.";
       return null;
     case "footer":
-      return state.text.trim() ? null : "نص التذييل مطلوب.";
+      return state.text.ar.trim() ? null : "نص التذييل مطلوب (بالعربية).";
   }
 }
 
@@ -79,6 +100,7 @@ export function TemplateSectionFormModal({
   open,
   onClose,
   initialSection,
+  editingLanguage,
   onSave,
 }: TemplateSectionFormModalProps) {
   const [type, setType] = useState<TemplateSectionType>("header");
@@ -96,6 +118,11 @@ export function TemplateSectionFormModal({
     }
     setError(null);
   }, [open, initialSection]);
+
+  const setLocalizedField = (key: "title" | "subtitle" | "richText" | "label" | "text", value: string) => {
+    setState((p) => ({ ...p, [key]: { ...p[key], [editingLanguage]: value } }));
+    setError(null);
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -158,17 +185,14 @@ export function TemplateSectionFormModal({
           <>
             <TextField
               label="العنوان"
-              value={state.title}
-              onChange={(v) => {
-                setState((p) => ({ ...p, title: v }));
-                setError(null);
-              }}
-              required
+              value={state.title[editingLanguage]}
+              onChange={(v) => setLocalizedField("title", v)}
+              required={editingLanguage === "ar"}
             />
             <TextField
               label="العنوان الفرعي"
-              value={state.subtitle}
-              onChange={(v) => setState((p) => ({ ...p, subtitle: v }))}
+              value={state.subtitle[editingLanguage]}
+              onChange={(v) => setLocalizedField("subtitle", v)}
             />
           </>
         )}
@@ -177,11 +201,8 @@ export function TemplateSectionFormModal({
           <TextArea
             label="النص"
             rows={5}
-            value={state.richText}
-            onChange={(v) => {
-              setState((p) => ({ ...p, richText: v }));
-              setError(null);
-            }}
+            value={state.richText[editingLanguage]}
+            onChange={(v) => setLocalizedField("richText", v)}
           />
         )}
 
@@ -189,12 +210,9 @@ export function TemplateSectionFormModal({
           <>
             <TextField
               label="نص الزر"
-              value={state.label}
-              onChange={(v) => {
-                setState((p) => ({ ...p, label: v }));
-                setError(null);
-              }}
-              required
+              value={state.label[editingLanguage]}
+              onChange={(v) => setLocalizedField("label", v)}
+              required={editingLanguage === "ar"}
             />
             <TextField
               label="رابط الزر"
@@ -213,11 +231,8 @@ export function TemplateSectionFormModal({
           <TextArea
             label="نص التذييل"
             rows={3}
-            value={state.text}
-            onChange={(v) => {
-              setState((p) => ({ ...p, text: v }));
-              setError(null);
-            }}
+            value={state.text[editingLanguage]}
+            onChange={(v) => setLocalizedField("text", v)}
           />
         )}
 

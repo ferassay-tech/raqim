@@ -1,4 +1,4 @@
-import type { AdminCategory } from "../types/category";
+import type { AdminCategoryRaw } from "../types/category";
 
 // Real taxonomy, not demo content — these are the actual category names
 // used across the live book catalog (src/admin/types/book.ts / the public
@@ -7,30 +7,46 @@ import type { AdminCategory } from "../types/category";
 // intentionally don't cascade). Genuine starter configuration, analogous
 // to Settings' real defaults, so it's intentionally not emptied like the
 // business-data seed files (books/orders/coupons/articles/media/messages).
-export const INITIAL_CATEGORIES: AdminCategory[] = [
+// English is a natural, marketing-quality translation, not literal.
+export const INITIAL_CATEGORIES: AdminCategoryRaw[] = [
   {
     id: "cat-motherhood",
-    name: "الأمومة والإلهام الإسلامي",
-    description: "كتب تجمع بين رحلة الأمومة والقيم الإيمانية.",
+    name: { ar: "الأمومة والإلهام الإسلامي", en: "Motherhood & Islamic Inspiration" },
+    description: {
+      ar: "كتب تجمع بين رحلة الأمومة والقيم الإيمانية.",
+      en: "Books that bring together the journey of motherhood and faith-rooted values.",
+    },
   },
   {
     id: "cat-self-development",
-    name: "التطوير الذاتي",
-    description: "أدوات وتأملات عملية لبناء نسخة أكثر ثباتًا من الذات.",
+    name: { ar: "التطوير الذاتي", en: "Self-Development" },
+    description: {
+      ar: "أدوات وتأملات عملية لبناء نسخة أكثر ثباتًا من الذات.",
+      en: "Practical tools and reflections for building a more grounded version of yourself.",
+    },
   },
   {
     id: "cat-spirituality",
-    name: "الروحانيات",
-    description: "كتب تعيد الاتصال بالسكينة الداخلية والمعنى الإيماني.",
+    name: { ar: "الروحانيات", en: "Spirituality" },
+    description: {
+      ar: "كتب تعيد الاتصال بالسكينة الداخلية والمعنى الإيماني.",
+      en: "Books that reconnect you with inner tranquility and spiritual meaning.",
+    },
   },
   {
     id: "cat-literature",
-    name: "الأدب والسيرة",
-    description: "سرد أدبي وسير ملهمة بلمسة معاصرة.",
+    name: { ar: "الأدب والسيرة", en: "Literature & Biography" },
+    description: {
+      ar: "سرد أدبي وسير ملهمة بلمسة معاصرة.",
+      en: "Literary narrative and inspiring biographies with a contemporary touch.",
+    },
   },
   {
     id: "cat-parenting",
-    name: "تربية الأبناء",
-    description: "محتوى يرافق الأمهات في رحلة تربية أبنائهن.",
+    name: { ar: "تربية الأبناء", en: "Parenting" },
+    description: {
+      ar: "محتوى يرافق الأمهات في رحلة تربية أبنائهن.",
+      en: "Content that accompanies mothers on their journey of raising their children.",
+    },
   },
 ];
