@@ -135,7 +135,7 @@ function BookHero({ book }: { book: AdminBook }) {
             <h1 className="mt-5 font-display text-5xl leading-[1.15] text-ink md:text-7xl">{book.title}</h1>
           </Reveal>
           <Reveal delay={0.14}>
-            <div className="mt-6 flex justify-center lg:rtl:justify-end lg:ltr:justify-start">
+            <div className="mt-6 flex max-lg:justify-center lg:rtl:justify-end lg:ltr:justify-start">
               <GoldDivider className="h-5 w-52 text-gold" />
             </div>
           </Reveal>
@@ -145,7 +145,7 @@ function BookHero({ book }: { book: AdminBook }) {
             </p>
           </Reveal>
           <Reveal delay={0.26}>
-            <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:rtl:justify-end lg:ltr:justify-start">
+            <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:max-lg:justify-center lg:rtl:justify-end lg:ltr:justify-start">
               <StampCTA href="#purchase">{book.ctaLabel || t("home.cta.orderNow")}</StampCTA>
               <UnderlineLink to={`/authors/${book.authorSlug}`}>{t("book.author.aboutLabel")}</UnderlineLink>
             </div>
@@ -317,7 +317,7 @@ function AuthorSection({ book }: { book: AdminBook }) {
           {book.authorBio && (
             <p className="mt-5 max-w-2xl text-balance leading-loose text-ink-soft">{book.authorBio}</p>
           )}
-          <div className="mt-6 flex justify-center lg:rtl:justify-end lg:ltr:justify-start">
+          <div className="mt-6 flex max-lg:justify-center lg:rtl:justify-end lg:ltr:justify-start">
             <UnderlineLink to={`/authors/${book.authorSlug}`}>{t("book.author.readMorePrefix")}{displayName.split(" ")[0]}</UnderlineLink>
           </div>
         </Reveal>
@@ -497,7 +497,7 @@ function SimpleBookPage({ book }: { book: AdminBook }) {
             <h1 className="mt-4 font-display text-4xl text-ink md:text-5xl">{book.title}</h1>
             <p className="mt-4 text-balance leading-loose text-ink-soft">{book.subtitle}</p>
             <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">{book.description}</p>
-            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:rtl:justify-end lg:ltr:justify-start">
+            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:max-lg:justify-center lg:rtl:justify-end lg:ltr:justify-start">
               <div className="rounded-[10px] border border-gold/30 bg-cream px-8 py-4 text-center">
                 <p className="font-display text-lg text-gold">{t("book.comingSoon.badge")}</p>
                 <p className="mt-2 text-sm text-ink-soft">{t("book.comingSoon.helperText")}</p>
