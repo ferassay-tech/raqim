@@ -1,4 +1,5 @@
 import type { BookCurrency } from "../admin/types/book";
+import type { LocalizedText } from "../admin/types/siteContent";
 
 export type PaymentMethodId =
   | "etsy"
@@ -7,7 +8,7 @@ export type PaymentMethodId =
   | "bank-palestine";
 
 export interface PaymentField {
-  label: string;
+  label: LocalizedText;
   value: string;
   copyable?: boolean;
 }
@@ -15,9 +16,9 @@ export interface PaymentField {
 export interface PaymentMethodConfig {
   id: PaymentMethodId;
   title: string;
-  shortDescription: string;
+  shortDescription: LocalizedText;
   iconKey: "etsy" | "vodafone" | "bank" | "instapay";
-  instructions: string[];
+  instructions: LocalizedText[];
   fields: PaymentField[];
   /** Which of the book's manually-entered per-currency prices this method
    * charges in (e.g. Vodafone/InstaPay collect EGP, Bank of Palestine
@@ -26,7 +27,7 @@ export interface PaymentMethodConfig {
    * reflected immediately. */
   currency: BookCurrency;
   externalLink?: {
-    label: string;
+    label: LocalizedText;
     url: string;
   };
   /** False for methods that only redirect to an external product/purchase
@@ -46,23 +47,29 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
   etsy: {
     id: "etsy",
     title: "Etsy",
-    shortDescription: "أكمل الشراء عبر متجرنا الرسمي على Etsy",
+    shortDescription: {
+      ar: "أكمل الشراء عبر متجرنا الرسمي على Etsy",
+      en: "Complete your purchase through our official Etsy shop",
+    },
     iconKey: "etsy",
     instructions: [
-      "استعرض صفحة المنتج على Etsy.",
-      "شاهد صور الكتاب والمحتوى المعروض.",
-      "اقرأ تفاصيل المنتج وآراء المشترين.",
-      "إذا أعجبك المنتج يمكنك إتمام عملية الشراء مباشرة من خلال Etsy.",
+      { ar: "استعرض صفحة المنتج على Etsy.", en: "Browse the product page on Etsy." },
+      { ar: "شاهد صور الكتاب والمحتوى المعروض.", en: "View the book's photos and the listed content." },
+      { ar: "اقرأ تفاصيل المنتج وآراء المشترين.", en: "Read the product details and buyer reviews." },
+      {
+        ar: "إذا أعجبك المنتج يمكنك إتمام عملية الشراء مباشرة من خلال Etsy.",
+        en: "If you like what you see, complete your purchase directly through Etsy.",
+      },
     ],
     fields: [
       {
-        label: "رابط المنتج",
+        label: { ar: "رابط المنتج", en: "Product Link" },
         value: "https://www.etsy.com/listing/4532463342/kuni-hajar-arabic-islamic-self",
         copyable: true,
       },
     ],
     externalLink: {
-      label: "عرض المنتج على Etsy",
+      label: { ar: "عرض المنتج على Etsy", en: "View Product on Etsy" },
       url: "https://www.etsy.com/listing/4532463342/kuni-hajar-arabic-islamic-self",
     },
     requiresConfirmation: false,
@@ -71,48 +78,48 @@ export const paymentMethods: Record<PaymentMethodId, PaymentMethodConfig> = {
   vodafone: {
     id: "vodafone",
     title: "Vodafone Cash",
-    shortDescription: "حوّل المبلغ عبر محفظة فودافون كاش",
+    shortDescription: { ar: "حوّل المبلغ عبر محفظة فودافون كاش", en: "Transfer the amount via Vodafone Cash" },
     iconKey: "vodafone",
     instructions: [
-      "افتح تطبيق فودافون كاش.",
-      "أرسل المبلغ الظاهر أدناه إلى الرقم المذكور.",
-      "احتفظ برقم العملية لاستخدامه في نموذج التأكيد.",
+      { ar: "افتح تطبيق فودافون كاش.", en: "Open the Vodafone Cash app." },
+      { ar: "أرسل المبلغ الظاهر أدناه إلى الرقم المذكور.", en: "Send the amount shown below to the number listed." },
+      { ar: "احتفظ برقم العملية لاستخدامه في نموذج التأكيد.", en: "Keep the transaction number to use in the confirmation form." },
     ],
     fields: [
-      { label: "رقم الهاتف", value: "01033017659", copyable: true },
-      { label: "اسم المستلم", value: "Feras S.M.S.", copyable: true },
+      { label: { ar: "رقم الهاتف", en: "Phone Number" }, value: "01033017659", copyable: true },
+      { label: { ar: "اسم المستلم", en: "Recipient Name" }, value: "Feras S.M.S.", copyable: true },
     ],
     currency: "EGP",
   },
   instapay: {
     id: "instapay",
     title: "InstaPay",
-    shortDescription: "حوّل المبلغ عبر تطبيق إنستاباي",
+    shortDescription: { ar: "حوّل المبلغ عبر تطبيق إنستاباي", en: "Transfer the amount via the InstaPay app" },
     iconKey: "instapay",
     instructions: [
-      "افتح تطبيق إنستاباي.",
-      "أرسل المبلغ الظاهر أدناه إلى الرقم المذكور.",
-      "احتفظ برقم العملية لاستخدامه في نموذج التأكيد.",
+      { ar: "افتح تطبيق إنستاباي.", en: "Open the InstaPay app." },
+      { ar: "أرسل المبلغ الظاهر أدناه إلى الرقم المذكور.", en: "Send the amount shown below to the number listed." },
+      { ar: "احتفظ برقم العملية لاستخدامه في نموذج التأكيد.", en: "Keep the transaction number to use in the confirmation form." },
     ],
     fields: [
-      { label: "رقم الهاتف", value: "01033017659", copyable: true },
-      { label: "اسم المستلم", value: "Feras S.M.S.", copyable: true },
+      { label: { ar: "رقم الهاتف", en: "Phone Number" }, value: "01033017659", copyable: true },
+      { label: { ar: "اسم المستلم", en: "Recipient Name" }, value: "Feras S.M.S.", copyable: true },
     ],
     currency: "EGP",
   },
   "bank-palestine": {
     id: "bank-palestine",
     title: "Bank of Palestine",
-    shortDescription: "حوّل المبلغ عبر تحويل بنكي مباشر",
+    shortDescription: { ar: "حوّل المبلغ عبر تحويل بنكي مباشر", en: "Transfer the amount via direct bank transfer" },
     iconKey: "bank",
     instructions: [
-      "استخدم بيانات الحساب البنكي أدناه لإجراء التحويل.",
-      "أضف اسمك الكامل في خانة ملاحظات التحويل إن أمكن.",
-      "احتفظ بإيصال التحويل لرفعه في نموذج التأكيد.",
+      { ar: "استخدم بيانات الحساب البنكي أدناه لإجراء التحويل.", en: "Use the bank account details below to make the transfer." },
+      { ar: "أضف اسمك الكامل في خانة ملاحظات التحويل إن أمكن.", en: "Add your full name in the transfer notes if possible." },
+      { ar: "احتفظ بإيصال التحويل لرفعه في نموذج التأكيد.", en: "Keep the transfer receipt to upload it in the confirmation form." },
     ],
     fields: [
-      { label: "اسم صاحب الحساب", value: "Feras S.M.S.", copyable: true },
-      { label: "رقم الحساب", value: "1327800", copyable: true },
+      { label: { ar: "اسم صاحب الحساب", en: "Account Holder Name" }, value: "Feras S.M.S.", copyable: true },
+      { label: { ar: "رقم الحساب", en: "Account Number" }, value: "1327800", copyable: true },
     ],
     currency: "ILS",
   },

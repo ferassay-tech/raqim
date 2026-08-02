@@ -49,8 +49,8 @@ const EMPTY_BOOK: BookFormValues = {
   stock: 999,
   sku: "",
   status: "draft",
-  language: "العربية",
-  format: "كتاب رقمي PDF فاخر",
+  language: { ar: "العربية", en: "Arabic" },
+  format: { ar: "كتاب رقمي PDF فاخر", en: "Luxury Digital PDF Book" },
   pages: 0,
   description: { ...EMPTY_LOCALIZED },
   longDescription: { ...EMPTY_LOCALIZED },
@@ -349,7 +349,7 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
               label="آراء القارئات"
               items={values.reviews}
               onChange={(v) => set("reviews", v)}
-              newItem={() => ({ quote: { ...EMPTY_LOCALIZED }, name: "", role: { ...EMPTY_LOCALIZED } })}
+              newItem={() => ({ quote: { ...EMPTY_LOCALIZED }, name: { ...EMPTY_LOCALIZED }, role: { ...EMPTY_LOCALIZED } })}
               addLabel="إضافة رأي"
               emptyLabel="لا توجد آراء بعد."
               renderItem={(item, update) => (
@@ -361,7 +361,11 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
                     onChange={(v) => update({ ...item, quote: { ...item.quote, [editingLanguage]: v } })}
                   />
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <TextField label="الاسم" value={item.name} onChange={(v) => update({ ...item, name: v })} />
+                    <TextField
+                      label="الاسم"
+                      value={item.name[editingLanguage]}
+                      onChange={(v) => update({ ...item, name: { ...item.name, [editingLanguage]: v } })}
+                    />
                     <TextField
                       label="الوصف"
                       value={item.role[editingLanguage]}

@@ -9,6 +9,7 @@ import {
 } from "framer-motion";
 import HTMLFlipBook from "react-pageflip";
 import "./PremiumBook3D.pageflip.css";
+import { useLanguage } from "../context/LanguageContext";
 
 // react-pageflip's own types expose the ref as `any`; this narrows it to
 // just the handful of PageFlip methods we actually call.
@@ -83,6 +84,7 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
   previewPages,
   backCover,
 }) => {
+  const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<FlipBookHandle>(null);
   const hasPreview = Boolean(previewPages && previewPages.length > 0);
@@ -504,7 +506,7 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
           {backCover && (
             <img
               src={backCover}
-              alt={`${alt} — الغلاف الخلفي`}
+              alt={`${alt}${t("book3d.backCoverAltSuffix")}`}
               draggable={false}
               style={{
                 position: "absolute",
@@ -787,7 +789,7 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
                 <div className="page" key={src} style={{ width: "100%", height: "100%" }}>
                   <img
                     src={src}
-                    alt={`${alt} — صفحة معاينة ${i + 1}`}
+                    alt={`${alt}${t("book3d.previewPageAltPrefix")}${i + 1}`}
                     draggable={false}
                     style={{
                       width: "100%",
@@ -803,7 +805,7 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
                 <div className="page" data-density="hard" key="back-cover" style={{ width: "100%", height: "100%" }}>
                   <img
                     src={backCover}
-                    alt={`${alt} — الغلاف الخلفي`}
+                    alt={`${alt}${t("book3d.backCoverAltSuffix")}`}
                     draggable={false}
                     style={{
                       width: "100%",
@@ -916,7 +918,7 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
               e.stopPropagation();
               retreatPage();
             }}
-            aria-label="الصفحة السابقة"
+            aria-label={t("book3d.previousPage")}
             style={{
               position: "absolute",
               left: "50%",
@@ -938,7 +940,7 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
               e.stopPropagation();
               advancePage();
             }}
-            aria-label="الصفحة التالية"
+            aria-label={t("book3d.nextPage")}
             style={{
               position: "absolute",
               left: "50%",

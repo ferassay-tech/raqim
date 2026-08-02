@@ -40,7 +40,7 @@ export default function FutureReleasesPage() {
         <div className="mx-auto max-w-4xl space-y-8">
           {upcoming.map((book, i) => (
             <Reveal key={book.id} delay={i * 0.08}>
-              <div className="flex flex-col items-center gap-8 rounded-[10px] border border-beige bg-cream/40 p-8 sm:flex-row-reverse sm:text-right">
+              <div className="flex flex-col items-center gap-8 rounded-[10px] border border-beige bg-cream/40 p-8 sm:flex-row-reverse sm:text-start">
                 <div className="w-40 shrink-0 rounded-[10px] bg-gradient-to-br from-cream to-beige p-4">
                   {book.cover && (
                     <img

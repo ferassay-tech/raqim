@@ -62,10 +62,10 @@ export default function AuthorPage() {
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[0.6fr_1.4fr]">
           <Reveal className="flex justify-center">
             <div className="flex h-56 w-56 items-center justify-center rounded-full bg-gradient-to-br from-cream to-lavender/40 font-logotype text-7xl text-gold">
-              {displayName.trim().charAt(0) || "؟"}
+              {displayName.trim().charAt(0) || t("book.author.fallbackInitial")}
             </div>
           </Reveal>
-          <Reveal delay={0.1} className="text-center lg:text-right">
+          <Reveal delay={0.1} className="text-center lg:text-start">
             <h1 className="mt-4 font-display text-4xl text-ink md:text-5xl">{displayName}</h1>
             <div className="mt-5 flex justify-center lg:justify-end">
               <GoldDivider className="h-4 w-44 text-gold" />
@@ -108,7 +108,7 @@ export default function AuthorPage() {
                       />
                     )}
                   </div>
-                  <div className="p-5 text-right">
+                  <div className="p-5 text-start">
                     <h3 className="font-display text-lg text-ink">{book.title}</h3>
                     <div className="mt-3">
                       <UnderlineLink to={`/books/${book.id}`} interactive={false}>

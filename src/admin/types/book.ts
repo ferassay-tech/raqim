@@ -99,12 +99,16 @@ export interface AdminBook {
  * Editor reads/writes this directly, one language at a time. Public pages
  * and every other Admin module consume the resolved AdminBook shape above
  * (via useBooks()), never this type. Structural/non-copy fields (ids,
- * images, pricing, placement, author's own name/slug, category, and the
- * book's own language/format metadata) are intentionally NOT localized here
- * — same plain-string shape as AdminBook, since converting them isn't part
- * of this migration (author/reviewer names are proper nouns; category
- * still matches CategoriesContext by plain-string name, which is untouched
- * this phase; language/format have no Admin UI to edit at all today). */
+ * images, pricing, placement, author's own name/slug, and category) stay
+ * plain — same shape as AdminBook — since the author's own name is a proper
+ * noun (handled separately via localizeProperName) and category still
+ * matches CategoriesContext by plain-string name, which is untouched this
+ * phase. Reviewer names, book language, and book format ARE localized:
+ * reviewer names are editorial testimonial copy (not real legal identities)
+ * and language/format are genuinely user-facing labels, so all three get
+ * real English text rather than staying frozen in Arabic. Chapter numbers
+ * stay a plain digit string — purely an ordinal, reformatted per-language
+ * at display time via formatNumeral() rather than translated. */
 export interface BookFeatureRaw {
   icon: string;
   title: LocalizedText;
@@ -118,7 +122,7 @@ export interface BookChapterRaw {
 
 export interface BookReviewRaw {
   quote: LocalizedText;
-  name: string;
+  name: LocalizedText;
   role: LocalizedText;
 }
 
@@ -149,8 +153,8 @@ export interface AdminBookRaw {
   sku: string;
   status: BookStatus;
 
-  language: string;
-  format: string;
+  language: LocalizedText;
+  format: LocalizedText;
   pages: number;
 
   description: LocalizedText;

@@ -153,7 +153,7 @@ function HeroSection({ book }: { book: AdminBook | null }) {
         )}
 
         {/* headline block — top-right, RTL primary reading direction */}
-        <div className="order-1 text-center lg:order-2 lg:text-right">
+        <div className="order-1 text-center lg:order-2 lg:text-start">
           <Reveal>
             <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("home.hero.eyebrow")}</p>
           </Reveal>
@@ -206,7 +206,7 @@ function PhilosophySection() {
 
         {/* the gold pattern is the section's real visual anchor — bleeding to the edge, entering once and staying settled within this section */}
         <Reveal delay={0.15} className="relative">
-          <div className="relative -mx-6 aspect-[4/5] overflow-hidden rounded-[10px] lg:mx-0 lg:-mr-16 lg:aspect-auto lg:h-[36rem]">
+          <div className="relative -mx-6 aspect-[4/5] overflow-hidden rounded-[10px] lg:mx-0 lg:-ms-16 lg:aspect-auto lg:h-[36rem]">
             <img
               src="/assets/arabesque-pattern.webp"
               alt=""
@@ -257,10 +257,10 @@ function FeaturedBookSection({ book }: { book: AdminBook }) {
             </picture>
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/25 via-transparent to-transparent" />
           </div>
-          <CornerFlourish className="pointer-events-none absolute right-4 top-4 h-14 w-14 text-ivory/80" />
+          <CornerFlourish className="pointer-events-none absolute start-4 top-4 h-14 w-14 text-ivory/80" />
           {/* the real product, kept accurate — floated as a framed detail over the lifestyle backdrop */}
           {book.cover && (
-            <div className="absolute -bottom-6 left-6 w-28 overflow-hidden rounded-[6px] border-2 border-ivory shadow-[0_15px_30px_-10px_rgba(44,36,32,0.45)] sm:w-32">
+            <div className="absolute -bottom-6 end-6 w-28 overflow-hidden rounded-[6px] border-2 border-ivory shadow-[0_15px_30px_-10px_rgba(44,36,32,0.45)] sm:w-32">
               <img
                 src={book.cover}
                 alt={book.title}
@@ -274,7 +274,7 @@ function FeaturedBookSection({ book }: { book: AdminBook }) {
           )}
         </Reveal>
 
-        <div className="order-1 text-center lg:order-2 lg:text-right">
+        <div className="order-1 text-center lg:order-2 lg:text-start">
           <Reveal>
             <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("home.featuredBook.eyebrow")}</p>
           </Reveal>
@@ -338,16 +338,16 @@ function BooksGridSection({ books }: { books: AdminBook[] }) {
                       decoding="async"
                     />
                   )}
-                  <span className="absolute right-4 top-4 flex h-9 w-9 translate-y-2 items-center justify-center rounded-full bg-ink/90 text-sm text-ivory opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                  <span className="absolute start-4 top-4 flex h-9 w-9 translate-y-2 items-center justify-center rounded-full bg-ink/90 text-sm text-ivory opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   {book.placement === "comingSoon" && (
-                    <span className="absolute left-4 top-4 rounded-full bg-lavender/80 px-3 py-1 text-xs text-ink">
+                    <span className="absolute end-4 top-4 rounded-full bg-lavender/80 px-3 py-1 text-xs text-ink">
                       {t("home.booksGrid.comingSoon")}
                     </span>
                   )}
                 </div>
-                <div className="border-t border-beige p-5 text-right">
+                <div className="border-t border-beige p-5 text-start">
                   <p className="text-xs text-gold">{getCategoryLabel(book.category)}</p>
                   <h3 className="mt-1.5 font-display text-lg text-ink">{book.title}</h3>
                   <p className="mt-1 text-xs text-ink-soft">{localizeProperName(book.author, language)}</p>
@@ -391,8 +391,8 @@ function FinalCTASection({ book }: { book: AdminBook | null }) {
   return (
     <section className="relative overflow-hidden px-6 py-16 lg:px-10 lg:py-20">
       <div className="relative mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 rounded-[10px] border border-beige bg-cream/60 p-10 text-center sm:grid-cols-3 lg:p-14">
-        <CornerFlourish className="pointer-events-none absolute right-4 top-4 h-12 w-12 text-gold/50" />
-        <CornerFlourish className="pointer-events-none absolute bottom-4 left-4 h-12 w-12 rotate-180 text-gold/50" />
+        <CornerFlourish className="pointer-events-none absolute start-4 top-4 h-12 w-12 text-gold/50" />
+        <CornerFlourish className="pointer-events-none absolute bottom-4 end-4 h-12 w-12 rotate-180 text-gold/50" />
         <FeatureIcon icon={<IconBook className="h-8 w-8" />} label={t("home.finalCta.featureLuxuryBook")} />
         <FeatureIcon icon={<IconHeart className="h-8 w-8" />} label={t("home.finalCta.featureHonestContent")} />
         <FeatureIcon icon={<IconOpenHands className="h-8 w-8" />} label={t("home.finalCta.featureLastingImpact")} />

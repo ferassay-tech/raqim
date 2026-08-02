@@ -39,7 +39,7 @@ export default function FaqPage() {
                   onClick={() => setOpen(isOpen ? null : i)}
                   aria-expanded={isOpen}
                   aria-controls={panelId}
-                  className="flex w-full items-center justify-between gap-4 text-right"
+                  className="flex w-full items-center justify-between gap-4 text-start"
                 >
                   <span className="font-display text-lg text-ink">{faq.question}</span>
                   <span className={`shrink-0 text-gold transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`}>

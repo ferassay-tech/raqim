@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import type { Product } from "../../types/product";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface ProductSummaryCardProps {
   product: Product;
@@ -14,6 +15,7 @@ export const ProductSummaryCard: React.FC<ProductSummaryCardProps> = ({
   discountedPrice,
   appliedCouponCode,
 }) => {
+  const { t } = useLanguage();
   const discountPercent = Math.round(
     ((product.oldPrice - product.newPrice) / product.oldPrice) * 100
   );
@@ -34,7 +36,7 @@ export const ProductSummaryCard: React.FC<ProductSummaryCardProps> = ({
         />
       </div>
 
-      <div className="flex-1 text-center sm:text-right">
+      <div className="flex-1 text-center sm:text-start">
         <h2 className="text-xl font-semibold text-ink">
           {product.title}
         </h2>
@@ -44,21 +46,21 @@ export const ProductSummaryCard: React.FC<ProductSummaryCardProps> = ({
 
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-ink-soft sm:text-sm">
           <div className="flex items-center justify-between gap-2 sm:justify-start">
-            <dt className="text-ink-faint">اللغة</dt>
+            <dt className="text-ink-faint">{t("checkout.summary.language")}</dt>
             <dd>{product.language}</dd>
           </div>
           <div className="flex items-center justify-between gap-2 sm:justify-start">
-            <dt className="text-ink-faint">عدد الصفحات</dt>
+            <dt className="text-ink-faint">{t("checkout.summary.pages")}</dt>
             <dd>{product.pages}</dd>
           </div>
           <div className="flex items-center justify-between gap-2 sm:justify-start">
-            <dt className="text-ink-faint">الصيغة</dt>
+            <dt className="text-ink-faint">{t("checkout.summary.format")}</dt>
             <dd>{product.format}</dd>
           </div>
         </dl>
 
         <p className="mt-4 rounded-xl bg-beige/70 px-3 py-2 text-xs text-gold-deep sm:text-sm">
-          {product.deliveryNotice}
+          {t("checkout.deliveryNotice")}
         </p>
       </div>
 
@@ -70,7 +72,9 @@ export const ProductSummaryCard: React.FC<ProductSummaryCardProps> = ({
           {product.currency} {hasCouponDiscount ? discountedPrice : product.newPrice}
         </span>
         <span className="rounded-full bg-ink px-2.5 py-0.5 text-[10px] font-medium text-beige">
-          {hasCouponDiscount ? `كود ${appliedCouponCode}` : `خصم ${discountPercent}%`}
+          {hasCouponDiscount
+            ? `${t("checkout.summary.couponPrefix")}${appliedCouponCode}`
+            : `${t("checkout.summary.discountPrefix")}${discountPercent}${t("checkout.summary.discountSuffix")}`}
         </span>
       </div>
     </motion.div>

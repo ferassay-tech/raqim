@@ -174,7 +174,7 @@ function TicketSubmitButton({ submitted }: { submitted: boolean }) {
     >
       <span
         aria-hidden
-        className="absolute inset-y-0 right-0 w-px bg-[repeating-linear-gradient(to_bottom,transparent,transparent_3px,rgba(44,36,32,0.35)_3px,rgba(44,36,32,0.35)_5px)]"
+        className="absolute inset-y-0 start-0 w-px bg-[repeating-linear-gradient(to_bottom,transparent,transparent_3px,rgba(44,36,32,0.35)_3px,rgba(44,36,32,0.35)_5px)]"
       />
       <span className="relative inline-flex items-center gap-2">
         <span className="transition-transform duration-300 group-hover:-translate-y-6 group-hover:opacity-0">

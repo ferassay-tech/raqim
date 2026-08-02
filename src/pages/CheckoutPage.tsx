@@ -11,11 +11,13 @@ import { paymentMethodList } from "../config/paymentMethods";
 import type { PaymentMethodId } from "../config/paymentMethods";
 import { useCoupons } from "../admin/context/CouponsContext";
 import { getCouponStatus } from "../admin/lib/couponStatus";
+import { useLanguage } from "../context/LanguageContext";
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { product, book, appliedCoupon, setAppliedCoupon, setSelectedMethodId } = useCheckout();
   const { coupons } = useCoupons();
+  const { t, dir } = useLanguage();
   const [couponInput, setCouponInput] = useState(appliedCoupon?.code ?? "");
   const [couponError, setCouponError] = useState<string | null>(null);
 
@@ -24,7 +26,7 @@ const CheckoutPage: React.FC = () => {
     if (!code) return;
     const match = coupons.find((c) => c.code.toUpperCase() === code);
     if (!match || getCouponStatus(match) !== "active") {
-      setCouponError("هذا الكود غير صالح حاليًا.");
+      setCouponError(t("checkout.coupon.invalid"));
       setAppliedCoupon(null);
       return;
     }
@@ -49,12 +51,12 @@ const CheckoutPage: React.FC = () => {
 
   return (
     <main
-      dir="rtl"
+      dir={dir}
       className="min-h-screen bg-ivory px-4 py-16 sm:px-8"
     >
       <Helmet
-        title="إتمام الشراء — رقيم"
-        description="أكملي عملية الشراء واختاري طريقة الدفع المناسبة."
+        title={t("checkout.seo.title")}
+        description={t("checkout.seo.description")}
         path="/checkout"
         noindex
       />
@@ -63,8 +65,8 @@ const CheckoutPage: React.FC = () => {
           to={book ? `/books/${book.id}` : "/books"}
           className="inline-flex w-fit items-center gap-1.5 text-sm text-ink-soft transition hover:text-ink"
         >
-          <IconArrowLeft className="h-4 w-4 rotate-180" />
-          العودة إلى صفحة الكتاب
+          <IconArrowLeft className="h-4 w-4 rtl:rotate-180" />
+          {t("checkout.backToBook")}
         </Link>
 
         <CheckoutHero title={product.title} />
@@ -77,19 +79,19 @@ const CheckoutPage: React.FC = () => {
 
         <section aria-labelledby="coupon-heading" className="flex flex-col gap-2">
           <h2 id="coupon-heading" className="text-sm font-medium text-ink">
-            كود الخصم
+            {t("checkout.coupon.heading")}
           </h2>
           {appliedCoupon ? (
             <div className="flex items-center justify-between gap-3 rounded-xl bg-beige/60 px-4 py-3 text-sm">
               <span className="text-ink">
-                تم تطبيق الكود <strong className="text-gold-deep">{appliedCoupon.code}</strong>
+                {t("checkout.coupon.appliedPrefix")}<strong className="text-gold-deep">{appliedCoupon.code}</strong>
               </span>
               <button
                 type="button"
                 onClick={handleRemoveCoupon}
                 className="text-xs text-ink-soft underline hover:text-ink"
               >
-                إزالة
+                {t("checkout.coupon.remove")}
               </button>
             </div>
           ) : (
@@ -99,7 +101,7 @@ const CheckoutPage: React.FC = () => {
                   type="text"
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value)}
-                  placeholder="أدخلي كود الخصم"
+                  placeholder={t("checkout.coupon.placeholder")}
                   dir="ltr"
                   className="flex-1 rounded-xl border border-beige bg-white/70 px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
                 />
@@ -108,7 +110,7 @@ const CheckoutPage: React.FC = () => {
                   onClick={handleApplyCoupon}
                   className="shrink-0 rounded-xl border border-gold px-4 py-2.5 text-sm font-medium text-gold-deep transition hover:bg-beige"
                 >
-                  تطبيق
+                  {t("checkout.coupon.apply")}
                 </button>
               </div>
               {couponError && <p className="text-xs text-danger">{couponError}</p>}
@@ -121,7 +123,7 @@ const CheckoutPage: React.FC = () => {
             id="payment-methods-heading"
             className="mb-4 text-center text-lg font-semibold text-ink"
           >
-            اختر طريقة الدفع
+            {t("checkout.methods.heading")}
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {paymentMethodList.map((method) => (

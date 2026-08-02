@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { useLanguage } from "../../context/LanguageContext";
 
 export interface ConfirmationFormValues {
   fullName: string;
@@ -23,6 +24,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
   methodTitle,
   onSubmit,
 }) => {
+  const { t } = useLanguage();
   const [values, setValues] = useState<ConfirmationFormValues>({
     fullName: "",
     email: "",
@@ -63,13 +65,13 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
         id="confirmation-form-heading"
         className="text-lg font-semibold text-ink"
       >
-        تأكيد بيانات الدفع
+        {t("confirmationForm.heading")}
       </h2>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="fullName" className="mb-1.5 block text-xs text-ink-soft">
-            الاسم الكامل
+            {t("confirmationForm.fullName")}
           </label>
           <input
             id="fullName"
@@ -84,7 +86,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
 
         <div>
           <label htmlFor="email" className="mb-1.5 block text-xs text-ink-soft">
-            البريد الإلكتروني
+            {t("confirmationForm.email")}
           </label>
           <input
             id="email"
@@ -100,7 +102,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
 
         <div>
           <label htmlFor="country" className="mb-1.5 block text-xs text-ink-soft">
-            الدولة
+            {t("confirmationForm.country")}
           </label>
           <input
             id="country"
@@ -115,7 +117,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
 
         <div>
           <label htmlFor="paymentMethod" className="mb-1.5 block text-xs text-ink-soft">
-            طريقة الدفع
+            {t("confirmationForm.paymentMethod")}
           </label>
           <input
             id="paymentMethod"
@@ -128,7 +130,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
 
         <div className="sm:col-span-2">
           <label htmlFor="transactionId" className="mb-1.5 block text-xs text-ink-soft">
-            رقم العملية (اختياري)
+            {t("confirmationForm.transactionId")}
           </label>
           <input
             id="transactionId"
@@ -141,7 +143,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
 
         <div className="sm:col-span-2">
           <label htmlFor="receipt" className="mb-1.5 block text-xs text-ink-soft">
-            رفع إيصال الدفع
+            {t("confirmationForm.uploadReceipt")}
           </label>
           <input
             id="receipt"
@@ -149,18 +151,18 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
             type="file"
             accept="image/*,application/pdf"
             onChange={handleFile}
-            className="w-full text-xs text-ink-soft file:mr-3 file:rounded-full file:border-0 file:bg-beige file:px-4 file:py-2 file:text-xs file:font-medium file:text-gold-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+            className="w-full text-xs text-ink-soft file:ms-3 file:rounded-full file:border-0 file:bg-beige file:px-4 file:py-2 file:text-xs file:font-medium file:text-gold-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
           />
           {values.receiptFileName && (
             <p className="mt-1.5 text-xs text-ink-soft">
-              الملف المرفق: {values.receiptFileName}
+              {t("confirmationForm.attachedFilePrefix")}{values.receiptFileName}
             </p>
           )}
         </div>
 
         <div className="sm:col-span-2">
           <label htmlFor="notes" className="mb-1.5 block text-xs text-ink-soft">
-            ملاحظات
+            {t("confirmationForm.notes")}
           </label>
           <textarea
             id="notes"
@@ -177,7 +179,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
         type="submit"
         className="mt-2 w-full rounded-full bg-ink py-3 text-sm font-medium text-beige transition hover:bg-gold-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
       >
-        إرسال بيانات الدفع
+        {t("confirmationForm.submit")}
       </button>
     </motion.form>
   );

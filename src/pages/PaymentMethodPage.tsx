@@ -12,17 +12,18 @@ import { useCheckout } from "../context/CheckoutContext";
 import type { BookCurrency } from "../admin/types/book";
 import { computeDiscountedPrice } from "../context/couponMath";
 import { useOrders } from "../admin/context/OrdersContext";
+import { useLanguage } from "../context/LanguageContext";
 
 // Matches the original site's exact wording for the "required amount" line
 // ("500 جنيه مصري", "30 شيكل") — full currency names, not ISO-style symbols.
-const CURRENCY_NAME: Record<BookCurrency, string> = {
-  USD: "$",
-  EGP: "جنيه مصري",
-  ILS: "شيكل",
-};
+function currencyName(currency: BookCurrency, t: (key: string) => string): string {
+  if (currency === "USD") return "$";
+  if (currency === "EGP") return t("payment.currency.egp");
+  return t("payment.currency.ils");
+}
 
-function formatAmount(price: number, currency: BookCurrency): string {
-  return currency === "USD" ? `$${price}` : `${price} ${CURRENCY_NAME[currency]}`;
+function formatAmount(price: number, currency: BookCurrency, t: (key: string) => string): string {
+  return currency === "USD" ? `$${price}` : `${price} ${currencyName(currency, t)}`;
 }
 
 const PaymentMethodPage: React.FC = () => {
@@ -30,6 +31,7 @@ const PaymentMethodPage: React.FC = () => {
   const navigate = useNavigate();
   const { product, book, appliedCoupon, setConfirmation } = useCheckout();
   const { createOrder } = useOrders();
+  const { t, dir, language } = useLanguage();
   const [showConfirmationForm, setShowConfirmationForm] = useState(false);
 
   const config = getPaymentMethod(method);
@@ -37,15 +39,15 @@ const PaymentMethodPage: React.FC = () => {
   if (!config) {
     return (
       <main
-        dir="rtl"
+        dir={dir}
         className="flex min-h-screen flex-col items-center justify-center gap-4 bg-ivory px-4 text-center"
       >
-        <p className="text-lg text-ink">طريقة الدفع غير متاحة</p>
+        <p className="text-lg text-ink">{t("payment.notAvailable.title")}</p>
         <Link
           to="/checkout"
           className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-beige"
         >
-          العودة لصفحة الدفع
+          {t("payment.notAvailable.backToCheckout")}
         </Link>
       </main>
     );
@@ -56,7 +58,7 @@ const PaymentMethodPage: React.FC = () => {
 
   const priceEntry = book?.prices[config.currency];
   const amountLabel = priceEntry
-    ? formatAmount(computeDiscountedPrice(priceEntry.price, appliedCoupon), config.currency)
+    ? formatAmount(computeDiscountedPrice(priceEntry.price, appliedCoupon), config.currency, t)
     : `${product.currency} ${product.newPrice}`;
 
   const handleConfirmationSubmit = (values: ConfirmationFormValues) => {
@@ -82,11 +84,13 @@ const PaymentMethodPage: React.FC = () => {
     navigate("/order-received", { state: { orderId: order.id } });
   };
 
+  const actionTitle = requiresConfirmation ? t("payment.titlePay") : t("payment.titleBuy");
+
   return (
-    <main dir="rtl" className="min-h-screen bg-ivory px-4 py-16 sm:px-8">
+    <main dir={dir} className="min-h-screen bg-ivory px-4 py-16 sm:px-8">
       <Helmet
-        title={`${requiresConfirmation ? "الدفع عبر" : "شراء الكتاب عبر"} ${config.title} — رقيم`}
-        description={`أكملي الدفع عبر ${config.title} للحصول على نسختك الرقمية.`}
+        title={`${actionTitle} ${config.title} — ${t("home.hero.titleFallback")}`}
+        description={`${t("payment.seoDescriptionPrefix")}${config.title}${t("payment.seoDescriptionSuffix")}`}
         path={`/payment/${config.id}`}
         noindex
       />
@@ -95,8 +99,8 @@ const PaymentMethodPage: React.FC = () => {
           to="/checkout"
           className="inline-flex w-fit items-center gap-1.5 text-sm text-ink-soft transition hover:text-ink"
         >
-          <IconArrowLeft className="h-4 w-4 rotate-180" />
-          العودة لطرق الدفع
+          <IconArrowLeft className="h-4 w-4 rtl:rotate-180" />
+          {t("payment.backToMethods")}
         </Link>
 
         <motion.div
@@ -111,12 +115,16 @@ const PaymentMethodPage: React.FC = () => {
             </span>
             <div>
               <h1 className="text-xl font-semibold text-ink">
-                {requiresConfirmation ? "الدفع عبر" : "شراء الكتاب عبر"} {config.title}
+                {actionTitle} {config.title}
               </h1>
               {requiresConfirmation && (
                 <p className="text-xs text-ink-soft">
-                  المبلغ المطلوب: {amountLabel}
-                  {appliedCoupon && <span className="text-gold-deep"> (بعد كود {appliedCoupon.code})</span>}
+                  {t("payment.amountRequiredPrefix")}{amountLabel}
+                  {appliedCoupon && (
+                    <span className="text-gold-deep">
+                      {t("payment.afterCouponPrefix")}{appliedCoupon.code}{t("payment.afterCouponSuffix")}
+                    </span>
+                  )}
                 </p>
               )}
             </div>
@@ -128,7 +136,7 @@ const PaymentMethodPage: React.FC = () => {
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-beige text-[10px] font-medium text-gold-deep">
                   {i + 1}
                 </span>
-                {step}
+                {step[language]}
               </li>
             ))}
           </ol>
@@ -136,32 +144,32 @@ const PaymentMethodPage: React.FC = () => {
           <div className="mt-6 flex flex-col gap-3">
             {config.fields.map((field) => (
               <div
-                key={field.label}
+                key={field.label.ar}
                 className="flex items-center justify-between gap-3 rounded-xl bg-beige/60 px-4 py-3"
               >
                 <div>
-                  <p className="text-[11px] text-gold-deep">{field.label}</p>
+                  <p className="text-[11px] text-gold-deep">{field.label[language]}</p>
                   <p className="text-sm font-medium text-ink" dir="ltr">
                     {field.value}
                   </p>
                 </div>
                 {field.copyable && (
-                  <CopyButton value={field.value} label={field.label} />
+                  <CopyButton value={field.value} label={field.label[language]} />
                 )}
               </div>
             ))}
           </div>
 
           {config.externalLink && (
-  <a
-    href={config.externalLink.url}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="mt-5 block w-full rounded-full border border-gold py-2.5 text-center text-sm font-medium text-gold-deep transition hover:bg-beige"
-  >
-    {config.externalLink.label}
-  </a>
-)}
+            <a
+              href={config.externalLink.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 block w-full rounded-full border border-gold py-2.5 text-center text-sm font-medium text-gold-deep transition hover:bg-beige"
+            >
+              {config.externalLink.label[language]}
+            </a>
+          )}
 
           {requiresConfirmation && !showConfirmationForm && (
             <button
@@ -169,7 +177,7 @@ const PaymentMethodPage: React.FC = () => {
               onClick={() => setShowConfirmationForm(true)}
               className="mt-6 w-full rounded-full bg-ink py-3 text-sm font-medium text-beige transition hover:bg-gold-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
             >
-              لقد أتممت الدفع
+              {t("payment.completedButton")}
             </button>
           )}
         </motion.div>

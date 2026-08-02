@@ -121,12 +121,12 @@ export default function BooksIndexPage() {
                         />
                       )}
                       {book.placement === "comingSoon" && (
-                        <span className="absolute left-4 top-4 rounded-full bg-lavender/80 px-3 py-1 text-xs text-ink">
+                        <span className="absolute end-4 top-4 rounded-full bg-lavender/80 px-3 py-1 text-xs text-ink">
                           {t("home.booksGrid.comingSoon")}
                         </span>
                       )}
                     </div>
-                    <div className="p-6 text-right">
+                    <div className="p-6 text-start">
                       <p className="text-xs text-gold">{getCategoryLabel(book.category)}</p>
                       <h2 className="mt-2 font-display text-xl text-ink">{book.title}</h2>
                       <p className="mt-1.5 text-sm text-ink-soft">{localizeProperName(book.author, language)}</p>

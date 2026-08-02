@@ -16,13 +16,7 @@ import { buildGraph, bookSchema, breadcrumbSchema, faqPageSchema } from "../lib/
 import { useAssetDimensions } from "../lib/mediaDimensions";
 import { useLanguage } from "../context/LanguageContext";
 import { localizeProperName } from "../lib/properNames";
-
-/** Arabic-Indic digit formatting — matches the original site's own numeral
- * style ("١٨٦ صفحة", " $10") instead of the Latin digits a raw number/
- * toFixed would otherwise produce. */
-function toArabicNumeral(n: number): string {
-  return n.toLocaleString("ar-EG");
-}
+import { formatNumeral } from "../lib/numerals";
 
 function formatUsdPrice(n: number): string {
   return Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`;
@@ -131,7 +125,7 @@ function BookHero({ book }: { book: AdminBook }) {
           </div>
         </Reveal>
 
-        <div className="order-1 text-center lg:order-2 lg:text-right">
+        <div className="order-1 text-center lg:order-2 lg:text-start">
           {book.badges.length > 0 && (
             <Reveal>
               <p className="text-sm uppercase tracking-[0.25em] text-gold">{book.badges.join(" · ")}</p>
@@ -225,7 +219,7 @@ function StorySection({ book }: { book: AdminBook }) {
 }
 
 function ChaptersSection({ book }: { book: AdminBook }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <section className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-6xl">
@@ -239,7 +233,7 @@ function ChaptersSection({ book }: { book: AdminBook }) {
             <Reveal key={ch.number} delay={i * 0.08} className={i % 2 === 1 ? "sm:translate-y-6" : ""}>
               <div className="group relative overflow-hidden rounded-[10px] border border-gold/30 bg-ivory p-7 shadow-[0_10px_30px_-18px_rgba(44,36,32,0.2)] transition-transform duration-300 hover:-translate-y-1.5">
                 <CornerFlourish className="absolute -left-2 -top-2 h-10 w-10 text-gold/30" />
-                <span className="font-logotype text-4xl text-gold">{ch.number}</span>
+                <span className="font-logotype text-4xl text-gold">{formatNumeral(ch.number, language)}</span>
                 <h3 className="mt-4 font-display text-lg leading-snug text-ink">{ch.title}</h3>
               </div>
             </Reveal>
@@ -317,7 +311,7 @@ function AuthorSection({ book }: { book: AdminBook }) {
             {displayName.trim().charAt(0) || t("book.author.fallbackInitial")}
           </div>
         </Reveal>
-        <Reveal delay={0.1} className="text-center lg:text-right">
+        <Reveal delay={0.1} className="text-center lg:text-start">
           <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("book.author.aboutLabel")}</p>
           <h2 className="mt-4 font-display text-3xl text-ink md:text-4xl">{displayName}</h2>
           {book.authorBio && (
@@ -334,7 +328,7 @@ function AuthorSection({ book }: { book: AdminBook }) {
 
 function PurchaseSection({ book }: { book: AdminBook }) {
   const price = book.prices.USD;
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <section id="purchase" className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
       <Reveal className="mx-auto max-w-3xl rounded-[10px] border border-gold/30 bg-ivory p-10 text-center lg:p-14">
@@ -349,7 +343,7 @@ function PurchaseSection({ book }: { book: AdminBook }) {
           </div>
         )}
         <p className="mt-2 text-sm text-ink-soft">
-          {book.format} · {toArabicNumeral(book.pages)} {t("book.purchase.pages")} · {book.language}
+          {book.format} · {formatNumeral(book.pages, language)} {t("book.purchase.pages")} · {book.language}
         </p>
         <div className="mt-8 flex justify-center">
           <StampCTA to="/checkout">{book.ctaLabel || t("home.cta.orderNow")}</StampCTA>
@@ -374,12 +368,12 @@ function GuaranteeSection() {
           />
         </Reveal>
 
-        <Reveal delay={0.1} className="text-center lg:text-right">
+        <Reveal delay={0.1} className="text-center lg:text-start">
           <h2 className="font-display text-3xl leading-tight text-ink md:text-4xl">
             {getValue("bookpage.guarantee.title")}
           </h2>
 
-          <p className="mt-4 max-w-md text-balance leading-loose text-ink-soft lg:mr-0 lg:ml-auto">
+          <p className="mt-4 max-w-md text-balance leading-loose text-ink-soft lg:ms-0 lg:me-auto">
             {getValue("bookpage.guarantee.body")}
           </p>
         </Reveal>
@@ -416,7 +410,7 @@ function FaqSection({ book }: { book: AdminBook }) {
                   onClick={() => setOpen(isOpen ? null : i)}
                   aria-expanded={isOpen}
                   aria-controls={panelId}
-                  className="flex w-full items-center justify-between gap-4 text-right"
+                  className="flex w-full items-center justify-between gap-4 text-start"
                 >
                   <span className="font-display text-lg text-ink">{faq.question}</span>
                   <span className={`shrink-0 text-gold transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`}>
@@ -498,7 +492,7 @@ function SimpleBookPage({ book }: { book: AdminBook }) {
               )}
             </div>
           </Reveal>
-          <Reveal delay={0.1} className="text-center lg:text-right">
+          <Reveal delay={0.1} className="text-center lg:text-start">
             <p className="text-sm uppercase tracking-[0.25em] text-gold">{getCategoryLabel(book.category)}</p>
             <h1 className="mt-4 font-display text-4xl text-ink md:text-5xl">{book.title}</h1>
             <p className="mt-4 text-balance leading-loose text-ink-soft">{book.subtitle}</p>

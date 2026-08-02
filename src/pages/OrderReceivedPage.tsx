@@ -3,19 +3,21 @@ import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Helmet } from "../components/Helmet";
 import { IconSuccess } from "../components/checkout/icons";
+import { useLanguage } from "../context/LanguageContext";
 
 const OrderSuccessPage: React.FC = () => {
   const location = useLocation();
   const orderId = (location.state as { orderId?: string } | null)?.orderId;
+  const { t, dir } = useLanguage();
 
   return (
     <main
-      dir="rtl"
+      dir={dir}
       className="flex min-h-screen flex-col items-center justify-center gap-6 bg-ivory px-4 py-16 text-center"
     >
       <Helmet
-        title="تم استلام طلبك — رقيم"
-        description="تم استلام طلبك بنجاح وهو قيد المراجعة."
+        title={t("orderReceived.seo.title")}
+        description={t("orderReceived.seo.description")}
         path="/order-received"
         noindex
       />
@@ -34,15 +36,14 @@ const OrderSuccessPage: React.FC = () => {
         className="max-w-md"
       >
         <h1 className="text-2xl font-semibold text-ink">
-          شكرًا لك على شراءك
+          {t("orderReceived.thankYou")}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-          تم استلام طلب الدفع الخاص بك بنجاح. سنقوم بمراجعة الدفع وإرسال رابط
-          التحميل إلى بريدك الإلكتروني في أقرب وقت ممكن.
+          {t("orderReceived.body")}
         </p>
         {orderId && (
           <p className="mt-3 text-xs text-ink-faint" dir="ltr">
-            رقم الطلب: {orderId}
+            {t("orderReceived.orderIdPrefix")}{orderId}
           </p>
         )}
       </motion.div>
@@ -57,13 +58,13 @@ const OrderSuccessPage: React.FC = () => {
           to="/"
           className="rounded-full bg-ink px-6 py-2.5 text-sm font-medium text-beige transition hover:bg-gold-deep"
         >
-          العودة للصفحة الرئيسية
+          {t("orderReceived.backHome")}
         </Link>
         <Link
           to="/checkout"
           className="rounded-full border border-gold px-6 py-2.5 text-sm font-medium text-gold-deep transition hover:bg-beige"
         >
-          متابعة التسوق
+          {t("orderReceived.continueShopping")}
         </Link>
       </motion.div>
     </main>

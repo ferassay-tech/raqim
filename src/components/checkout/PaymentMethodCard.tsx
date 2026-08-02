@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import type { PaymentMethodConfig } from "../../config/paymentMethods";
 import { iconMap as icons } from "./icons";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface PaymentMethodCardProps {
   method: PaymentMethodConfig;
@@ -13,6 +14,7 @@ export const PaymentMethodCard: React.FC<PaymentMethodCardProps> = ({
   onSelect,
 }) => {
   const Icon = icons[method.iconKey];
+  const { t, language } = useLanguage();
 
   return (
     <motion.div
@@ -28,17 +30,17 @@ export const PaymentMethodCard: React.FC<PaymentMethodCardProps> = ({
           <h3 className="text-base font-semibold text-ink">
             {method.title}
           </h3>
-          <p className="text-xs text-ink-soft">{method.shortDescription}</p>
+          <p className="text-xs text-ink-soft">{method.shortDescription[language]}</p>
         </div>
       </div>
 
       <button
         type="button"
         onClick={() => onSelect(method.id)}
-        aria-label={`متابعة الدفع عبر ${method.title}`}
+        aria-label={`${t("paymentMethodCard.selectAriaPrefix")}${method.title}`}
         className="w-full rounded-full bg-ink py-2.5 text-sm font-medium text-beige transition hover:bg-gold-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
       >
-        متابعة
+        {t("paymentMethodCard.continue")}
       </button>
     </motion.div>
   );

@@ -97,7 +97,7 @@ function migrateBook(raw: AdminBookRaw): AdminBookRaw {
     })),
     reviews: (raw.reviews ?? []).map((r, i) => ({
       quote: migrateLocalizedText(r.quote, seed?.reviews?.[i]?.quote),
-      name: r.name,
+      name: migrateLocalizedText(r.name, seed?.reviews?.[i]?.name),
       role: migrateLocalizedText(r.role, seed?.reviews?.[i]?.role),
     })),
     faq: (raw.faq ?? []).map((f, i) => ({
@@ -106,6 +106,8 @@ function migrateBook(raw: AdminBookRaw): AdminBookRaw {
     })),
     ctaLabel: migrateLocalizedText(raw.ctaLabel, seed?.ctaLabel),
     badges: (raw.badges ?? []).map((b, i) => migrateLocalizedText(b, seed?.badges?.[i])),
+    language: migrateLocalizedText(raw.language, seed?.language),
+    format: migrateLocalizedText(raw.format, seed?.format),
     seoTitle: migrateLocalizedText(raw.seoTitle, seed?.seoTitle),
     seoDescription: migrateLocalizedText(raw.seoDescription, seed?.seoDescription),
   };
@@ -128,12 +130,14 @@ function resolveBook(raw: AdminBookRaw, language: Language): AdminBook {
     chapters: raw.chapters.map((c) => ({ number: c.number, title: resolveText(c.title, language) })),
     reviews: raw.reviews.map((r) => ({
       quote: resolveText(r.quote, language),
-      name: r.name,
+      name: resolveText(r.name, language),
       role: resolveText(r.role, language),
     })),
     faq: raw.faq.map((f) => ({ question: resolveText(f.question, language), answer: resolveText(f.answer, language) })),
     ctaLabel: resolveText(raw.ctaLabel, language),
     badges: raw.badges.map((b) => resolveText(b, language)),
+    language: resolveText(raw.language, language),
+    format: resolveText(raw.format, language),
     seoTitle: resolveText(raw.seoTitle, language),
     seoDescription: resolveText(raw.seoDescription, language),
   };
