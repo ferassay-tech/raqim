@@ -163,7 +163,7 @@ function HeroSection({ book }: { book: AdminBook | null }) {
             </h1>
           </Reveal>
           <Reveal delay={0.14}>
-            <div className="mt-6 flex justify-center lg:justify-end">
+            <div className="mt-6 flex justify-center lg:rtl:justify-end lg:ltr:justify-start">
               <GoldDivider className="h-5 w-52 text-gold" />
             </div>
           </Reveal>
@@ -173,7 +173,7 @@ function HeroSection({ book }: { book: AdminBook | null }) {
             </p>
           </Reveal>
           <Reveal delay={0.26}>
-            <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-end">
+            <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:rtl:justify-end lg:ltr:justify-start">
               {book && <StampCTA to={`/books/${book.id}`}>{book.ctaLabel || t("home.cta.orderNow")}</StampCTA>}
               <UnderlineLink to="/about">{t("home.hero.aboutLink")}</UnderlineLink>
             </div>
@@ -284,7 +284,7 @@ function FeaturedBookSection({ book }: { book: AdminBook }) {
             </h2>
           </Reveal>
           <Reveal delay={0.14}>
-            <div className="mt-5 flex justify-center lg:justify-end">
+            <div className="mt-5 flex justify-center lg:rtl:justify-end lg:ltr:justify-start">
               <GoldDivider className="h-4 w-44 text-gold" />
             </div>
           </Reveal>
@@ -294,7 +294,7 @@ function FeaturedBookSection({ book }: { book: AdminBook }) {
             </p>
           </Reveal>
           <Reveal delay={0.26}>
-            <div className="mt-8 flex justify-center lg:justify-end">
+            <div className="mt-8 flex justify-center lg:rtl:justify-end lg:ltr:justify-start">
               <UnderlineLink to={`/books/${book.id}`}>{t("home.featuredBook.readMore")}</UnderlineLink>
             </div>
           </Reveal>

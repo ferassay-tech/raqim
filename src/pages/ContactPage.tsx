@@ -113,10 +113,11 @@ export default function ContactPage() {
                   <span
                    aria-hidden
                    className={`transition-transform duration-300 ${
-                    loading ? "opacity-50" : "group-hover:translate-x-[-4px] rtl:group-hover:translate-x-[4px]"
+                    loading ? "opacity-50" : "ltr:group-hover:translate-x-[4px] rtl:group-hover:translate-x-[-4px]"
                   }`}
                 >
-                  ←
+                  <span className="rtl:hidden">→</span>
+                  <span className="ltr:hidden">←</span>
                </span>
                 </button>
               </form>

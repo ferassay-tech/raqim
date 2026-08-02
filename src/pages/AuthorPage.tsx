@@ -67,7 +67,7 @@ export default function AuthorPage() {
           </Reveal>
           <Reveal delay={0.1} className="text-center lg:text-start">
             <h1 className="mt-4 font-display text-4xl text-ink md:text-5xl">{displayName}</h1>
-            <div className="mt-5 flex justify-center lg:justify-end">
+            <div className="mt-5 flex justify-center lg:rtl:justify-end lg:ltr:justify-start">
               <GoldDivider className="h-4 w-44 text-gold" />
             </div>
             {authorBio && (

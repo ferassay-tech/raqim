@@ -25,9 +25,10 @@ export function StampCTA({
       <span className="relative z-10">{children}</span>
       <span
         aria-hidden
-        className="relative z-10 transition-transform duration-300 group-hover:translate-x-[-4px] rtl:group-hover:translate-x-[4px]"
+        className="relative z-10 transition-transform duration-300 ltr:group-hover:translate-x-[4px] rtl:group-hover:translate-x-[-4px]"
       >
-        ←
+        <span className="rtl:hidden">→</span>
+        <span className="ltr:hidden">←</span>
       </span>
       <span
         aria-hidden
@@ -96,8 +97,9 @@ export function UnderlineLink({
           />
         </svg>
       </span>
-      <span className="transition-transform duration-300 group-hover:-translate-x-1 rtl:group-hover:translate-x-1">
-        ←
+      <span className="transition-transform duration-300 ltr:group-hover:translate-x-1 rtl:group-hover:-translate-x-1">
+        <span className="rtl:hidden">→</span>
+        <span className="ltr:hidden">←</span>
       </span>
     </>
   );
