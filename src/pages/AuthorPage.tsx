@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { Link, useParams, Navigate } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import NotFoundPage from "./NotFoundPage";
 import { PageShell } from "../components/page-shell";
 import { GoldDivider } from "../components/ornaments";
 import { UnderlineLink } from "../components/cta";
@@ -32,7 +33,7 @@ export default function AuthorPage() {
   }, [books, slug]);
 
   const primaryBook = authorBooks[0];
-  if (!primaryBook) return <Navigate to="/books" replace />;
+  if (!primaryBook) return <NotFoundPage />;
 
   const authorName = primaryBook.author;
   const authorBio = primaryBook.authorBio;

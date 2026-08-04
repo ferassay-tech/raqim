@@ -1,4 +1,5 @@
-import { Link, useParams, Navigate } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import NotFoundPage from "./NotFoundPage";
 import { PageShell } from "../components/page-shell";
 import { Reveal } from "../components/motion-primitives";
 import { GoldDivider } from "../components/ornaments";
@@ -21,7 +22,7 @@ export default function BlogPostPage() {
   const { settings } = useSettings();
   const { t, language } = useLanguage();
 
-  if (!post) return <Navigate to="/blog" replace />;
+  if (!post) return <NotFoundPage />;
 
   const coverDims = getDimensions(post.coverImage);
   const paragraphs = post.content.split(/\n{2,}/).filter((p) => p.trim().length > 0);

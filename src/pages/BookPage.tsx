@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link, useParams, Navigate } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import NotFoundPage from "./NotFoundPage";
 import { Helmet } from "../components/Helmet";
 import { PageShell } from "../components/page-shell";
 import { GoldDivider, CornerFlourish, QuoteMark, IconHeart } from "../components/ornaments";
@@ -29,7 +30,7 @@ export default function BookPage() {
   const { t, language } = useLanguage();
   const book = slug ? getBook(slug) : undefined;
 
-  if (!book || book.deletedAt !== null) return <Navigate to="/books" replace />;
+  if (!book || book.deletedAt !== null) return <NotFoundPage />;
 
   const hasFullContent = book.placement !== "comingSoon";
   const faqItems = book.faq.length > 0 ? book.faq : globalFaqs;
