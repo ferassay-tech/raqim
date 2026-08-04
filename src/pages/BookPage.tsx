@@ -135,7 +135,7 @@ function BookHero({ book }: { book: AdminBook }) {
             <h1 className="mt-5 font-display text-5xl leading-[1.15] text-ink md:text-7xl">{book.title}</h1>
           </Reveal>
           <Reveal delay={0.14}>
-            <div className="mt-6 flex max-lg:justify-center lg:rtl:justify-end lg:ltr:justify-start">
+            <div className="mt-6 flex max-lg:justify-center lg:justify-start">
               <GoldDivider className="h-5 w-52 text-gold" />
             </div>
           </Reveal>
