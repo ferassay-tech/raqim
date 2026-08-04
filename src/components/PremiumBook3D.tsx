@@ -289,34 +289,27 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
           });
       };
 
-      if (hasPreview) {
-        // Product page — unchanged: any first click anywhere requests
-        // permission once. Not to be touched by the Hero-only change below.
-        const requestOnFirstTap = () => requestPermission();
-        window.addEventListener("click", requestOnFirstTap, { once: true });
-        return () => {
-          active = false;
-          window.removeEventListener("click", requestOnFirstTap);
-          cleanup();
-        };
-      }
-
-      // Hero only: the book's own tap must never be the gesture that
-      // enables this (it already has its own click handler for the
-      // decorative peek, and a permission prompt appearing at the same
-      // moment the book opens reads as broken/coupled). iOS still needs
-      // *some* gesture, so this waits for the first click that does NOT
-      // originate from inside the book itself — no {once:true}, since a
-      // click on the book must be ignored, not consumed.
-      const requestOnFirstOutsideTap = (e: MouseEvent) => {
-        if (containerRef.current?.contains(e.target as Node)) return;
-        window.removeEventListener("click", requestOnFirstOutsideTap);
+      // The very first touch anywhere on the page — including the book
+      // itself — requests permission, on "touchstart" rather than "click"
+      // so it fires the instant a finger lands, before the tap even
+      // resolves into a click/open animation. Previously the Hero variant
+      // excluded taps landing on the book, waiting only for a click
+      // elsewhere on the page; a visitor whose only interaction was tilting
+      // the phone while looking at the book would never trigger a click at
+      // all, so gyroscope tilt would never turn on. Falls back to "click"
+      // for pointer/mouse-based testing (e.g. desktop devtools device
+      // emulation), which never fires "touchstart".
+      const requestOnFirstTouch = () => {
+        window.removeEventListener("touchstart", requestOnFirstTouch);
+        window.removeEventListener("click", requestOnFirstTouch);
         requestPermission();
       };
-      window.addEventListener("click", requestOnFirstOutsideTap);
+      window.addEventListener("touchstart", requestOnFirstTouch, { passive: true });
+      window.addEventListener("click", requestOnFirstTouch);
       return () => {
         active = false;
-        window.removeEventListener("click", requestOnFirstOutsideTap);
+        window.removeEventListener("touchstart", requestOnFirstTouch);
+        window.removeEventListener("click", requestOnFirstTouch);
         cleanup();
       };
     }
@@ -344,11 +337,12 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
       window.removeEventListener("touchstart", reattachOnFirstTouch);
       cleanup();
     };
-  }, [isMobile, reducedMotion, mouseX, mouseY, hasPreview]);
+  }, [isMobile, reducedMotion, mouseX, mouseY]);
 
-  // Mobile can't hover, so it gets a one-time scripted demo instead: once the
-  // book is meaningfully in view, open the cover and turn three pages with
-  // pauses between, then stop — just enough to show it's interactive. Runs
+  // Mobile can't hover, so it gets a one-time, single slow reveal instead:
+  // once the book is meaningfully in view, open the cover just enough to
+  // show page 1 — a single deliberate motion, not a rapid multi-page
+  // auto-play (which read as a bug rather than a premium animation). Runs
   // once per browser session per book (keyed off the cover image, so this
   // stays generic for future books without needing an extra id prop).
   useEffect(() => {
@@ -379,14 +373,13 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
           /* ignore quota errors */
         }
 
-        // The cover is just page 0 now, so the very first flipNext() both
-        // opens it and reveals previewPages[0] in one motion — there's no
-        // separate "open" step anymore. Gaps need room for each flip
-        // (FLIP_DURATION) to fully settle before the next one starts.
-        const target = Math.min(3, pageCount);
-        schedule(() => bookRef.current?.pageFlip().flipNext(), 150);
-        if (target >= 2) schedule(() => bookRef.current?.pageFlip().flipNext(), 150 + (FLIP_DURATION + 150));
-        if (target >= 3) schedule(() => bookRef.current?.pageFlip().flipNext(), 150 + 2 * (FLIP_DURATION + 150));
+        // The cover is just page 0 now, so the single flipNext() both opens
+        // it and reveals previewPages[0] in one motion. A generous pause
+        // before it starts (the book has to actually settle into view and
+        // read as "arrived," not auto-play the instant it's technically
+        // intersecting) plus a single flip — no second or third page turn
+        // follows.
+        if (pageCount >= 1) schedule(() => bookRef.current?.pageFlip().flipNext(), 700);
       },
       { threshold: 0.45 }
     );
