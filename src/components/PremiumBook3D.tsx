@@ -289,27 +289,45 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
           });
       };
 
-      // The very first touch anywhere on the page — including the book
-      // itself — requests permission, on "touchstart" rather than "click"
-      // so it fires the instant a finger lands, before the tap even
-      // resolves into a click/open animation. Previously the Hero variant
-      // excluded taps landing on the book, waiting only for a click
-      // elsewhere on the page; a visitor whose only interaction was tilting
-      // the phone while looking at the book would never trigger a click at
-      // all, so gyroscope tilt would never turn on. Falls back to "click"
-      // for pointer/mouse-based testing (e.g. desktop devtools device
-      // emulation), which never fires "touchstart".
-      const requestOnFirstTouch = () => {
-        window.removeEventListener("touchstart", requestOnFirstTouch);
-        window.removeEventListener("click", requestOnFirstTouch);
+      if (hasPreview) {
+        // Book Details page — the very first touch anywhere on the page,
+        // including the book itself, requests permission, on "touchstart"
+        // rather than "click" so it fires the instant a finger lands.
+        // Falls back to "click" for pointer/mouse-based testing (e.g.
+        // desktop devtools device emulation), which never fires
+        // "touchstart". This variant is unrelated to the Hero branch below
+        // and must not be touched by changes there.
+        const requestOnFirstTouch = () => {
+          window.removeEventListener("touchstart", requestOnFirstTouch);
+          window.removeEventListener("click", requestOnFirstTouch);
+          requestPermission();
+        };
+        window.addEventListener("touchstart", requestOnFirstTouch, { passive: true });
+        window.addEventListener("click", requestOnFirstTouch);
+        return () => {
+          active = false;
+          window.removeEventListener("touchstart", requestOnFirstTouch);
+          window.removeEventListener("click", requestOnFirstTouch);
+          cleanup();
+        };
+      }
+
+      // Hero only: the book's own tap must never be the gesture that
+      // enables this (it already has its own click handler for the
+      // decorative peek, and a permission prompt appearing at the same
+      // moment the book opens reads as broken/coupled). iOS still needs
+      // *some* gesture, so this waits for the first click that does NOT
+      // originate from inside the book itself — no {once:true}, since a
+      // click on the book must be ignored, not consumed.
+      const requestOnFirstOutsideTap = (e: MouseEvent) => {
+        if (containerRef.current?.contains(e.target as Node)) return;
+        window.removeEventListener("click", requestOnFirstOutsideTap);
         requestPermission();
       };
-      window.addEventListener("touchstart", requestOnFirstTouch, { passive: true });
-      window.addEventListener("click", requestOnFirstTouch);
+      window.addEventListener("click", requestOnFirstOutsideTap);
       return () => {
         active = false;
-        window.removeEventListener("touchstart", requestOnFirstTouch);
-        window.removeEventListener("click", requestOnFirstTouch);
+        window.removeEventListener("click", requestOnFirstOutsideTap);
         cleanup();
       };
     }
@@ -337,7 +355,7 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
       window.removeEventListener("touchstart", reattachOnFirstTouch);
       cleanup();
     };
-  }, [isMobile, reducedMotion, mouseX, mouseY]);
+  }, [isMobile, reducedMotion, mouseX, mouseY, hasPreview]);
 
   // Mobile can't hover, so it gets a one-time, single slow reveal instead:
   // once the book is meaningfully in view, open the cover just enough to
