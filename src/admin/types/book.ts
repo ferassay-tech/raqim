@@ -33,6 +33,10 @@ export interface BookReview {
   quote: string;
   name: string;
   role: string;
+  /** 1-5 whole-star rating the reviewer actually gave — real, stored data,
+   * never computed/guessed. Feeds each Review's own `reviewRating` and the
+   * Book's site-wide `aggregateRating` in structuredData.ts. */
+  rating: number;
 }
 
 export interface BookFaqItem {
@@ -124,6 +128,9 @@ export interface BookReviewRaw {
   quote: LocalizedText;
   name: LocalizedText;
   role: LocalizedText;
+  /** 1-5 whole-star rating — plain number, not bilingual (a rating has no
+   * language). See BookReview.rating for how it's used downstream. */
+  rating: number;
 }
 
 export interface BookFaqItemRaw {

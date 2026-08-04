@@ -349,7 +349,12 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
               label="آراء القارئات"
               items={values.reviews}
               onChange={(v) => set("reviews", v)}
-              newItem={() => ({ quote: { ...EMPTY_LOCALIZED }, name: { ...EMPTY_LOCALIZED }, role: { ...EMPTY_LOCALIZED } })}
+              newItem={() => ({
+                quote: { ...EMPTY_LOCALIZED },
+                name: { ...EMPTY_LOCALIZED },
+                role: { ...EMPTY_LOCALIZED },
+                rating: 5,
+              })}
               addLabel="إضافة رأي"
               emptyLabel="لا توجد آراء بعد."
               renderItem={(item, update) => (
@@ -372,6 +377,12 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
                       onChange={(v) => update({ ...item, role: { ...item.role, [editingLanguage]: v } })}
                     />
                   </div>
+                  <Select
+                    label="التقييم (من ٥)"
+                    value={String(item.rating)}
+                    onChange={(v) => update({ ...item, rating: Number(v) })}
+                    options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))}
+                  />
                 </div>
               )}
             />

@@ -136,6 +136,7 @@ export const INITIAL_BOOKS: AdminBookRaw[] = [
         },
         name: { ar: "هيجر البلتاجي", en: "Hajar Al-Baltagy" },
         role: { ar: "قارئة من غزة", en: "Reader from Gaza" },
+        rating: 5,
       },
       {
         quote: {
@@ -144,6 +145,7 @@ export const INITIAL_BOOKS: AdminBookRaw[] = [
         },
         name: { ar: "ايمان خليل", en: "Iman Khalil" },
         role: { ar: "قارئة", en: "Reader" },
+        rating: 5,
       },
       {
         quote: {
@@ -152,6 +154,7 @@ export const INITIAL_BOOKS: AdminBookRaw[] = [
         },
         name: { ar: "نورة المصري", en: "Noura Al-Masry" },
         role: { ar: "مدربة تنمية أسرية", en: "Family development coach" },
+        rating: 5,
       },
     ],
     // Deliberately empty: the original site's book page always showed the

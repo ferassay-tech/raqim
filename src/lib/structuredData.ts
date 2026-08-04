@@ -158,15 +158,34 @@ export function bookSchema(book: AdminBook, language: Language) {
         ...(book.sku && { sku: book.sku }),
       },
     }),
-    // Real, on-page testimonials only — no fabricated rating value, since
-    // none is ever collected for a book (AdminBook has no numeric rating
-    // field), so an AggregateRating is deliberately never added here.
+    // Real, on-page testimonials, each with its own real reviewRating
+    // (AdminBook.reviews[].rating — an actual stored value, never guessed),
+    // plus an AggregateRating computed live from those same stored ratings.
+    // Nothing here is hardcoded: add, remove, or re-rate a review in the
+    // Dashboard and reviewCount/ratingValue recompute from that same data
+    // the next time this schema is built.
     ...(book.reviews.length > 0 && {
       review: book.reviews.map((review) => ({
         "@type": "Review",
         reviewBody: review.quote,
         author: { "@type": "Person", name: review.name },
+        reviewRating: {
+          "@type": "Rating",
+          ratingValue: review.rating,
+          bestRating: 5,
+          worstRating: 1,
+        },
       })),
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue:
+          Math.round(
+            (book.reviews.reduce((sum, review) => sum + review.rating, 0) / book.reviews.length) * 10
+          ) / 10,
+        reviewCount: book.reviews.length,
+        bestRating: 5,
+        worstRating: 1,
+      },
     }),
   };
 }

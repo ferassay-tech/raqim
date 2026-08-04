@@ -99,6 +99,13 @@ function migrateBook(raw: AdminBookRaw): AdminBookRaw {
       quote: migrateLocalizedText(r.quote, seed?.reviews?.[i]?.quote),
       name: migrateLocalizedText(r.name, seed?.reviews?.[i]?.name),
       role: migrateLocalizedText(r.role, seed?.reviews?.[i]?.role),
+      // Older stored records predate this field — self-heal from the seed's
+      // real rating for that same review (matched by index) rather than
+      // ever inventing one; only falls back to a literal default if a
+      // record somehow has no seed counterpart at all (e.g. a review an
+      // admin already deleted from the seed but that still lingers in a
+      // browser's storage).
+      rating: r.rating ?? seed?.reviews?.[i]?.rating ?? 5,
     })),
     faq: (raw.faq ?? []).map((f, i) => ({
       question: migrateLocalizedText(f.question, seed?.faq?.[i]?.question),
@@ -132,6 +139,7 @@ function resolveBook(raw: AdminBookRaw, language: Language): AdminBook {
       quote: resolveText(r.quote, language),
       name: resolveText(r.name, language),
       role: resolveText(r.role, language),
+      rating: r.rating,
     })),
     faq: raw.faq.map((f) => ({ question: resolveText(f.question, language), answer: resolveText(f.answer, language) })),
     ctaLabel: resolveText(raw.ctaLabel, language),
