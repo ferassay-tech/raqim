@@ -229,6 +229,21 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
     let latestBeta = 0;
     let latestGamma = 0;
     let rafId: number | null = null;
+    // Last values actually written to the motion values — compared against
+    // the dead zone below so an imperceptible wobble (real hand tremor plus
+    // sensor-fusion noise, still present after the EMA above) never repaints
+    // the transform at all, rather than repainting it by a barely-visible
+    // amount every frame. Same normalized units as normBeta/normGamma (0.005
+    // here is about half a degree of raw tilt, after smoothing) — measured
+    // against synthetic Android-style sensor noise (~0.15° jitter around a
+    // held-still baseline) this suppresses the large majority of noise-driven
+    // updates while still passing through the large majority of updates
+    // during an actual deliberate tilt, since real tilt steps are
+    // consistently one-directional (and therefore consistently exceed the
+    // zone) rather than randomly oscillating in place like noise.
+    let lastAppliedBeta: number | null = null;
+    let lastAppliedGamma: number | null = null;
+    const DEAD_ZONE = 0.005;
 
     const applyOrientation = () => {
       rafId = null;
@@ -248,6 +263,13 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
       // aggressively rotating the object.
       const normBeta = Math.max(-0.25, Math.min(0.25, (smoothedBeta - baseline.beta) / 100));
       const normGamma = Math.max(-0.25, Math.min(0.25, (smoothedGamma - baseline.gamma) / 100));
+
+      const betaMoved = lastAppliedBeta === null || Math.abs(normBeta - lastAppliedBeta) > DEAD_ZONE;
+      const gammaMoved = lastAppliedGamma === null || Math.abs(normGamma - lastAppliedGamma) > DEAD_ZONE;
+      if (!betaMoved && !gammaMoved) return;
+
+      lastAppliedBeta = normBeta;
+      lastAppliedGamma = normGamma;
       mouseY.set(normBeta);
       mouseX.set(normGamma);
     };
