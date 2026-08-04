@@ -244,10 +244,28 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
     let lastAppliedBeta: number | null = null;
     let lastAppliedGamma: number | null = null;
     const DEAD_ZONE = 0.005;
+    // Set the moment the first real reading arrives — applyOrientation must
+    // never calibrate `baseline` against the {0,0} defaults latestBeta/
+    // latestGamma start at, which would happen if the frame loop below ran
+    // even once before any actual sensor data existed.
+    let hasReading = false;
 
     const applyOrientation = () => {
-      rafId = null;
       if (!active) return;
+      // Self-perpetuating: reschedules unconditionally every frame, for as
+      // long as this effect is mounted, rather than only in reaction to an
+      // incoming sensor event. deviceorientation delivery is irregular/bursty
+      // in practice (especially on Android), so tying the applied update
+      // cadence to event arrival — even when coalesced to "at most once per
+      // frame" — still means the target the spring chases moves at whatever
+      // uneven pace events happen to show up, producing a visible snap/jump
+      // while continuously tilting. Ticking here on a steady, independent
+      // rAF clock and simply reading whatever the latest reading happens to
+      // be decouples the applied cadence from sensor timing entirely; the
+      // event handler below now only ever writes that latest reading, never
+      // schedules anything itself.
+      rafId = requestAnimationFrame(applyOrientation);
+      if (!hasReading) return;
       if (baseline === null) baseline = { beta: latestBeta, gamma: latestGamma };
       smoothedBeta =
         smoothedBeta === null ? latestBeta : smoothedBeta + (latestBeta - smoothedBeta) * SMOOTHING;
@@ -276,21 +294,23 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
 
     const handleOrientation = (e: DeviceOrientationEvent) => {
       if (!active) return;
+      // Only ever records the latest raw reading — the continuously running
+      // frame loop above (started by attach()) is solely responsible for
+      // reading it and applying it, so this never itself schedules or
+      // triggers a repaint at the sensor's own, possibly irregular, cadence.
       latestBeta = e.beta ?? 0;
       latestGamma = e.gamma ?? 0;
-      // Sensors can dispatch far more often than the screen repaints —
-      // coalesce to at most one applied update per animation frame instead
-      // of pushing every single raw event straight through, which is its
-      // own separate source of visible stutter.
-      if (rafId === null) {
-        rafId = requestAnimationFrame(applyOrientation);
-      }
+      hasReading = true;
     };
 
-    const attach = () => window.addEventListener("deviceorientation", handleOrientation);
+    const attach = () => {
+      window.addEventListener("deviceorientation", handleOrientation);
+      if (rafId === null) rafId = requestAnimationFrame(applyOrientation);
+    };
     const cleanup = () => {
       window.removeEventListener("deviceorientation", handleOrientation);
       if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = null;
     };
 
     const RequestableDeviceOrientationEvent = window.DeviceOrientationEvent as unknown as {
