@@ -15,6 +15,10 @@ type OgType = "website" | "book" | "article";
 
 type HelmetProps = {
   title: string;
+  /** Falls back to the Dashboard's Settings → SEO description when a page
+   * doesn't supply its own, so the description meta tags always have real,
+   * page-appropriate content instead of silently keeping whatever the
+   * previously-visited page last set (see the always-run block below). */
   description?: string;
   /** Site-relative path (e.g. "/books/kuni-hajar") — canonical and og:url
    * are both derived from this via `absoluteUrl`, so no page hand-builds
@@ -31,6 +35,10 @@ type HelmetProps = {
    * tags rather than reporting the wrong size. */
   imageWidth?: number;
   imageHeight?: number;
+  /** Describes whatever `og:image` actually resolves to. Falls back to
+   * `title` when a page doesn't supply one — every page already has a
+   * specific, meaningful title, so this is never left empty. */
+  imageAlt?: string;
   type?: OgType;
   /** True for transactional/utility/private pages (checkout, payment,
    * order-received, download, search, 404) that should never be indexed. */
@@ -47,6 +55,7 @@ export function Helmet({
   image,
   imageWidth,
   imageHeight,
+  imageAlt,
   type = "website",
   noindex = false,
   publishedTime,
@@ -69,6 +78,12 @@ export function Helmet({
   const dashboardDims = !image && dashboardImage ? getDimensions(dashboardImage) : null;
   const resolvedWidth = image ? imageWidth : dashboardImage ? dashboardDims?.width : DEFAULT_OG_IMAGE_WIDTH;
   const resolvedHeight = image ? imageHeight : dashboardImage ? dashboardDims?.height : DEFAULT_OG_IMAGE_HEIGHT;
+  // Same "always resolves to something real" pattern as the image chain
+  // above — a page's own description wins, otherwise the Dashboard's
+  // Settings → SEO description, so these tags are never conditionally
+  // skipped (see the always-run block below) and can never go stale.
+  const resolvedDescription = description || settings.seo.description;
+  const resolvedImageAlt = imageAlt || title;
 
   useEffect(() => {
     document.title = title;
@@ -103,20 +118,25 @@ export function Helmet({
 
     const url = absoluteUrl(path);
 
-    if (description) {
-      setMeta('meta[name="description"]', "name", description);
-      setMeta('meta[property="og:description"]', "property", description);
-      setMeta('meta[name="twitter:description"]', "name", description);
-    }
+    // Always run, never conditionally skipped — resolvedDescription already
+    // falls back to the sitewide default above, so these three tags are
+    // guaranteed fresh on every navigation instead of possibly keeping
+    // whatever the previously-visited page last set.
+    setMeta('meta[name="description"]', "name", resolvedDescription);
+    setMeta('meta[property="og:description"]', "property", resolvedDescription);
+    setMeta('meta[name="twitter:description"]', "name", resolvedDescription);
 
     setMeta('meta[property="og:site_name"]', "property", localizeProperName(SITE_NAME, language));
     setMeta('meta[property="og:type"]', "property", type);
     setMeta('meta[property="og:title"]', "property", title);
+    setMeta('meta[property="og:locale"]', "property", language === "ar" ? "ar_AR" : "en_US");
     setMeta('meta[name="twitter:card"]', "name", "summary_large_image");
     setMeta('meta[name="twitter:title"]', "name", title);
 
     setMeta('meta[property="og:image"]', "property", resolvedImage);
     setMeta('meta[name="twitter:image"]', "name", resolvedImage);
+    setMeta('meta[property="og:image:alt"]', "property", resolvedImageAlt);
+    setMeta('meta[name="twitter:image:alt"]', "name", resolvedImageAlt);
     if (resolvedWidth) setMeta('meta[property="og:image:width"]', "property", String(resolvedWidth));
     else removeMeta('meta[property="og:image:width"]');
     if (resolvedHeight) setMeta('meta[property="og:image:height"]', "property", String(resolvedHeight));
@@ -133,7 +153,7 @@ export function Helmet({
     else removeMeta('meta[property="article:modified_time"]');
   }, [
     title,
-    description,
+    resolvedDescription,
     path,
     type,
     noindex,
@@ -142,6 +162,7 @@ export function Helmet({
     resolvedImage,
     resolvedWidth,
     resolvedHeight,
+    resolvedImageAlt,
     language,
   ]);
 
