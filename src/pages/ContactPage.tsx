@@ -2,22 +2,38 @@ import { useState } from "react";
 import { PageShell, PageHeader } from "../components/page-shell";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
+import { StructuredData } from "../components/StructuredData";
 import { useSettings } from "../admin/context/SettingsContext";
 import { useSiteContent } from "../admin/context/SiteContentContext";
 import { useLanguage } from "../context/LanguageContext";
+import { buildGraph, breadcrumbSchema, webPageSchema } from "../lib/structuredData";
 
 export default function ContactPage() {
   const { settings } = useSettings();
   const { getValue } = useSiteContent();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", message: "" });
 
+  const contactJsonLd = buildGraph([
+    webPageSchema({
+      name: t("contact.seo.title"),
+      description: t("contact.seo.description"),
+      path: "/contact",
+      language,
+    }),
+    breadcrumbSchema([
+      { name: t("about.breadcrumb.home"), path: "/" },
+      { name: t("contact.eyebrow"), path: "/contact" },
+    ]),
+  ]);
+
   return (
     <PageShell>
       <Helmet title={t("contact.seo.title")} description={t("contact.seo.description")} path="/contact" />
+      <StructuredData json={contactJsonLd} />
       <PageHeader eyebrow={t("contact.eyebrow")} title={t("contact.title")} description={t("contact.description")} />
 
       <section className="px-6 py-20 lg:px-10">

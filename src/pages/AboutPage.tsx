@@ -4,13 +4,19 @@ import { Reveal } from "../components/motion-primitives";
 import { UnderlineLink } from "../components/cta";
 import { Helmet } from "../components/Helmet";
 import { StructuredData } from "../components/StructuredData";
-import { buildGraph, breadcrumbSchema } from "../lib/structuredData";
+import { buildGraph, breadcrumbSchema, webPageSchema } from "../lib/structuredData";
 import { useLanguage } from "../context/LanguageContext";
 
 export default function AboutPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const aboutJsonLd = buildGraph([
+    webPageSchema({
+      name: t("about.seo.title"),
+      description: t("about.seo.description"),
+      path: "/about",
+      language,
+    }),
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("about.eyebrow"), path: "/about" },

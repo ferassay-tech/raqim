@@ -6,7 +6,7 @@ import { Helmet } from "../components/Helmet";
 import { StructuredData } from "../components/StructuredData";
 import { useArticles } from "../admin/context/ArticlesContext";
 import { formatArticleDate, formatReadTime } from "../admin/lib/articleStatus";
-import { buildGraph, breadcrumbSchema } from "../lib/structuredData";
+import { buildGraph, breadcrumbSchema, webPageSchema } from "../lib/structuredData";
 import { useLanguage } from "../context/LanguageContext";
 
 export default function BlogIndexPage() {
@@ -14,6 +14,12 @@ export default function BlogIndexPage() {
   const { t, language } = useLanguage();
 
   const blogJsonLd = buildGraph([
+    webPageSchema({
+      name: t("blog.seo.title"),
+      description: t("blog.seo.description"),
+      path: "/blog",
+      language,
+    }),
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("blog.breadcrumb.title"), path: "/blog" },

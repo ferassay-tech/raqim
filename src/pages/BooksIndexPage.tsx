@@ -7,7 +7,7 @@ import { StructuredData } from "../components/StructuredData";
 import { useBooks } from "../admin/context/BooksContext";
 import { useCategories } from "../admin/context/CategoriesContext";
 import { isInLibraryGrid } from "../admin/lib/bookPlacement";
-import { buildGraph, breadcrumbSchema } from "../lib/structuredData";
+import { buildGraph, breadcrumbSchema, webPageSchema } from "../lib/structuredData";
 import { useAssetDimensions } from "../lib/mediaDimensions";
 import { useLanguage } from "../context/LanguageContext";
 import { localizeProperName } from "../lib/properNames";
@@ -20,6 +20,12 @@ export default function BooksIndexPage() {
   const { t, language } = useLanguage();
 
   const booksJsonLd = buildGraph([
+    webPageSchema({
+      name: t("books.seo.title"),
+      description: t("books.seo.description"),
+      path: "/books",
+      language,
+    }),
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("books.breadcrumb.title"), path: "/books" },

@@ -4,11 +4,13 @@ import { PageShell, PageHeader } from "../components/page-shell";
 import { Reveal } from "../components/motion-primitives";
 import { GoldDivider } from "../components/ornaments";
 import { Helmet } from "../components/Helmet";
+import { StructuredData } from "../components/StructuredData";
 import { useBooks } from "../admin/context/BooksContext";
 import { useCategories } from "../admin/context/CategoriesContext";
 import { useAssetDimensions } from "../lib/mediaDimensions";
 import { useLanguage } from "../context/LanguageContext";
 import { localizeProperName } from "../lib/properNames";
+import { buildGraph, breadcrumbSchema, webPageSchema } from "../lib/structuredData";
 
 export default function FutureReleasesPage() {
   const { books } = useBooks();
@@ -23,6 +25,19 @@ export default function FutureReleasesPage() {
     [books]
   );
 
+  const futureReleasesJsonLd = buildGraph([
+    webPageSchema({
+      name: t("futureReleases.seo.title"),
+      description: t("futureReleases.seo.description"),
+      path: "/future-releases",
+      language,
+    }),
+    breadcrumbSchema([
+      { name: t("about.breadcrumb.home"), path: "/" },
+      { name: t("futureReleases.title"), path: "/future-releases" },
+    ]),
+  ]);
+
   return (
     <PageShell>
       <Helmet
@@ -30,6 +45,7 @@ export default function FutureReleasesPage() {
         description={t("futureReleases.seo.description")}
         path="/future-releases"
       />
+      <StructuredData json={futureReleasesJsonLd} />
       <PageHeader
         eyebrow={t("futureReleases.eyebrow")}
         title={t("futureReleases.title")}

@@ -5,16 +5,20 @@ import { GoldDivider } from "../components/ornaments";
 import { Helmet } from "../components/Helmet";
 import { StructuredData } from "../components/StructuredData";
 import { useArticles } from "../admin/context/ArticlesContext";
+import { useSettings } from "../admin/context/SettingsContext";
 import { formatArticleDate, formatReadTime } from "../admin/lib/articleStatus";
-import { buildGraph, articleSchema, breadcrumbSchema } from "../lib/structuredData";
+import { buildGraph, articleSchema, breadcrumbSchema, organizationSchema } from "../lib/structuredData";
 import { useAssetDimensions } from "../lib/mediaDimensions";
 import { useLanguage } from "../context/LanguageContext";
+import { DEFAULT_OG_IMAGE } from "../lib/seo";
+import { BRAND_ASSETS } from "../config/brandAssets";
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const { articles } = useArticles();
   const post = articles.find((a) => a.slug === slug && a.status === "published");
   const getDimensions = useAssetDimensions();
+  const { settings } = useSettings();
   const { t, language } = useLanguage();
 
   if (!post) return <Navigate to="/blog" replace />;
@@ -24,6 +28,16 @@ export default function BlogPostPage() {
 
   const postJsonLd = buildGraph([
     articleSchema(post, language),
+    // articleSchema's `publisher` references the sitewide Organization node
+    // by `@id` — that node only actually exists in this document's own
+    // graph if it's included here too, so every page that uses articleSchema
+    // must also include this, exactly as HomePage already does for its own
+    // Organization/WebSite references.
+    organizationSchema({
+      logo: settings.brand.logo ?? BRAND_ASSETS.logo,
+      image: settings.seo.socialImage ?? DEFAULT_OG_IMAGE,
+      language,
+    }),
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("blog.breadcrumb.title"), path: "/blog" },

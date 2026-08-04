@@ -78,6 +78,63 @@ export function breadcrumbSchema(items: BreadcrumbItem[]) {
   };
 }
 
+/** Shared Person builder — used for both a book/article's author sub-node
+ * and the Author page's own top-level entity, so the same real person is
+ * described identically (and, when `slug` is given, identifiably via the
+ * same `@id`/`url`) everywhere they appear, instead of each caller
+ * hand-rolling its own inline Person object. `slug` is only ever available
+ * for book authors (`AdminBook.authorSlug`, always resolvable to a real
+ * `/authors/:slug` page) — articles have no dedicated author page today, so
+ * their Person node is name-only, exactly as before. */
+export function personSchema({
+  name,
+  slug,
+  description,
+  language,
+}: {
+  name: string;
+  slug?: string;
+  description?: string;
+  language: Language;
+}) {
+  return {
+    "@type": "Person",
+    ...(slug && {
+      "@id": `${SITE_URL}/authors/${slug}#person`,
+      url: absoluteUrl(`/authors/${slug}`),
+    }),
+    name: localizeProperName(name, language),
+    ...(description && { description }),
+  };
+}
+
+/** Generic page-level entity for routes that have no more specific schema
+ * type of their own (About, Books/Blog index, Contact, Future Releases,
+ * Privacy, Terms) — ties the page back to the sitewide WebSite node via
+ * `isPartOf`, the same way every other page's more specific type (Book,
+ * Article, Person, FAQPage) already stands on its own. */
+export function webPageSchema({
+  name,
+  description,
+  path,
+  language,
+}: {
+  name: string;
+  description?: string;
+  path: string;
+  language: Language;
+}) {
+  return {
+    "@type": "WebPage",
+    "@id": `${absoluteUrl(path)}#webpage`,
+    url: absoluteUrl(path),
+    name,
+    ...(description && { description }),
+    inLanguage: language,
+    isPartOf: { "@id": `${SITE_URL}/#website` },
+  };
+}
+
 export function bookSchema(book: AdminBook, language: Language) {
   const usdPrice = book.prices.USD;
   return {
@@ -85,9 +142,12 @@ export function bookSchema(book: AdminBook, language: Language) {
     name: book.title,
     description: book.description,
     url: absoluteUrl(`/books/${book.id}`),
-    author: { "@type": "Person", name: localizeProperName(book.author, language) },
+    author: personSchema({ name: book.author, slug: book.authorSlug, language }),
     inLanguage: language,
     bookFormat: "https://schema.org/EBook",
+    dateModified: book.updatedAt,
+    ...(book.cover && { image: absoluteUrl(book.cover) }),
+    ...(book.pages > 0 && { numberOfPages: book.pages }),
     ...(usdPrice && {
       offers: {
         "@type": "Offer",
@@ -95,7 +155,18 @@ export function bookSchema(book: AdminBook, language: Language) {
         priceCurrency: "USD",
         availability: "https://schema.org/InStock",
         url: absoluteUrl(`/books/${book.id}`),
+        ...(book.sku && { sku: book.sku }),
       },
+    }),
+    // Real, on-page testimonials only — no fabricated rating value, since
+    // none is ever collected for a book (AdminBook has no numeric rating
+    // field), so an AggregateRating is deliberately never added here.
+    ...(book.reviews.length > 0 && {
+      review: book.reviews.map((review) => ({
+        "@type": "Review",
+        reviewBody: review.quote,
+        author: { "@type": "Person", name: review.name },
+      })),
     }),
   };
 }
@@ -107,7 +178,7 @@ export function articleSchema(article: AdminArticle, language: Language) {
     description: article.excerpt,
     url: absoluteUrl(`/blog/${article.slug}`),
     inLanguage: language,
-    author: { "@type": "Person", name: localizeProperName(article.author, language) },
+    author: personSchema({ name: article.author, language }),
     publisher: { "@id": `${SITE_URL}/#organization` },
     datePublished: article.publishedAt ?? article.updatedAt,
     dateModified: article.updatedAt,

@@ -1,8 +1,10 @@
 import { PageShell, PageHeader } from "../components/page-shell";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
+import { StructuredData } from "../components/StructuredData";
 import { useLanguage } from "../context/LanguageContext";
 import { formatNumeral } from "../lib/numerals";
+import { buildGraph, breadcrumbSchema, webPageSchema } from "../lib/structuredData";
 
 const sections = [
   {
@@ -51,9 +53,24 @@ const sections = [
 
 export default function TermsPage() {
   const { t, language } = useLanguage();
+
+  const termsJsonLd = buildGraph([
+    webPageSchema({
+      name: t("terms.seo.title"),
+      description: t("terms.seo.description"),
+      path: "/terms",
+      language,
+    }),
+    breadcrumbSchema([
+      { name: t("about.breadcrumb.home"), path: "/" },
+      { name: t("terms.title"), path: "/terms" },
+    ]),
+  ]);
+
   return (
     <PageShell>
       <Helmet title={t("terms.seo.title")} description={t("terms.seo.description")} path="/terms" />
+      <StructuredData json={termsJsonLd} />
       <PageHeader
         eyebrow={t("legal.eyebrow")}
         title={t("terms.title")}

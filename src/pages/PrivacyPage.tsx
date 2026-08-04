@@ -1,9 +1,11 @@
 import { PageShell, PageHeader } from "../components/page-shell";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
+import { StructuredData } from "../components/StructuredData";
 import { CONTACT_EMAILS } from "../config/contactEmails";
 import { useLanguage } from "../context/LanguageContext";
 import { formatNumeral } from "../lib/numerals";
+import { buildGraph, breadcrumbSchema, webPageSchema } from "../lib/structuredData";
 
 const sections = [
   {
@@ -52,9 +54,24 @@ const sections = [
 
 export default function PrivacyPage() {
   const { t, language } = useLanguage();
+
+  const privacyJsonLd = buildGraph([
+    webPageSchema({
+      name: t("privacy.seo.title"),
+      description: t("privacy.seo.description"),
+      path: "/privacy",
+      language,
+    }),
+    breadcrumbSchema([
+      { name: t("about.breadcrumb.home"), path: "/" },
+      { name: t("privacy.title"), path: "/privacy" },
+    ]),
+  ]);
+
   return (
     <PageShell>
       <Helmet title={t("privacy.seo.title")} description={t("privacy.seo.description")} path="/privacy" />
+      <StructuredData json={privacyJsonLd} />
       <PageHeader
         eyebrow={t("legal.eyebrow")}
         title={t("privacy.title")}

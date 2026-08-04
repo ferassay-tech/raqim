@@ -6,7 +6,7 @@ import { UnderlineLink } from "../components/cta";
 import { Reveal } from "../components/motion-primitives";
 import { Helmet } from "../components/Helmet";
 import { StructuredData } from "../components/StructuredData";
-import { buildGraph, breadcrumbSchema } from "../lib/structuredData";
+import { buildGraph, breadcrumbSchema, personSchema } from "../lib/structuredData";
 import { useAssetDimensions } from "../lib/mediaDimensions";
 import { useBooks } from "../admin/context/BooksContext";
 import { isInLibraryGrid } from "../admin/lib/bookPlacement";
@@ -39,11 +39,7 @@ export default function AuthorPage() {
   const displayName = localizeProperName(authorName, language);
 
   const authorJsonLd = buildGraph([
-    {
-      "@type": "Person",
-      name: displayName,
-      description: authorBio,
-    },
+    personSchema({ name: authorName, slug: primaryBook.authorSlug, description: authorBio, language }),
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: displayName, path: `/authors/${primaryBook.authorSlug}` },
