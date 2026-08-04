@@ -561,6 +561,7 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
               src={backCover}
               alt={`${alt}${t("book3d.backCoverAltSuffix")}`}
               draggable={false}
+              loading="lazy"
               style={{
                 position: "absolute",
                 inset: 0,
@@ -844,6 +845,7 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
                     src={src}
                     alt={`${alt}${t("book3d.previewPageAltPrefix")}${i + 1}`}
                     draggable={false}
+                    loading="lazy"
                     style={{
                       width: "100%",
                       height: "100%",
@@ -860,6 +862,7 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
                     src={backCover}
                     alt={`${alt}${t("book3d.backCoverAltSuffix")}`}
                     draggable={false}
+                    loading="lazy"
                     style={{
                       width: "100%",
                       height: "100%",
