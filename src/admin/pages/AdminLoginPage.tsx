@@ -13,15 +13,19 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   if (isReady && isAuthenticated) {
     const from = (location.state as { from?: string } | null)?.from ?? "/admin/dashboard";
     return <Navigate to={from} replace />;
   }
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const success = login(email, password, rememberMe);
+    setSubmitting(true);
+    setError(null);
+    const success = await login(email, password, rememberMe);
+    setSubmitting(false);
     if (!success) {
       setError("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
       return;
@@ -56,7 +60,8 @@ export default function AdminLoginPage() {
 
           <button
             type="submit"
-            className="mt-1 rounded-full bg-ink px-6 py-3 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
+            disabled={submitting}
+            className="mt-1 rounded-full bg-ink px-6 py-3 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep disabled:cursor-not-allowed disabled:opacity-60"
           >
             تسجيل الدخول
           </button>

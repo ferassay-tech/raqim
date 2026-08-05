@@ -3,7 +3,14 @@
     "allow": [
       "Bash(node -e ' *)",
       "Bash(pnpm remove *)",
-      "Bash(node \"C:\\\\Users\\\\SAADSA~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d-----------------------raqim-house\\\\5ea21713-33ee-42d4-b834-fca4680181f0\\\\scratchpad\\\\phase3_cleanup_final.mjs\")"
+      "Bash(node \"C:\\\\Users\\\\SAADSA~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d-----------------------raqim-house\\\\5ea21713-33ee-42d4-b834-fca4680181f0\\\\scratchpad\\\\phase3_cleanup_final.mjs\")",
+      "Bash(curl -s http://localhost:9333/json/list)",
+      "Bash(node phase1_cms_verify.mjs)",
+      "Bash(node phase2_cms_verify.mjs)",
+      "Bash(node phase2_diag.mjs)",
+      "Bash(node phase2_diag2.mjs)",
+      "Bash(node phase2_login.mjs)",
+      "Bash(node phase2_network.mjs)"
     ]
   }
 }

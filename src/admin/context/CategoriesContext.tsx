@@ -1,11 +1,19 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { AdminCategory, AdminCategoryRaw } from "../types/category";
 import type { LocalizedText } from "../types/siteContent";
 import { INITIAL_CATEGORIES } from "../data/categoriesData";
-import { usePersistedState } from "../lib/usePersistedState";
+import { createCollectionAdapter } from "../services/data";
+import { readLocalCollectionSnapshot } from "../services/data/localAdapter";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../context/LanguageContext";
+
+// The CMS Foundation's generic Data Layer engine (Phase 1), local backend
+// only — same storage key ("categories") usePersistedState used, so this
+// reads the exact same existing data with no migration step. Categories is
+// the first module to actually consume the engine; every other Context
+// (Books, Articles, Settings, Media, ...) is untouched by this phase.
+const CATEGORIES_STORAGE_KEY = "categories";
 
 interface CategoriesContextValue {
   /** Resolved for the active site language — public pages and the Admin
@@ -108,7 +116,16 @@ function slugify(name: string) {
 const COMING_SOON_CATEGORY_PLACEHOLDER = "قريبًا";
 
 export function CategoriesProvider({ children }: { children: ReactNode }) {
-  const [storedCategories, setCategories] = usePersistedState<AdminCategoryRaw[]>("categories", INITIAL_CATEGORIES);
+  const adapter = useRef(
+    createCollectionAdapter<AdminCategoryRaw>("local", CATEGORIES_STORAGE_KEY, INITIAL_CATEGORIES)
+  ).current;
+  // Synchronous bootstrap so the first render shows real stored data
+  // immediately — identical guarantee to the usePersistedState this
+  // replaces; see localAdapter.ts's readLocalCollectionSnapshot doc comment
+  // for why a synchronous read is needed even though the engine is async.
+  const [storedCategories, setStoredCategories] = useState<AdminCategoryRaw[]>(() =>
+    readLocalCollectionSnapshot(CATEGORIES_STORAGE_KEY, INITIAL_CATEGORIES)
+  );
   const { language, t } = useLanguage();
 
   const rawCategories = useMemo(() => storedCategories.map(migrateCategory), [storedCategories]);
@@ -130,29 +147,37 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
 
   const createCategory = useCallback(
     (values: Omit<AdminCategoryRaw, "id">) => {
-      setCategories((prev) => {
-        let id = slugify(values.name.ar);
-        let n = 2;
-        while (prev.some((c) => c.id === id)) {
-          id = `${slugify(values.name.ar)}-${n}`;
-          n += 1;
-        }
-        return [...prev, { id, ...values }];
+      let id = slugify(values.name.ar);
+      let n = 2;
+      while (storedCategories.some((c) => c.id === id)) {
+        id = `${slugify(values.name.ar)}-${n}`;
+        n += 1;
+      }
+      const row: AdminCategoryRaw = { id, ...values };
+      void adapter.create(row).then(() => {
+        setStoredCategories((prev) => [...prev, row]);
       });
     },
-    [setCategories]
+    [adapter, storedCategories]
   );
 
   const updateCategory = useCallback(
     (id: string, values: Omit<AdminCategoryRaw, "id">) => {
-      setCategories((prev) => prev.map((c) => (c.id === id ? { id, ...values } : c)));
+      void adapter.update(id, values).then((updated) => {
+        setStoredCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      });
     },
-    [setCategories]
+    [adapter]
   );
 
-  const deleteCategory = useCallback((id: string) => {
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-  }, [setCategories]);
+  const deleteCategory = useCallback(
+    (id: string) => {
+      void adapter.remove(id).then(() => {
+        setStoredCategories((prev) => prev.filter((c) => c.id !== id));
+      });
+    },
+    [adapter]
+  );
 
   const value = useMemo(
     () => ({
