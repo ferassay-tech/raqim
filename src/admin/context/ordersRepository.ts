@@ -1,6 +1,7 @@
 import type { AdminOrder, OrderItem, OrderStatus, OrderTimelineEvent } from "../types/order";
 import { createCollectionAdapter } from "../services/data/index.ts";
 import type { CollectionAdapter } from "../services/data/index.ts";
+import { getSupabaseClient } from "../../lib/supabaseClient.ts";
 
 /**
  * CMS Phase 6C — repository for orders. Not wired into OrdersContext yet.
@@ -69,3 +70,24 @@ export const ordersRepository: CollectionAdapter<OrderRow> = createCollectionAda
   "orders",
   []
 );
+
+/**
+ * The checkout path's insert can't go through ordersRepository.create():
+ * that generic method always does `.insert(row).select().single()`, and
+ * Postgres requires INSERT ... RETURNING to also satisfy the table's
+ * SELECT policy, not just INSERT's WITH CHECK. orders_select_authenticated
+ * deliberately excludes anon (customer PII must not be publicly
+ * readable — see the migration), so an anonymous checkout would pass the
+ * insert's own check and then fail purely because it can't read the row
+ * back. This does a plain insert with no read-back; the caller already
+ * knows every field it sent (id is client-generated, createdAt is a
+ * display-only date the caller derives locally, exactly as it did before
+ * this migration) — the database's own authoritative created_at is still
+ * what's actually stored, the anon inserter just never sees it reflected
+ * back immediately.
+ */
+export async function insertOrder(row: OrderRow): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from("orders").insert(row);
+  if (error) throw error;
+}
