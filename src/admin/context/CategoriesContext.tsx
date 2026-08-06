@@ -1,18 +1,19 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { AdminCategory, AdminCategoryRaw } from "../types/category";
 import type { LocalizedText } from "../types/siteContent";
 import { INITIAL_CATEGORIES } from "../data/categoriesData";
 import { createCollectionAdapter } from "../services/data";
-import { readLocalCollectionSnapshot } from "../services/data/localAdapter";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../context/LanguageContext";
 
-// The CMS Foundation's generic Data Layer engine (Phase 1), local backend
-// only — same storage key ("categories") usePersistedState used, so this
-// reads the exact same existing data with no migration step. Categories is
-// the first module to actually consume the engine; every other Context
-// (Books, Articles, Settings, Media, ...) is untouched by this phase.
+// The CMS Foundation's generic Data Layer engine (Phase 1), Supabase
+// backend — the categories table is live (Phase 5.5). INITIAL_CATEGORIES
+// is kept only as the synchronous render-time placeholder shown before the
+// first real fetch resolves; no localStorage read/write happens for this
+// module anymore. Categories is the first module to actually consume the
+// engine; every other Context (Books, Articles, Settings, Media, ...) is
+// untouched by this phase.
 const CATEGORIES_STORAGE_KEY = "categories";
 
 interface CategoriesContextValue {
@@ -117,16 +118,32 @@ const COMING_SOON_CATEGORY_PLACEHOLDER = "قريبًا";
 
 export function CategoriesProvider({ children }: { children: ReactNode }) {
   const adapter = useRef(
-    createCollectionAdapter<AdminCategoryRaw>("local", CATEGORIES_STORAGE_KEY, INITIAL_CATEGORIES)
+    createCollectionAdapter<AdminCategoryRaw>("supabase", CATEGORIES_STORAGE_KEY, INITIAL_CATEGORIES)
   ).current;
-  // Synchronous bootstrap so the first render shows real stored data
-  // immediately — identical guarantee to the usePersistedState this
-  // replaces; see localAdapter.ts's readLocalCollectionSnapshot doc comment
-  // for why a synchronous read is needed even though the engine is async.
-  const [storedCategories, setStoredCategories] = useState<AdminCategoryRaw[]>(() =>
-    readLocalCollectionSnapshot(CATEGORIES_STORAGE_KEY, INITIAL_CATEGORIES)
-  );
+
+  // Synchronous placeholder so first paint isn't empty while the real
+  // fetch below is in flight — replaced the moment it resolves. Not a
+  // fallback: if the fetch fails, this simply isn't overwritten (no
+  // localStorage, no alternate backend is consulted).
+  const [storedCategories, setStoredCategories] = useState<AdminCategoryRaw[]>(INITIAL_CATEGORIES);
   const { language, t } = useLanguage();
+
+  useEffect(() => {
+    let cancelled = false;
+    adapter
+      .list()
+      .then((rows) => {
+        if (!cancelled) setStoredCategories(rows);
+      })
+      .catch((error) => {
+        // No fallback mechanism by design (Phase 5.5) — just avoid an
+        // unhandled rejection; the placeholder above stays on screen.
+        console.error("Failed to load categories from Supabase:", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [adapter]);
 
   const rawCategories = useMemo(() => storedCategories.map(migrateCategory), [storedCategories]);
   const categories = useMemo(() => rawCategories.map((c) => resolveCategory(c, language)), [rawCategories, language]);
