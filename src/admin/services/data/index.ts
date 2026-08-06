@@ -4,13 +4,13 @@
 // usePersistedState, unchanged. This exists so a future module migration
 // is "instantiate this engine against a table name," not "invent a new
 // adapter" — see the CMS Foundation master plan's Adapter Architecture.
-export type { CollectionAdapter, SingletonAdapter, DataBackend } from "./types";
-export { createLocalCollectionAdapter, createLocalSingletonAdapter } from "./localAdapter";
-export { createSupabaseCollectionAdapter, createSupabaseSingletonAdapter } from "./supabaseAdapter";
+export type { CollectionAdapter, SingletonAdapter, DataBackend } from "./types.ts";
+export { createLocalCollectionAdapter, createLocalSingletonAdapter } from "./localAdapter.ts";
+export { createSupabaseCollectionAdapter, createSupabaseSingletonAdapter } from "./supabaseAdapter.ts";
 
-import type { CollectionAdapter, DataBackend, SingletonAdapter } from "./types";
-import { createLocalCollectionAdapter, createLocalSingletonAdapter } from "./localAdapter";
-import { createSupabaseCollectionAdapter, createSupabaseSingletonAdapter } from "./supabaseAdapter";
+import type { CollectionAdapter, DataBackend, SingletonAdapter } from "./types.ts";
+import { createLocalCollectionAdapter, createLocalSingletonAdapter } from "./localAdapter.ts";
+import { createSupabaseCollectionAdapter, createSupabaseSingletonAdapter } from "./supabaseAdapter.ts";
 
 export function createCollectionAdapter<T extends { id: string }>(
   backend: DataBackend,

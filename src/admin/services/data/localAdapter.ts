@@ -1,4 +1,4 @@
-import type { CollectionAdapter, SingletonAdapter } from "./types";
+import type { CollectionAdapter, SingletonAdapter } from "./types.ts";
 
 // Matches usePersistedState.ts's own PREFIX exactly and on purpose: a
 // future module migration (e.g. BooksContext adopting

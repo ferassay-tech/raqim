@@ -1,5 +1,5 @@
-import { getSupabaseClient } from "../../../lib/supabaseClient";
-import type { CollectionAdapter, SingletonAdapter } from "./types";
+import { getSupabaseClient } from "../../../lib/supabaseClient.ts";
+import type { CollectionAdapter, SingletonAdapter } from "./types.ts";
 
 /**
  * Real Postgres-backed CRUD via the same anon-key client already used for
