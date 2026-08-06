@@ -1,13 +1,14 @@
 import type { CollectionAdapter, SingletonAdapter } from "./types.ts";
 
 // Matches usePersistedState.ts's own PREFIX exactly and on purpose: a
-// future module migration (e.g. BooksContext adopting
-// createLocalCollectionAdapter("books", INITIAL_BOOKS)) reads the exact
-// same localStorage data that context already persisted by hand — an
-// adapter swap, not a data migration. Implemented against `localStorage`
-// directly rather than the usePersistedState *hook* because this engine
-// has no React dependency: React contexts will wrap an adapter instance,
-// not the other way around.
+// future module migration (e.g. ArticlesContext adopting
+// createLocalCollectionAdapter("articles", INITIAL_ARTICLES)) reads the
+// exact same localStorage data that context already persisted by hand —
+// an adapter swap, not a data migration (Categories and Books already
+// went through this, both now on the "supabase" backend instead). Implemented
+// against `localStorage` directly rather than the usePersistedState *hook*
+// because this engine has no React dependency: React contexts will wrap
+// an adapter instance, not the other way around.
 const PREFIX = "raqim_admin:";
 
 function readJson<T>(key: string, fallback: T): T {
