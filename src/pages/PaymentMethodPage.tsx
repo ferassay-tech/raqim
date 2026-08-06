@@ -61,10 +61,10 @@ const PaymentMethodPage: React.FC = () => {
     ? formatAmount(computeDiscountedPrice(priceEntry.price, appliedCoupon), config.currency, t)
     : `${product.currency} ${product.newPrice}`;
 
-  const handleConfirmationSubmit = (values: ConfirmationFormValues) => {
+  const handleConfirmationSubmit = async (values: ConfirmationFormValues) => {
     setConfirmation(values);
     const discountedPrice = appliedCoupon ? computeDiscountedPrice(product.newPrice, appliedCoupon) : product.newPrice;
-    const order = createOrder({
+    const order = await createOrder({
       customerName: values.fullName,
       customerEmail: values.email,
       paymentMethod: config.title,
