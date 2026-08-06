@@ -1,9 +1,9 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { LibraryFile, LibraryFileFormat } from "../types/library";
 import { INITIAL_LIBRARY_FILES } from "../data/libraryData";
-import { usePersistedState } from "../lib/usePersistedState";
 import { getStorageAdapter } from "../services/storage";
+import { fileFromSupabaseRow, fileToSupabaseRow, libraryFilesRepository } from "./libraryRepository.ts";
 import { useSettings } from "./SettingsContext";
 
 interface LibraryContextValue {
@@ -42,11 +42,31 @@ function formatFromFilename(name: string): LibraryFileFormat | null {
  * StorageAdapter (services/storage) rather than handling object URLs
  * directly, so swapping "local" for a real provider later only means
  * changing which adapter Settings → Storage has selected.
+ *
+ * The metadata record (this context's state) is backed by the
+ * `library_files` Supabase table since Phase 6B; the upload/delete byte
+ * mechanism through StorageAdapter is unchanged.
  */
 export function LibraryProvider({ children }: { children: ReactNode }) {
-  const [files, setFiles] = usePersistedState<LibraryFile[]>("library_files", INITIAL_LIBRARY_FILES);
+  const [files, setFiles] = useState<LibraryFile[]>(INITIAL_LIBRARY_FILES);
   const { settings } = useSettings();
   const activeProvider = settings.storage.activeProvider;
+
+  useEffect(() => {
+    let cancelled = false;
+    libraryFilesRepository
+      .list()
+      .then((rows) => {
+        if (cancelled) return;
+        setFiles(rows.map(fileFromSupabaseRow));
+      })
+      .catch((error) => {
+        console.error("Failed to load library files from Supabase:", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const getFile = useCallback((id: string) => files.find((f) => f.id === id), [files]);
 
@@ -79,70 +99,109 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         bookId,
         version,
       };
+      await libraryFilesRepository.create(fileToSupabaseRow(record));
       setFiles((prev) => [record, ...prev]);
       return record;
     },
-    [activeProvider, setFiles]
+    [activeProvider]
   );
 
   const replaceFile = useCallback(
     async (id: string, file: File) => {
+      const current = files.find((f) => f.id === id);
+      if (!current) return;
       const adapter = getStorageAdapter(activeProvider);
       const { storageKey, url } = await adapter.upload(file, `library/${Date.now()}-${file.name}`);
       const format = formatFromFilename(file.name);
-      setFiles((prev) =>
-        prev.map((f) =>
-          f.id === id
-            ? {
-                ...f,
-                filename: file.name,
-                format: format ?? f.format,
-                size: file.size,
-                storageProvider: activeProvider,
-                storageKey,
-                previewUrl: activeProvider === "local" ? url : null,
-                updatedAt: today(),
-              }
-            : f
-        )
-      );
+      const updated: LibraryFile = {
+        ...current,
+        filename: file.name,
+        format: format ?? current.format,
+        size: file.size,
+        storageProvider: activeProvider,
+        storageKey,
+        previewUrl: activeProvider === "local" ? url : null,
+        updatedAt: today(),
+      };
+      await libraryFilesRepository.update(id, fileToSupabaseRow(updated));
+      setFiles((prev) => prev.map((f) => (f.id === id ? updated : f)));
     },
-    [activeProvider, setFiles]
+    [activeProvider, files]
   );
 
   const renameFile = useCallback((id: string, filename: string) => {
-    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, filename, updatedAt: today() } : f)));
-  }, [setFiles]);
+    void libraryFilesRepository
+      .update(id, { filename, updated_at: new Date().toISOString() })
+      .then(() => {
+        setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, filename, updatedAt: today() } : f)));
+      })
+      .catch((error) => {
+        console.error("Failed to rename library file:", error);
+      });
+  }, []);
 
   const setFileVersion = useCallback((id: string, version: string | null) => {
-    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, version, updatedAt: today() } : f)));
-  }, [setFiles]);
-
-  const deleteFile = useCallback((id: string) => {
-    const file = files.find((f) => f.id === id);
-    setFiles((prev) => prev.filter((f) => f.id !== id));
-    if (!file) return;
-    // Best-effort remote cleanup — resolved by the file's own recorded
-    // provider (not necessarily the currently active one), so an old file
-    // uploaded under a different provider still gets cleaned up correctly.
-    // The Admin's own record is removed regardless of this outcome; a
-    // failed remote delete leaves an orphaned object behind rather than
-    // blocking the Admin's delete action on a network hiccup.
-    getStorageAdapter(file.storageProvider)
-      .delete(file.storageKey)
-      .catch(() => {
-        /* orphaned remote object — same honest limitation as any other
-         * best-effort cleanup; nothing further to do client-side */
+    void libraryFilesRepository
+      .update(id, { version, updated_at: new Date().toISOString() })
+      .then(() => {
+        setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, version, updatedAt: today() } : f)));
+      })
+      .catch((error) => {
+        console.error("Failed to update library file version:", error);
       });
-  }, [files, setFiles]);
+  }, []);
+
+  const deleteFile = useCallback(
+    (id: string) => {
+      const file = files.find((f) => f.id === id);
+      if (!file) return;
+      void libraryFilesRepository
+        .remove(id)
+        .then(() => {
+          setFiles((prev) => prev.filter((f) => f.id !== id));
+          // Best-effort remote cleanup — resolved by the file's own recorded
+          // provider (not necessarily the currently active one), so an old
+          // file uploaded under a different provider still gets cleaned up
+          // correctly. The Admin's own record is already removed regardless
+          // of this outcome; a failed remote delete leaves an orphaned
+          // object behind rather than blocking the Admin's delete action on
+          // a network hiccup.
+          getStorageAdapter(file.storageProvider)
+            .delete(file.storageKey)
+            .catch(() => {
+              /* orphaned remote object — same honest limitation as any
+               * other best-effort cleanup; nothing further to do
+               * client-side */
+            });
+        })
+        .catch((error) => {
+          console.error("Failed to delete library file:", error);
+        });
+    },
+    [files]
+  );
 
   const attachToBook = useCallback((id: string, bookId: string) => {
-    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, bookId, updatedAt: today() } : f)));
-  }, [setFiles]);
+    void libraryFilesRepository
+      .update(id, { book_id: bookId, updated_at: new Date().toISOString() })
+      .then(() => {
+        setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, bookId, updatedAt: today() } : f)));
+      })
+      .catch((error) => {
+        console.error("Failed to attach library file to book:", error);
+      });
+  }, []);
 
   const detachFromBook = useCallback((id: string) => {
-    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, bookId: null, updatedAt: today() } : f)));
-  }, [setFiles]);
+    void libraryFilesRepository
+      .update(id, { book_id: null, updated_at: new Date().toISOString() })
+      .then(() => {
+        setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, bookId: null, updatedAt: today() } : f)));
+      })
+      .catch((error) => {
+        console.error("Failed to detach library file from book:", error);
+      });
+  }, []);
 
   const value = useMemo(
     () => ({
