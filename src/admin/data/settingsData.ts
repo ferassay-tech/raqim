@@ -1,6 +1,6 @@
 import type { AdminSettingsRaw } from "../types/settings";
-import { CONTACT_EMAILS } from "../../config/contactEmails";
-import { BRAND_ASSETS } from "../../config/brandAssets";
+import { CONTACT_EMAILS } from "../../config/contactEmails.ts";
+import { BRAND_ASSETS } from "../../config/brandAssets.ts";
 
 // Seeded from the real, live values already hardcoded across index.html,
 // src/index.css's @theme, and the (previously non-persisted) Settings
