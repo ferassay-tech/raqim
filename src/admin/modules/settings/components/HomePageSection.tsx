@@ -6,14 +6,20 @@ import { SettingsRow } from "./SettingsRow";
 
 interface HomePageSectionProps {
   onSaved: (message: string) => void;
+  onError: (message: string) => void;
 }
 
 type PickerTarget = "heroImage" | "heroImageMobile" | null;
 
-export function HomePageSection({ onSaved }: HomePageSectionProps) {
-  const { settings, updateHomepage } = useSettings();
+export function HomePageSection({ onSaved, onError }: HomePageSectionProps) {
+  const { settings, updateHomepage: updateHomepageRaw } = useSettings();
   const { heroImage, heroImageMobile } = settings.homepage;
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
+
+  const updateHomepage: typeof updateHomepageRaw = (values) =>
+    updateHomepageRaw(values).catch(() => {
+      onError("تعذر حفظ إعدادات الصفحة الرئيسية.");
+    });
 
   return (
     <div>

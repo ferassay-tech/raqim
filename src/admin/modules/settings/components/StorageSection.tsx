@@ -5,11 +5,17 @@ import { SettingsRow } from "./SettingsRow";
 
 interface StorageSectionProps {
   onSaved: (message: string) => void;
+  onError: (message: string) => void;
 }
 
-export function StorageSection({ onSaved }: StorageSectionProps) {
-  const { settings, updateStorage } = useSettings();
+export function StorageSection({ onSaved, onError }: StorageSectionProps) {
+  const { settings, updateStorage: updateStorageRaw } = useSettings();
   const { activeProvider, downloadLinkExpiryDays, downloadLinkMaxDownloads } = settings.storage;
+
+  const updateStorage: typeof updateStorageRaw = (values) =>
+    updateStorageRaw(values).catch(() => {
+      onError("تعذر حفظ إعدادات التخزين.");
+    });
 
   const toNullableInt = (raw: string): number | null => {
     const trimmed = raw.trim();

@@ -6,11 +6,17 @@ import { SettingsRow } from "./SettingsRow";
 
 interface GeneralSectionProps {
   onSaved: (message: string) => void;
+  onError: (message: string) => void;
 }
 
-export function GeneralSection({ onSaved }: GeneralSectionProps) {
-  const { settings, updateGeneral } = useSettings();
+export function GeneralSection({ onSaved, onError }: GeneralSectionProps) {
+  const { settings, updateGeneral: updateGeneralRaw } = useSettings();
   const { siteName, description, language, timezone } = settings.general;
+
+  const updateGeneral: typeof updateGeneralRaw = (values) =>
+    updateGeneralRaw(values).catch(() => {
+      onError("تعذر حفظ الإعدادات العامة.");
+    });
 
   return (
     <div>

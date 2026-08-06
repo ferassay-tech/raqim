@@ -7,13 +7,19 @@ import { SettingsRow } from "./SettingsRow";
 
 interface StoreSectionProps {
   onSaved: (message: string) => void;
+  onError: (message: string) => void;
 }
 
 const ALL_CURRENCIES = Object.keys(CURRENCY_LABELS) as BookCurrency[];
 
-export function StoreSection({ onSaved }: StoreSectionProps) {
-  const { settings, updateStore } = useSettings();
+export function StoreSection({ onSaved, onError }: StoreSectionProps) {
+  const { settings, updateStore: updateStoreRaw } = useSettings();
   const { supportedCurrencies, defaultCurrency, tax, orderPrefix } = settings.store;
+
+  const updateStore: typeof updateStoreRaw = (values) =>
+    updateStoreRaw(values).catch(() => {
+      onError("تعذر حفظ إعدادات المتجر.");
+    });
 
   const toggleCurrency = (currency: BookCurrency) => {
     const isSupported = supportedCurrencies.includes(currency);

@@ -9,6 +9,7 @@ import { SettingsRow } from "./SettingsRow";
 
 interface SeoSectionProps {
   onSaved: (message: string) => void;
+  onError: (message: string) => void;
 }
 
 const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
@@ -16,11 +17,16 @@ const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
   { value: "en", label: "English" },
 ];
 
-export function SeoSection({ onSaved }: SeoSectionProps) {
-  const { rawSettings, updateSeo } = useSettings();
+export function SeoSection({ onSaved, onError }: SeoSectionProps) {
+  const { rawSettings, updateSeo: updateSeoRaw } = useSettings();
   const { title, description, socialImage } = rawSettings.seo;
   const [editingLanguage, setEditingLanguage] = useState<Language>("ar");
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  const updateSeo: typeof updateSeoRaw = (values) =>
+    updateSeoRaw(values).catch(() => {
+      onError("تعذر حفظ إعدادات السيو.");
+    });
 
   return (
     <div>

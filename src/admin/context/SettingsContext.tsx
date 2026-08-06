@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type {
   AdminSettings,
@@ -13,7 +13,7 @@ import type {
 } from "../types/settings";
 import type { LocalizedText } from "../types/siteContent";
 import { INITIAL_SETTINGS } from "../data/settingsData";
-import { usePersistedState } from "../lib/usePersistedState";
+import { getSettings, updateSettings } from "./settingsRepository.ts";
 import { BRAND_ASSETS, LEGACY_LOGO_PATH } from "../../config/brandAssets";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../context/LanguageContext";
@@ -24,13 +24,13 @@ interface SettingsContextValue {
   settings: AdminSettings;
   /** Raw, bilingual — Settings editor only (Seo/Contact sections). */
   rawSettings: AdminSettingsRaw;
-  updateGeneral: (values: Partial<GeneralSettings>) => void;
-  updateBrand: (values: Partial<BrandSettings>) => void;
-  updateSeo: (values: Partial<SeoSettingsRaw>) => void;
-  updateHomepage: (values: Partial<HomePageSettings>) => void;
-  updateContact: (values: Partial<ContactSettingsRaw>) => void;
-  updateStore: (values: Partial<StoreSettings>) => void;
-  updateStorage: (values: Partial<StorageSettings>) => void;
+  updateGeneral: (values: Partial<GeneralSettings>) => Promise<void>;
+  updateBrand: (values: Partial<BrandSettings>) => Promise<void>;
+  updateSeo: (values: Partial<SeoSettingsRaw>) => Promise<void>;
+  updateHomepage: (values: Partial<HomePageSettings>) => Promise<void>;
+  updateContact: (values: Partial<ContactSettingsRaw>) => Promise<void>;
+  updateStore: (values: Partial<StoreSettings>) => Promise<void>;
+  updateStorage: (values: Partial<StorageSettings>) => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -41,13 +41,13 @@ function resolveText(value: LocalizedText, language: Language): string {
   return value[language] || value[FALLBACK_LANGUAGE] || "";
 }
 
-// Older localStorage records (and the original seed data) stored seo.title/
-// .description and contact.hours as plain strings. Wrapping any plain
-// string into { ar: value, en: "" } on read means existing settings are
-// never lost — a pure, idempotent transform, so already-migrated data just
-// passes through unchanged. Mirrors every other bilingual migration.
+// Older records (and the original seed data) stored seo.title/.description
+// and contact.hours as plain strings. Wrapping any plain string into
+// { ar: value, en: "" } on read means existing settings are never lost —
+// a pure, idempotent transform, so already-migrated data just passes
+// through unchanged. Mirrors every other bilingual migration.
 //
-// `seedValue`, when given, self-heals a browser that already persisted this
+// `seedValue`, when given, self-heals a record that already persisted this
 // exact field from before an English translation was written for it — see
 // BooksContext.tsx's migrateLocalizedText for the full rationale.
 function migrateLocalizedText(value: unknown, seedValue?: LocalizedText): LocalizedText {
@@ -64,22 +64,42 @@ function migrateLocalizedText(value: unknown, seedValue?: LocalizedText): Locali
 }
 
 /**
- * Single persisted settings record read by both the Admin (5 section forms)
- * and the public site (Brand tokens → ThemeSync, Contact → ContactPage,
- * Store currencies → checkout). Replaces the previous per-section local
- * `useState`, which reset on every reload and never reached the public site.
+ * Single settings record, backed by the Supabase `site_settings` table
+ * (one row, scope='default') since Phase 6E — read by both the Admin (7
+ * section forms) and the public site (Brand tokens → ThemeSync, Contact →
+ * ContactPage, Store currencies → checkout).
  *
- * seo.title/.description and contact.hours are stored bilingually; `settings`
- * resolves them to the active site language, falling back to Arabic when
- * English is empty — same contract as before this migration. Everything
- * else in Settings has no public display consumer today, or is structural/
- * non-prose, and was deliberately left untouched.
+ * Every updateXxx is Promise<void>-returning (not fire-and-forget) so a
+ * caller can await and catch a real failure — most notably, writes are
+ * owner-only at the database level (an existing, unchanged policy from
+ * before this migration); an editor's save must surface as a visible
+ * error, not disappear silently. See the 7 Settings section components
+ * for the corresponding try/catch + Toast.
+ *
+ * seo.title/.description and contact.hours are stored bilingually;
+ * `settings` resolves them to the active site language, falling back to
+ * Arabic when English is empty — same contract as before this migration.
  */
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [storedSettings, setSettings] = usePersistedState<AdminSettingsRaw>("settings", INITIAL_SETTINGS);
+  const [storedSettings, setStoredSettings] = useState<AdminSettingsRaw>(INITIAL_SETTINGS);
   const { language } = useLanguage();
 
-  // Defensive merge against defaults — a browser that persisted `settings`
+  useEffect(() => {
+    let cancelled = false;
+    getSettings()
+      .then((data) => {
+        if (cancelled) return;
+        setStoredSettings(data);
+      })
+      .catch((error) => {
+        console.error("Failed to load settings from Supabase:", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Defensive merge against defaults — a record that persisted `settings`
   // before a new section or nested field (e.g. `storage`, or `brand`'s
   // `logoSizing`/`heroImage`/`wordmark`) existed would otherwise read back
   // an object missing those keys and crash the first time one is touched.
@@ -91,7 +111,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       brand: {
         ...INITIAL_SETTINGS.brand,
         ...storedSettings.brand,
-        // Heal a browser that persisted the pre-rebrand logo path before
+        // Heal a record that persisted the pre-rebrand logo path before
         // `BRAND_ASSETS.logo` changed to `/Raqim-logo.webp` — otherwise that
         // stale value would keep winning over the new default forever. Any
         // other logo an admin has actually chosen is left exactly as-is.
@@ -132,54 +152,72 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [rawSettings, language]
   );
 
-  const updateGeneral = useCallback((values: Partial<GeneralSettings>) => {
-    setSettings((prev) => ({ ...prev, general: { ...prev.general, ...values } }));
-  }, [setSettings]);
+  const persist = useCallback(async (next: AdminSettingsRaw) => {
+    try {
+      await updateSettings(next);
+    } catch (error) {
+      console.error("Failed to update settings:", error);
+      throw error;
+    }
+    setStoredSettings(next);
+  }, []);
 
-  const updateBrand = useCallback((values: Partial<BrandSettings>) => {
-    setSettings((prev) => ({ ...prev, brand: { ...prev.brand, ...values } }));
-  }, [setSettings]);
+  const updateGeneral = useCallback(
+    (values: Partial<GeneralSettings>) => persist({ ...storedSettings, general: { ...storedSettings.general, ...values } }),
+    [storedSettings, persist]
+  );
+
+  const updateBrand = useCallback(
+    (values: Partial<BrandSettings>) => persist({ ...storedSettings, brand: { ...storedSettings.brand, ...values } }),
+    [storedSettings, persist]
+  );
 
   const updateSeo = useCallback(
-    (values: Partial<SeoSettingsRaw>) => {
-      setSettings((prev) => ({
-        ...prev,
+    (values: Partial<SeoSettingsRaw>) =>
+      persist({
+        ...storedSettings,
         seo: {
-          ...prev.seo,
-          title: migrateLocalizedText(prev.seo?.title),
-          description: migrateLocalizedText(prev.seo?.description),
+          ...storedSettings.seo,
+          title: migrateLocalizedText(storedSettings.seo?.title),
+          description: migrateLocalizedText(storedSettings.seo?.description),
           ...values,
         },
-      }));
-    },
-    [setSettings]
+      }),
+    [storedSettings, persist]
   );
 
-  const updateHomepage = useCallback((values: Partial<HomePageSettings>) => {
-    setSettings((prev) => ({ ...prev, homepage: { ...prev.homepage, ...values } }));
-  }, [setSettings]);
+  const updateHomepage = useCallback(
+    (values: Partial<HomePageSettings>) =>
+      persist({ ...storedSettings, homepage: { ...storedSettings.homepage, ...values } }),
+    [storedSettings, persist]
+  );
 
   const updateContact = useCallback(
-    (values: Partial<ContactSettingsRaw>) => {
-      setSettings((prev) => ({
-        ...prev,
+    (values: Partial<ContactSettingsRaw>) =>
+      persist({
+        ...storedSettings,
         contact: {
-          ...prev.contact,
-          hours: migrateLocalizedText(prev.contact?.hours),
+          ...storedSettings.contact,
+          hours: migrateLocalizedText(storedSettings.contact?.hours),
           ...values,
         },
-      }));
-    },
-    [setSettings]
+      }),
+    [storedSettings, persist]
   );
 
-  const updateStore = useCallback((values: Partial<StoreSettings>) => {
-    setSettings((prev) => ({ ...prev, store: { ...prev.store, ...values } }));
-  }, [setSettings]);
+  const updateStore = useCallback(
+    (values: Partial<StoreSettings>) => persist({ ...storedSettings, store: { ...storedSettings.store, ...values } }),
+    [storedSettings, persist]
+  );
 
-  const updateStorage = useCallback((values: Partial<StorageSettings>) => {
-    setSettings((prev) => ({ ...prev, storage: { ...(prev.storage ?? INITIAL_SETTINGS.storage), ...values } }));
-  }, [setSettings]);
+  const updateStorage = useCallback(
+    (values: Partial<StorageSettings>) =>
+      persist({
+        ...storedSettings,
+        storage: { ...(storedSettings.storage ?? INITIAL_SETTINGS.storage), ...values },
+      }),
+    [storedSettings, persist]
+  );
 
   const value = useMemo(
     () => ({

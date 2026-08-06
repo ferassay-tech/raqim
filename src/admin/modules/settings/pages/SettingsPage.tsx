@@ -10,7 +10,7 @@ import { HomePageSection } from "../components/HomePageSection";
 import { ContactSection } from "../components/ContactSection";
 import { StoreSection } from "../components/StoreSection";
 import { StorageSection } from "../components/StorageSection";
-import { IconCheck } from "@/admin/icons";
+import { IconAlertTriangle, IconCheck } from "@/admin/icons";
 
 const TABS = [
   { key: "general", label: "عام" },
@@ -28,11 +28,18 @@ export default function SettingsPage() {
   const { section = "general" } = useParams<{ section: string }>();
   const activeSection = VALID_SECTIONS.has(section) ? section : "general";
   const navigate = useNavigate();
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, setFlash] = useState<{ message: string; variant: "success" | "error" } | null>(null);
 
   const handleSaved = (message: string) => {
-    setFlash(message);
+    setFlash({ message, variant: "success" });
     setTimeout(() => setFlash(null), 3000);
+  };
+
+  // Writes are owner-only at the database level (an existing, unchanged
+  // policy) — an editor's save must surface here, not disappear silently.
+  const handleError = (message: string) => {
+    setFlash({ message, variant: "error" });
+    setTimeout(() => setFlash(null), 5000);
   };
 
   return (
@@ -45,10 +52,18 @@ export default function SettingsPage() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="flex items-center gap-2.5 rounded-[10px] border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+            className={
+              flash.variant === "success"
+                ? "flex items-center gap-2.5 rounded-[10px] border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+                : "flex items-center gap-2.5 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
+            }
           >
-            <IconCheck className="h-4 w-4 shrink-0" />
-            {flash}
+            {flash.variant === "success" ? (
+              <IconCheck className="h-4 w-4 shrink-0" />
+            ) : (
+              <IconAlertTriangle className="h-4 w-4 shrink-0" />
+            )}
+            {flash.message}
           </motion.div>
         )}
       </AnimatePresence>
@@ -56,13 +71,13 @@ export default function SettingsPage() {
       <Tabs tabs={TABS} active={activeSection} onChange={(key) => navigate(`/admin/settings/${key}`, { replace: true })} />
 
       <div className="w-full">
-        {activeSection === "general" && <GeneralSection onSaved={handleSaved} />}
-        {activeSection === "brand" && <BrandSection onSaved={handleSaved} />}
-        {activeSection === "seo" && <SeoSection onSaved={handleSaved} />}
-        {activeSection === "homepage" && <HomePageSection onSaved={handleSaved} />}
-        {activeSection === "contact" && <ContactSection onSaved={handleSaved} />}
-        {activeSection === "store" && <StoreSection onSaved={handleSaved} />}
-        {activeSection === "storage" && <StorageSection onSaved={handleSaved} />}
+        {activeSection === "general" && <GeneralSection onSaved={handleSaved} onError={handleError} />}
+        {activeSection === "brand" && <BrandSection onSaved={handleSaved} onError={handleError} />}
+        {activeSection === "seo" && <SeoSection onSaved={handleSaved} onError={handleError} />}
+        {activeSection === "homepage" && <HomePageSection onSaved={handleSaved} onError={handleError} />}
+        {activeSection === "contact" && <ContactSection onSaved={handleSaved} onError={handleError} />}
+        {activeSection === "store" && <StoreSection onSaved={handleSaved} onError={handleError} />}
+        {activeSection === "storage" && <StorageSection onSaved={handleSaved} onError={handleError} />}
       </div>
     </div>
   );

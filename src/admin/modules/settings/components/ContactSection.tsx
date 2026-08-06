@@ -7,6 +7,7 @@ import { SettingsRow } from "./SettingsRow";
 
 interface ContactSectionProps {
   onSaved: (message: string) => void;
+  onError: (message: string) => void;
 }
 
 const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
@@ -14,10 +15,15 @@ const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
   { value: "en", label: "English" },
 ];
 
-export function ContactSection({ onSaved }: ContactSectionProps) {
-  const { rawSettings, updateContact } = useSettings();
+export function ContactSection({ onSaved, onError }: ContactSectionProps) {
+  const { rawSettings, updateContact: updateContactRaw } = useSettings();
   const { email, phone, address, hours, instagram, pinterest, tiktok } = rawSettings.contact;
   const [editingLanguage, setEditingLanguage] = useState<Language>("ar");
+
+  const updateContact: typeof updateContactRaw = (values) =>
+    updateContactRaw(values).catch(() => {
+      onError("تعذر حفظ إعدادات التواصل.");
+    });
 
   return (
     <div>

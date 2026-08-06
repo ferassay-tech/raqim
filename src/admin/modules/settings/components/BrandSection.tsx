@@ -11,6 +11,7 @@ import { SettingsRow } from "./SettingsRow";
 
 interface BrandSectionProps {
   onSaved: (message: string) => void;
+  onError: (message: string) => void;
 }
 
 const COLOR_LABELS: Record<keyof BrandColorTokens, string> = {
@@ -42,11 +43,16 @@ const OBJECT_FIT_OPTIONS: { value: LogoSizing["objectFit"]; label: string }[] = 
 
 type PickerTarget = "logo" | "favicon" | "heroImage" | null;
 
-export function BrandSection({ onSaved }: BrandSectionProps) {
-  const { settings, updateBrand } = useSettings();
+export function BrandSection({ onSaved, onError }: BrandSectionProps) {
+  const { settings, updateBrand: updateBrandRaw } = useSettings();
   const { logo, logoSizing, heroImage, wordmark, favicon, colors, fonts, radius, spacing, shadowSoft, shadowMd } =
     settings.brand;
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
+
+  const updateBrand: typeof updateBrandRaw = (values) =>
+    updateBrandRaw(values).catch(() => {
+      onError("تعذر حفظ إعدادات الهوية البصرية.");
+    });
 
   const setColor = (token: keyof BrandColorTokens, hex: string) => {
     updateBrand({ colors: { ...colors, [token]: hex } });
