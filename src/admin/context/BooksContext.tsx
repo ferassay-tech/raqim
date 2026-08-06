@@ -1,21 +1,20 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { AdminBook, AdminBookRaw, BookStatus } from "../types/book";
 import type { LocalizedText } from "../types/siteContent";
 import { INITIAL_BOOKS } from "../data/booksData";
-import { usePersistedState } from "../lib/usePersistedState";
+import { booksRepository, fromSupabaseRow, toSupabaseRow } from "./booksRepository.ts";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../context/LanguageContext";
 
 interface BooksContextValue {
-  /** Resolved for the active site language — public pages, checkout,
-   * structured data, and every other Admin module (dashboard, customers,
-   * media, categories, downloads) all consume this, unchanged shape. */
+  /** Resolved for the active site language — public pages and the Admin
+   * all consume this, unchanged shape. */
   books: AdminBook[];
   getBook: (id: string) => AdminBook | undefined;
   /** Raw, bilingual — Book Editor only. */
   getRawBook: (id: string) => AdminBookRaw | undefined;
-  createBook: (book: Omit<AdminBookRaw, "id" | "updatedAt" | "sales">) => AdminBookRaw;
+  createBook: (book: Omit<AdminBookRaw, "id" | "updatedAt" | "sales">) => void;
   updateBook: (id: string, patch: Partial<AdminBookRaw>) => void;
   /** Soft delete — sets deletedAt, hides the book from public site + default
    * Admin views, but keeps it recoverable from the "المحذوفة" trash view. */
@@ -49,20 +48,10 @@ function slugify(title: string) {
   );
 }
 
-// Older localStorage records (and the original seed data) stored these
-// copy fields as plain strings. Wrapping any plain string into
-// { ar: value, en: "" } on read means existing catalog data is never lost —
-// this is a pure, idempotent transform, so already-migrated data just
-// passes through unchanged and no separate one-time migration step or
-// version flag is needed. Mirrors the SiteContentContext migration exactly.
-//
-// `seedValue`, when given, self-heals a browser that already persisted this
-// exact field from before an English translation was written for it: if the
-// stored English is still empty AND the current seed now ships a real
-// English value for the same book/field, adopt the seed's English text.
-// Never touches Arabic, never overwrites an English value an admin actually
-// typed — it only lets newly-authored translations reach browsers that
-// already have the old, English-empty shape stored, with no manual reset.
+// Kept from before this migration — a real, already-shipped browser could
+// still hold a copy field as a plain string from before bilingual support
+// existed. Harmless and idempotent against the now-always-correct shape
+// Supabase rows come back in (see booksRepository.fromSupabaseRow).
 function migrateLocalizedText(value: unknown, seedValue?: LocalizedText): LocalizedText {
   const migrated: LocalizedText =
     typeof value === "string"
@@ -99,12 +88,6 @@ function migrateBook(raw: AdminBookRaw): AdminBookRaw {
       quote: migrateLocalizedText(r.quote, seed?.reviews?.[i]?.quote),
       name: migrateLocalizedText(r.name, seed?.reviews?.[i]?.name),
       role: migrateLocalizedText(r.role, seed?.reviews?.[i]?.role),
-      // Older stored records predate this field — self-heal from the seed's
-      // real rating for that same review (matched by index) rather than
-      // ever inventing one; only falls back to a literal default if a
-      // record somehow has no seed counterpart at all (e.g. a review an
-      // admin already deleted from the seed but that still lingers in a
-      // browser's storage).
       rating: r.rating ?? seed?.reviews?.[i]?.rating ?? 5,
     })),
     faq: (raw.faq ?? []).map((f, i) => ({
@@ -152,20 +135,44 @@ function resolveBook(raw: AdminBookRaw, language: Language): AdminBook {
 }
 
 /**
- * In-memory CRUD store for the admin book catalog — Milestone 2C is
- * frontend-only, so this stands in for what will later be an API layer.
- * Session-scoped only (resets on reload), but persists across route
- * navigation, so Create → List → Edit all reflect the same live data.
+ * CMS Phase 6A — Books, backed by the Supabase `books` table via the same
+ * generic repository engine Categories already proved out. `category_id`
+ * is never read or computed here — see booksRepository.ts's doc comment:
+ * the display/matching category name lives in content.category and is
+ * carried through on every write exactly as it already was, so an
+ * existing row's category_id (set once, offline, by
+ * generate-books-seed.mjs) is never touched by ordinary Admin edits.
  *
- * Copy fields are stored bilingually ({ar, en}); `books`/`getBook()` resolve
- * to the active site language for every public/Admin-list consumer, falling
- * back to Arabic when English is empty — same contract as before this
- * migration. `getRawBook()`/`createBook()`/`updateBook()` operate on the raw
- * bilingual shape, for the Book Editor only.
+ * INITIAL_BOOKS is kept only as the synchronous render-time placeholder
+ * shown before the first real fetch resolves (and as migrateBook's
+ * legacy-shape reference) — not as a persistence fallback. No
+ * localStorage read/write happens for this module anymore.
  */
 export function BooksProvider({ children }: { children: ReactNode }) {
-  const [storedBooks, setBooks] = usePersistedState<AdminBookRaw[]>("books", INITIAL_BOOKS);
+  const [storedBooks, setStoredBooks] = useState<AdminBookRaw[]>(INITIAL_BOOKS);
+  // Every row as last fetched from Supabase, keyed by id — the only place
+  // category_id (and any other column not surfaced on AdminBookRaw) is
+  // remembered, so a write can carry it forward unchanged without ever
+  // re-deriving it.
+  const rowsById = useRef<Map<string, ReturnType<typeof toSupabaseRow>>>(new Map());
   const { language } = useLanguage();
+
+  useEffect(() => {
+    let cancelled = false;
+    booksRepository
+      .list()
+      .then((rows) => {
+        if (cancelled) return;
+        rowsById.current = new Map(rows.map((row) => [row.id, row]));
+        setStoredBooks(rows.map(fromSupabaseRow));
+      })
+      .catch((error) => {
+        console.error("Failed to load books from Supabase:", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const rawBooks = useMemo(() => storedBooks.map(migrateBook), [storedBooks]);
   const books = useMemo(() => rawBooks.map((b) => resolveBook(b, language)), [rawBooks, language]);
@@ -173,62 +180,77 @@ export function BooksProvider({ children }: { children: ReactNode }) {
   const getBook = useCallback((id: string) => books.find((b) => b.id === id), [books]);
   const getRawBook = useCallback((id: string) => rawBooks.find((b) => b.id === id), [rawBooks]);
 
-  const createBook = useCallback(
-    (book: Omit<AdminBookRaw, "id" | "updatedAt" | "sales">) => {
-      let id = slugify(book.title.ar);
-      let created!: AdminBookRaw;
-      setBooks((prev) => {
-        let candidate = id;
-        let n = 2;
-        while (prev.some((b) => b.id === candidate)) {
-          candidate = `${id}-${n}`;
-          n += 1;
-        }
-        id = candidate;
-        created = { ...book, id, sales: 0, updatedAt: today() };
-        return [created, ...prev];
+  /** category_id for an existing row is whatever the last fetch saw;
+   * brand new rows have none yet (see this file's top comment — nothing
+   * here ever computes one). */
+  const categoryIdFor = useCallback((id: string) => rowsById.current.get(id)?.category_id ?? null, []);
+
+  const createBook = useCallback((book: Omit<AdminBookRaw, "id" | "updatedAt" | "sales">) => {
+    let id = slugify(book.title.ar);
+    let n = 2;
+    while (storedBooks.some((b) => b.id === id)) {
+      id = `${slugify(book.title.ar)}-${n}`;
+      n += 1;
+    }
+    const created: AdminBookRaw = { ...book, id, sales: 0, updatedAt: today() };
+    const row = toSupabaseRow(created, null);
+    void booksRepository.create(row).then(() => {
+      rowsById.current.set(id, row);
+      setStoredBooks((prev) => [created, ...prev]);
+    });
+  }, [storedBooks]);
+
+  const persistPatch = useCallback(
+    (id: string, patch: Partial<AdminBookRaw>) => {
+      const current = storedBooks.find((b) => b.id === id);
+      if (!current) return;
+      const merged: AdminBookRaw = { ...current, ...patch, updatedAt: today() };
+      const row = toSupabaseRow(merged, categoryIdFor(id));
+      void booksRepository.update(id, row).then(() => {
+        rowsById.current.set(id, row);
+        setStoredBooks((prev) => prev.map((b) => (b.id === id ? merged : b)));
       });
-      return created;
     },
-    [setBooks]
+    [storedBooks, categoryIdFor]
   );
 
   const updateBook = useCallback(
-    (id: string, patch: Partial<AdminBookRaw>) => {
-      setBooks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch, updatedAt: today() } : b)));
-    },
-    [setBooks]
+    (id: string, patch: Partial<AdminBookRaw>) => persistPatch(id, patch),
+    [persistPatch]
   );
 
-  const deleteBook = useCallback((id: string) => {
-    setBooks((prev) => prev.map((b) => (b.id === id ? { ...b, deletedAt: today() } : b)));
-  }, [setBooks]);
+  const deleteBook = useCallback((id: string) => persistPatch(id, { deletedAt: today() }), [persistPatch]);
 
-  const deleteBooks = useCallback((ids: string[]) => {
-    const idSet = new Set(ids);
-    setBooks((prev) => prev.map((b) => (idSet.has(b.id) ? { ...b, deletedAt: today() } : b)));
-  }, [setBooks]);
+  const deleteBooks = useCallback(
+    (ids: string[]) => {
+      ids.forEach((id) => persistPatch(id, { deletedAt: today() }));
+    },
+    [persistPatch]
+  );
 
-  const restoreBook = useCallback((id: string) => {
-    setBooks((prev) => prev.map((b) => (b.id === id ? { ...b, deletedAt: null } : b)));
-  }, [setBooks]);
+  const restoreBook = useCallback((id: string) => persistPatch(id, { deletedAt: null }), [persistPatch]);
 
-  const restoreBooks = useCallback((ids: string[]) => {
-    const idSet = new Set(ids);
-    setBooks((prev) => prev.map((b) => (idSet.has(b.id) ? { ...b, deletedAt: null } : b)));
-  }, [setBooks]);
+  const restoreBooks = useCallback(
+    (ids: string[]) => {
+      ids.forEach((id) => persistPatch(id, { deletedAt: null }));
+    },
+    [persistPatch]
+  );
 
   const permanentlyDeleteBook = useCallback((id: string) => {
-    setBooks((prev) => prev.filter((b) => b.id !== id));
-  }, [setBooks]);
+    void booksRepository.remove(id).then(() => {
+      rowsById.current.delete(id);
+      setStoredBooks((prev) => prev.filter((b) => b.id !== id));
+    });
+  }, []);
 
-  const duplicateBook = useCallback((id: string) => {
-    setBooks((prev) => {
-      const source = prev.find((b) => b.id === id);
-      if (!source) return prev;
+  const duplicateBook = useCallback(
+    (id: string) => {
+      const source = storedBooks.find((b) => b.id === id);
+      if (!source) return;
       let dupId = `${source.id}-copy`;
       let n = 2;
-      while (prev.some((b) => b.id === dupId)) {
+      while (storedBooks.some((b) => b.id === dupId)) {
         dupId = `${source.id}-copy-${n}`;
         n += 1;
       }
@@ -246,15 +268,24 @@ export function BooksProvider({ children }: { children: ReactNode }) {
         deletedAt: null,
         updatedAt: today(),
       };
-      const index = prev.findIndex((b) => b.id === id);
-      return [...prev.slice(0, index + 1), duplicate, ...prev.slice(index + 1)];
-    });
-  }, [setBooks]);
+      const row = toSupabaseRow(duplicate, null);
+      void booksRepository.create(row).then(() => {
+        rowsById.current.set(dupId, row);
+        setStoredBooks((prev) => {
+          const index = prev.findIndex((b) => b.id === id);
+          return [...prev.slice(0, index + 1), duplicate, ...prev.slice(index + 1)];
+        });
+      });
+    },
+    [storedBooks]
+  );
 
-  const setBooksStatus = useCallback((ids: string[], status: BookStatus) => {
-    const idSet = new Set(ids);
-    setBooks((prev) => prev.map((b) => (idSet.has(b.id) ? { ...b, status, updatedAt: today() } : b)));
-  }, [setBooks]);
+  const setBooksStatus = useCallback(
+    (ids: string[], status: BookStatus) => {
+      ids.forEach((id) => persistPatch(id, { status }));
+    },
+    [persistPatch]
+  );
 
   const value = useMemo(
     () => ({
