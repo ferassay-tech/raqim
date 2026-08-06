@@ -85,44 +85,72 @@ export function MediaProvider({ children }: { children: ReactNode }) {
         height: null,
         uploadedAt: today(),
       }));
-    void Promise.all(newAssets.map((asset) => mediaAssetsRepository.create(assetToSupabaseRow(asset)))).then(() => {
-      setAssets((prev) => [...newAssets, ...prev]);
-    });
+    void Promise.all(newAssets.map((asset) => mediaAssetsRepository.create(assetToSupabaseRow(asset))))
+      .then(() => {
+        setAssets((prev) => [...newAssets, ...prev]);
+      })
+      .catch((error) => {
+        console.error("Failed to upload media assets:", error);
+      });
   }, []);
 
   const renameAsset = useCallback((id: string, name: string) => {
-    void mediaAssetsRepository.update(id, { name }).then(() => {
-      setAssets((prev) => prev.map((a) => (a.id === id ? { ...a, name } : a)));
-    });
+    void mediaAssetsRepository
+      .update(id, { name })
+      .then(() => {
+        setAssets((prev) => prev.map((a) => (a.id === id ? { ...a, name } : a)));
+      })
+      .catch((error) => {
+        console.error("Failed to rename media asset:", error);
+      });
   }, []);
 
   const moveAsset = useCallback((id: string, folderId: string | null) => {
-    void mediaAssetsRepository.update(id, { folder_id: folderId }).then(() => {
-      setAssets((prev) => prev.map((a) => (a.id === id ? { ...a, folderId } : a)));
-    });
+    void mediaAssetsRepository
+      .update(id, { folder_id: folderId })
+      .then(() => {
+        setAssets((prev) => prev.map((a) => (a.id === id ? { ...a, folderId } : a)));
+      })
+      .catch((error) => {
+        console.error("Failed to move media asset:", error);
+      });
   }, []);
 
   const deleteAsset = useCallback((id: string) => {
-    void mediaAssetsRepository.remove(id).then(() => {
-      setAssets((prev) => prev.filter((a) => a.id !== id));
-    });
+    void mediaAssetsRepository
+      .remove(id)
+      .then(() => {
+        setAssets((prev) => prev.filter((a) => a.id !== id));
+      })
+      .catch((error) => {
+        console.error("Failed to delete media asset:", error);
+      });
   }, []);
 
-  const createFolder = useCallback((name: string) => {
-    setFolders((prevLocal) => {
+  // Computes the new id from the `folders` closure (not a setState-updater
+  // side effect) because React 18 StrictMode deliberately double-invokes
+  // functional state updaters in dev to surface impure ones — doing the
+  // repository write in there would double-fire the insert.
+  const createFolder = useCallback(
+    (name: string) => {
       let id = `folder-${slugify(name)}`;
       let n = 2;
-      while (prevLocal.some((f) => f.id === id)) {
+      while (folders.some((f) => f.id === id)) {
         id = `folder-${slugify(name)}-${n}`;
         n += 1;
       }
       const folder: AdminMediaFolder = { id, name };
-      void mediaFoldersRepository.create(folderToSupabaseRow(folder)).then(() => {
-        setFolders((prev) => [...prev, folder]);
-      });
-      return prevLocal;
-    });
-  }, []);
+      void mediaFoldersRepository
+        .create(folderToSupabaseRow(folder))
+        .then(() => {
+          setFolders((prev) => [...prev, folder]);
+        })
+        .catch((error) => {
+          console.error("Failed to create media folder:", error);
+        });
+    },
+    [folders]
+  );
 
   const deleteFolder = useCallback((id: string) => {
     // The real foreign key (media_assets.folder_id -> media_folders.id)
@@ -130,10 +158,15 @@ export function MediaProvider({ children }: { children: ReactNode }) {
     // cascade on its own; this mirrors it client-side so local state
     // matches what Supabase just did, without a second round-trip to
     // re-fetch assets.
-    void mediaFoldersRepository.remove(id).then(() => {
-      setFolders((prev) => prev.filter((f) => f.id !== id));
-      setAssets((prev) => prev.map((a) => (a.folderId === id ? { ...a, folderId: null } : a)));
-    });
+    void mediaFoldersRepository
+      .remove(id)
+      .then(() => {
+        setFolders((prev) => prev.filter((f) => f.id !== id));
+        setAssets((prev) => prev.map((a) => (a.folderId === id ? { ...a, folderId: null } : a)));
+      })
+      .catch((error) => {
+        console.error("Failed to delete media folder:", error);
+      });
   }, []);
 
   const value = useMemo(

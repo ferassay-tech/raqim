@@ -3,10 +3,9 @@ import { createCollectionAdapter } from "../services/data/index.ts";
 import type { CollectionAdapter } from "../services/data/index.ts";
 
 /**
- * CMS Phase 6B (Media, 1b of 3) — repository for both media tables. Not
- * wired into MediaContext yet — see the plan's commit sequence. Uploads
- * stay mock object URLs in this phase (no change to that behavior); only
- * the metadata record moves to Supabase.
+ * CMS Phase 6B — repository for both media tables, wired into
+ * MediaContext. Uploads stay mock object URLs in this phase (no change
+ * to that behavior); only the metadata record moves to Supabase.
  */
 
 export interface MediaFolderRow {
