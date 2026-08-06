@@ -1,8 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { AdminMediaAsset, AdminMediaFolder } from "../types/media";
 import { INITIAL_MEDIA_ASSETS, INITIAL_MEDIA_FOLDERS } from "../data/mediaData";
-import { usePersistedState } from "../lib/usePersistedState";
+import {
+  assetFromSupabaseRow,
+  assetToSupabaseRow,
+  folderFromSupabaseRow,
+  folderToSupabaseRow,
+  mediaAssetsRepository,
+  mediaFoldersRepository,
+} from "./mediaRepository.ts";
 
 interface MediaContextValue {
   assets: AdminMediaAsset[];
@@ -29,70 +36,39 @@ function slugify(name: string) {
   );
 }
 
-/** Known legacy URLs for the three built-in "official" assets whose
- * canonical path has changed since first seeded — used only to detect a
- * persisted entry that still carries an old official URL. Never matches a
- * user upload (those use `media-upload-*` ids, never these three) and is
- * checked by exact URL, so a user-uploaded replacement at one of these ids'
- * own URL would never occur in practice. */
-const LEGACY_OFFICIAL_URLS: Record<string, string[]> = {
-  "media-logo": ["/logos/lumora-logo-signature.png"],
-  "media-og": ["/og-image-2026.png"],
-  "media-favicon": ["/favicon.webp"],
-};
-
 /**
- * The shared asset store — Books, Articles, and any future module read
- * from and write to this same context rather than keeping their own copies
- * of "what images exist." Uploads are mock (object URLs, session-scoped
- * only) since there's no backend yet, but the shape (ids, metadata, a
- * folderId reference) is what a real upload endpoint would return.
+ * CMS Phase 6B — Media, backed by the Supabase `media_assets`/
+ * `media_folders` tables via the same generic repository engine
+ * Categories and Books already proved out. Uploads are still mock object
+ * URLs (`URL.createObjectURL`), byte-for-byte unchanged from before this
+ * migration — only the *metadata record* now persists to Supabase. Real
+ * uploads through actual Storage are an explicitly separate, later phase.
+ *
+ * The one-time LEGACY_OFFICIAL_URLS reconciliation this file used to run
+ * on mount is gone, on purpose, not just unused: it existed to heal an
+ * already-persisted *browser's* stale data from before a rebrand. Now
+ * that Supabase is the source of truth, seeded once via
+ * generate-media-seed.mjs from the already-correct INITIAL_MEDIA_ASSETS,
+ * there is no stale local copy left to heal.
  */
 export function MediaProvider({ children }: { children: ReactNode }) {
-  const [assets, setAssets] = usePersistedState<AdminMediaAsset[]>("media_assets", INITIAL_MEDIA_ASSETS);
-  const [folders, setFolders] = usePersistedState<AdminMediaFolder[]>("media_folders", INITIAL_MEDIA_FOLDERS);
+  const [assets, setAssets] = useState<AdminMediaAsset[]>(INITIAL_MEDIA_ASSETS);
+  const [folders, setFolders] = useState<AdminMediaFolder[]>(INITIAL_MEDIA_FOLDERS);
 
-  // One-time reconciliation, run like a migration: a browser that already
-  // persisted `media_assets`/`media_folders` before some entry existed in
-  // the seed would otherwise never see it, since the persisted array fully
-  // replaces the seed on every load (see usePersistedState) with no merge
-  // of its own. This appends only the seed ids missing from what's already
-  // persisted — every persisted asset/folder (including user uploads and
-  // any edits to a seed item's own fields) is left completely untouched;
-  // nothing is ever overwritten, deleted, or duplicated.
   useEffect(() => {
-    setAssets((prev) => {
-      const knownIds = new Set(prev.map((a) => a.id));
-      const missing = INITIAL_MEDIA_ASSETS.filter((seed) => !knownIds.has(seed.id));
-
-      // Heal only the three built-in official assets, and only when their
-      // persisted URL is a known legacy value — a user's own upload, rename,
-      // or folder move is never touched, since those never match a legacy
-      // URL at one of these three ids in the first place. `name`/`folderId`
-      // (the user-editable fields) are preserved as-is; only the technical
-      // fields that describe *which file this is* (url/width/height/size/
-      // type) are brought forward to the current seed.
-      let changed = false;
-      const healed = prev.map((asset) => {
-        const legacyUrls = LEGACY_OFFICIAL_URLS[asset.id];
-        if (!legacyUrls?.includes(asset.url)) return asset;
-        const seed = INITIAL_MEDIA_ASSETS.find((s) => s.id === asset.id);
-        if (!seed) return asset;
-        changed = true;
-        return { ...asset, url: seed.url, width: seed.width, height: seed.height, size: seed.size, type: seed.type };
+    let cancelled = false;
+    Promise.all([mediaFoldersRepository.list(), mediaAssetsRepository.list()])
+      .then(([folderRows, assetRows]) => {
+        if (cancelled) return;
+        setFolders(folderRows.map(folderFromSupabaseRow));
+        setAssets(assetRows.map(assetFromSupabaseRow));
+      })
+      .catch((error) => {
+        console.error("Failed to load media from Supabase:", error);
       });
-
-      if (missing.length === 0 && !changed) return prev;
-      return [...healed, ...missing];
-    });
-    setFolders((prev) => {
-      const knownIds = new Set(prev.map((f) => f.id));
-      const missing = INITIAL_MEDIA_FOLDERS.filter((seed) => !knownIds.has(seed.id));
-      return missing.length > 0 ? [...prev, ...missing] : prev;
-    });
-    // Runs once on mount only — this is a startup migration, not a
-    // per-render sync.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const addAssets = useCallback((files: File[], folderId: string | null) => {
@@ -109,37 +85,56 @@ export function MediaProvider({ children }: { children: ReactNode }) {
         height: null,
         uploadedAt: today(),
       }));
-    setAssets((prev) => [...newAssets, ...prev]);
-  }, [setAssets]);
+    void Promise.all(newAssets.map((asset) => mediaAssetsRepository.create(assetToSupabaseRow(asset)))).then(() => {
+      setAssets((prev) => [...newAssets, ...prev]);
+    });
+  }, []);
 
   const renameAsset = useCallback((id: string, name: string) => {
-    setAssets((prev) => prev.map((a) => (a.id === id ? { ...a, name } : a)));
-  }, [setAssets]);
+    void mediaAssetsRepository.update(id, { name }).then(() => {
+      setAssets((prev) => prev.map((a) => (a.id === id ? { ...a, name } : a)));
+    });
+  }, []);
 
   const moveAsset = useCallback((id: string, folderId: string | null) => {
-    setAssets((prev) => prev.map((a) => (a.id === id ? { ...a, folderId } : a)));
-  }, [setAssets]);
+    void mediaAssetsRepository.update(id, { folder_id: folderId }).then(() => {
+      setAssets((prev) => prev.map((a) => (a.id === id ? { ...a, folderId } : a)));
+    });
+  }, []);
 
   const deleteAsset = useCallback((id: string) => {
-    setAssets((prev) => prev.filter((a) => a.id !== id));
-  }, [setAssets]);
+    void mediaAssetsRepository.remove(id).then(() => {
+      setAssets((prev) => prev.filter((a) => a.id !== id));
+    });
+  }, []);
 
   const createFolder = useCallback((name: string) => {
-    setFolders((prev) => {
+    setFolders((prevLocal) => {
       let id = `folder-${slugify(name)}`;
       let n = 2;
-      while (prev.some((f) => f.id === id)) {
+      while (prevLocal.some((f) => f.id === id)) {
         id = `folder-${slugify(name)}-${n}`;
         n += 1;
       }
-      return [...prev, { id, name }];
+      const folder: AdminMediaFolder = { id, name };
+      void mediaFoldersRepository.create(folderToSupabaseRow(folder)).then(() => {
+        setFolders((prev) => [...prev, folder]);
+      });
+      return prevLocal;
     });
-  }, [setFolders]);
+  }, []);
 
   const deleteFolder = useCallback((id: string) => {
-    setFolders((prev) => prev.filter((f) => f.id !== id));
-    setAssets((prev) => prev.map((a) => (a.folderId === id ? { ...a, folderId: null } : a)));
-  }, [setFolders, setAssets]);
+    // The real foreign key (media_assets.folder_id -> media_folders.id)
+    // is ON DELETE SET NULL, so the database already does this same
+    // cascade on its own; this mirrors it client-side so local state
+    // matches what Supabase just did, without a second round-trip to
+    // re-fetch assets.
+    void mediaFoldersRepository.remove(id).then(() => {
+      setFolders((prev) => prev.filter((f) => f.id !== id));
+      setAssets((prev) => prev.map((a) => (a.folderId === id ? { ...a, folderId: null } : a)));
+    });
+  }, []);
 
   const value = useMemo(
     () => ({ assets, folders, addAssets, renameAsset, moveAsset, deleteAsset, createFolder, deleteFolder }),
