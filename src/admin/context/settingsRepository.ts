@@ -24,6 +24,20 @@ export async function getSettings(): Promise<AdminSettingsRaw> {
 
 export async function updateSettings(next: AdminSettingsRaw): Promise<void> {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.from("site_settings").update({ data: next }).eq("scope", "default");
+  // .select() is required to detect a write RLS silently rejected: without
+  // it, supabase-js sends Prefer: return=minimal, and PostgREST responds
+  // 204 with an empty body whether 0 or 1 rows were actually affected —
+  // `error` stays null either way, so a non-owner's blocked write would
+  // otherwise look identical to success. site_settings_select_anon permits
+  // anyone to read the row back, so this doesn't hit the same
+  // RETURNING-requires-SELECT-policy issue insertOrder() worked around.
+  const { data, error } = await supabase
+    .from("site_settings")
+    .update({ data: next })
+    .eq("scope", "default")
+    .select("scope");
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Settings update affected no rows — check write permissions.");
+  }
 }
