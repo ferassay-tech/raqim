@@ -156,6 +156,35 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       messages: [{ id: `${id}-1`, direction: "inbound", author: input.name, body: input.message, time }],
     };
     await insertConversation(conversationToSupabaseRow(conversation));
+
+    // Best-effort — never blocks or affects the visitor's success
+    // feedback, which is already driven by the insert above succeeding.
+    // fetch() only rejects on a network-level failure, not on an HTTP
+    // error status, so response.ok is checked explicitly — otherwise a
+    // 500 (e.g. missing RESEND_API_KEY) would fail completely silently.
+    fetch("/api/notify-new-conversation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customerName: input.name, customerEmail: input.email, message: input.message }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const body = await response.json().catch(() => null);
+          console.error("Failed to send new-conversation notification email:", {
+            conversationId: id,
+            customerEmail: input.email,
+            status: response.status,
+            body,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to send new-conversation notification email:", {
+          conversationId: id,
+          customerEmail: input.email,
+          error,
+        });
+      });
   }, []);
 
   const value = useMemo(
