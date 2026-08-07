@@ -15,8 +15,11 @@ interface MessagesContextValue {
   conversations: AdminConversation[];
   getConversation: (id: string) => AdminConversation | undefined;
   markRead: (id: string) => void;
-  sendReply: (id: string, body: string) => void;
-  addNote: (id: string, body: string) => void;
+  /** Phase 7B — Promise-returning so ReplyComposer can await and show a
+   * real failure (with the typed text preserved for retry) instead of
+   * the previous fire-and-forget-with-console-only behavior. */
+  sendReply: (id: string, body: string) => Promise<void>;
+  addNote: (id: string, body: string) => Promise<void>;
   setStatus: (id: string, status: ConversationStatus) => void;
   /** Phase 7A — the public contact form's only entry point into this
    * module. Anonymous-safe: does not touch local `conversations` state
@@ -79,7 +82,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   );
 
   const sendReply = useCallback(
-    (id: string, body: string) => {
+    async (id: string, body: string) => {
       const conversation = conversations.find((c) => c.id === id);
       if (!conversation) return;
       const updatedAt = `اليوم، ${now()}`;
@@ -93,20 +96,19 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
           time: updatedAt,
         },
       ];
-      void messagesRepository
-        .update(id, { updated_at: updatedAt, messages })
-        .then(() => {
-          setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, updatedAt, messages } : c)));
-        })
-        .catch((error) => {
-          console.error("Failed to send reply:", error);
-        });
+      try {
+        await messagesRepository.update(id, { updated_at: updatedAt, messages });
+      } catch (error) {
+        console.error("Failed to send reply:", { conversationId: id, error });
+        throw error;
+      }
+      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, updatedAt, messages } : c)));
     },
     [conversations]
   );
 
   const addNote = useCallback(
-    (id: string, body: string) => {
+    async (id: string, body: string) => {
       const conversation = conversations.find((c) => c.id === id);
       if (!conversation) return;
       const messages: ConversationMessage[] = [
@@ -119,14 +121,13 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
           time: `اليوم، ${now()}`,
         },
       ];
-      void messagesRepository
-        .update(id, { messages })
-        .then(() => {
-          setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, messages } : c)));
-        })
-        .catch((error) => {
-          console.error("Failed to add note:", error);
-        });
+      try {
+        await messagesRepository.update(id, { messages });
+      } catch (error) {
+        console.error("Failed to add note:", { conversationId: id, error });
+        throw error;
+      }
+      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, messages } : c)));
     },
     [conversations]
   );
