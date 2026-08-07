@@ -1,9 +1,9 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { AdminArticle, AdminArticleRaw, ArticleStatus } from "../types/article";
 import type { LocalizedText } from "../types/siteContent";
 import { INITIAL_ARTICLES } from "../data/articlesData";
-import { usePersistedState } from "../lib/usePersistedState";
+import { articleFromSupabaseRow, articleToSupabaseRow, articlesRepository } from "./articlesRepository.ts";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../context/LanguageContext";
 
@@ -15,7 +15,7 @@ interface ArticlesContextValue {
   getArticle: (id: string) => AdminArticle | undefined;
   /** Raw, bilingual — Article Editor only. */
   getRawArticle: (id: string) => AdminArticleRaw | undefined;
-  createArticle: (values: Omit<AdminArticleRaw, "id" | "updatedAt">) => AdminArticleRaw;
+  createArticle: (values: Omit<AdminArticleRaw, "id" | "updatedAt">) => void;
   updateArticle: (id: string, values: Omit<AdminArticleRaw, "id" | "updatedAt">) => void;
   deleteArticle: (id: string) => void;
   deleteArticles: (ids: string[]) => void;
@@ -33,14 +33,13 @@ function resolveText(value: LocalizedText, language: Language): string {
   return value[language] || value[FALLBACK_LANGUAGE] || "";
 }
 
-// Older localStorage records (and the original seed data) stored these
-// copy fields as plain strings. Wrapping any plain string into
-// { ar: value, en: "" } on read means existing article data is never
-// lost — this is a pure, idempotent transform, so already-migrated data
-// just passes through unchanged. Mirrors the SiteContent/Books/Categories
-// migration.
+// Older records (and the original seed data) stored these copy fields as
+// plain strings. Wrapping any plain string into { ar: value, en: "" } on
+// read means existing article data is never lost — this is a pure,
+// idempotent transform, so already-migrated data just passes through
+// unchanged. Mirrors the SiteContent/Books/Categories migration.
 //
-// `seedValue`, when given, self-heals a browser that already persisted this
+// `seedValue`, when given, self-heals a record that already persisted this
 // exact field from before an English translation was written for it — see
 // BooksContext.tsx's migrateLocalizedText for the full rationale.
 function migrateLocalizedText(value: unknown, seedValue?: LocalizedText): LocalizedText {
@@ -91,9 +90,32 @@ function slugify(title: string) {
   );
 }
 
+/**
+ * Articles, backed by the Supabase `articles` table since Phase 6F. No
+ * auth-gating on the mount-fetch — the public blog genuinely needs to
+ * read this. migrateArticle/resolveArticle/slugify are unchanged from
+ * before this migration; they operate on whatever the repository
+ * returns instead of whatever usePersistedState returned.
+ */
 export function ArticlesProvider({ children }: { children: ReactNode }) {
-  const [storedArticles, setArticles] = usePersistedState<AdminArticleRaw[]>("articles", INITIAL_ARTICLES);
+  const [storedArticles, setStoredArticles] = useState<AdminArticleRaw[]>(INITIAL_ARTICLES);
   const { language } = useLanguage();
+
+  useEffect(() => {
+    let cancelled = false;
+    articlesRepository
+      .list()
+      .then((rows) => {
+        if (cancelled) return;
+        setStoredArticles(rows.map(articleFromSupabaseRow));
+      })
+      .catch((error) => {
+        console.error("Failed to load articles from Supabase:", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const rawArticles = useMemo(() => storedArticles.map(migrateArticle), [storedArticles]);
   const articles = useMemo(() => rawArticles.map((a) => resolveArticle(a, language)), [rawArticles, language]);
@@ -101,50 +123,75 @@ export function ArticlesProvider({ children }: { children: ReactNode }) {
   const getArticle = useCallback((id: string) => articles.find((a) => a.id === id), [articles]);
   const getRawArticle = useCallback((id: string) => rawArticles.find((a) => a.id === id), [rawArticles]);
 
+  // Id computed from the storedArticles closure, not inside a setState
+  // updater — React 18 StrictMode double-invokes updater functions in
+  // dev to catch impure code like a repository write triggered from one.
   const createArticle = useCallback(
     (values: Omit<AdminArticleRaw, "id" | "updatedAt">) => {
-      let id = slugify(values.title.ar);
-      let created!: AdminArticleRaw;
-      setArticles((prev) => {
-        let candidate = id;
-        let n = 2;
-        while (prev.some((a) => a.id === candidate)) {
-          candidate = `${id}-${n}`;
-          n += 1;
-        }
-        id = candidate;
-        created = { ...values, id, updatedAt: today() };
-        return [created, ...prev];
-      });
-      return created;
+      const base = slugify(values.title.ar);
+      let id = base;
+      let n = 2;
+      while (storedArticles.some((a) => a.id === id)) {
+        id = `${base}-${n}`;
+        n += 1;
+      }
+      const created: AdminArticleRaw = { ...values, id, updatedAt: today() };
+      void articlesRepository
+        .create(articleToSupabaseRow(created))
+        .then(() => {
+          setStoredArticles((prev) => [created, ...prev]);
+        })
+        .catch((error) => {
+          console.error("Failed to create article:", error);
+        });
     },
-    [setArticles]
+    [storedArticles]
   );
 
-  const updateArticle = useCallback(
-    (id: string, values: Omit<AdminArticleRaw, "id" | "updatedAt">) => {
-      setArticles((prev) => prev.map((a) => (a.id === id ? { ...values, id, updatedAt: today() } : a)));
-    },
-    [setArticles]
-  );
+  const updateArticle = useCallback((id: string, values: Omit<AdminArticleRaw, "id" | "updatedAt">) => {
+    const updated: AdminArticleRaw = { ...values, id, updatedAt: today() };
+    void articlesRepository
+      .update(id, articleToSupabaseRow(updated))
+      .then(() => {
+        setStoredArticles((prev) => prev.map((a) => (a.id === id ? updated : a)));
+      })
+      .catch((error) => {
+        console.error("Failed to update article:", error);
+      });
+  }, []);
 
   const deleteArticle = useCallback((id: string) => {
-    setArticles((prev) => prev.filter((a) => a.id !== id));
-  }, [setArticles]);
+    void articlesRepository
+      .remove(id)
+      .then(() => {
+        setStoredArticles((prev) => prev.filter((a) => a.id !== id));
+      })
+      .catch((error) => {
+        console.error("Failed to delete article:", error);
+      });
+  }, []);
 
-  const deleteArticles = useCallback((ids: string[]) => {
-    const idSet = new Set(ids);
-    setArticles((prev) => prev.filter((a) => !idSet.has(a.id)));
-  }, [setArticles]);
+  const deleteArticles = useCallback(
+    (ids: string[]) => {
+      ids.forEach((id) => deleteArticle(id));
+    },
+    [deleteArticle]
+  );
 
-  const duplicateArticle = useCallback((id: string) => {
-    setArticles((prev) => {
-      const source = prev.find((a) => a.id === id);
-      if (!source) return prev;
-      let dupId = `${source.id}-copy`;
+  const duplicateArticle = useCallback(
+    (id: string) => {
+      const source = storedArticles.find((a) => a.id === id);
+      if (!source) return;
+      // Suffix both id and slug together — slug now has a unique
+      // constraint (Phase 6F migration), so duplicating an already-
+      // duplicated article must avoid colliding on either field, not
+      // just id as before.
       let n = 2;
-      while (prev.some((a) => a.id === dupId)) {
+      let dupId = `${source.id}-copy`;
+      let dupSlug = `${source.slug}-copy`;
+      while (storedArticles.some((a) => a.id === dupId || a.slug === dupSlug)) {
         dupId = `${source.id}-copy-${n}`;
+        dupSlug = `${source.slug}-copy-${n}`;
         n += 1;
       }
       const sourceTitle = migrateLocalizedText(source.title);
@@ -155,32 +202,50 @@ export function ArticlesProvider({ children }: { children: ReactNode }) {
           ar: `${sourceTitle.ar} (نسخة)`,
           en: sourceTitle.en ? `${sourceTitle.en} (copy)` : "",
         },
-        slug: `${source.slug}-copy`,
+        slug: dupSlug,
         status: "draft",
         publishedAt: null,
         scheduledFor: null,
         updatedAt: today(),
       };
-      const index = prev.findIndex((a) => a.id === id);
-      return [...prev.slice(0, index + 1), duplicate, ...prev.slice(index + 1)];
-    });
-  }, [setArticles]);
+      void articlesRepository
+        .create(articleToSupabaseRow(duplicate))
+        .then(() => {
+          setStoredArticles((prev) => {
+            const index = prev.findIndex((a) => a.id === id);
+            return [...prev.slice(0, index + 1), duplicate, ...prev.slice(index + 1)];
+          });
+        })
+        .catch((error) => {
+          console.error("Failed to duplicate article:", error);
+        });
+    },
+    [storedArticles]
+  );
 
-  const setArticlesStatus = useCallback((ids: string[], status: ArticleStatus) => {
-    const idSet = new Set(ids);
-    setArticles((prev) =>
-      prev.map((a) =>
-        idSet.has(a.id)
-          ? {
-              ...a,
-              status,
-              publishedAt: status === "published" ? a.publishedAt ?? today() : a.publishedAt,
-              updatedAt: today(),
-            }
-          : a
-      )
-    );
-  }, [setArticles]);
+  const setArticlesStatus = useCallback(
+    (ids: string[], status: ArticleStatus) => {
+      const idSet = new Set(ids);
+      const targets = storedArticles.filter((a) => idSet.has(a.id));
+      for (const target of targets) {
+        const updated: AdminArticleRaw = {
+          ...target,
+          status,
+          publishedAt: status === "published" ? (target.publishedAt ?? today()) : target.publishedAt,
+          updatedAt: today(),
+        };
+        void articlesRepository
+          .update(target.id, articleToSupabaseRow(updated))
+          .then(() => {
+            setStoredArticles((prev) => prev.map((a) => (a.id === target.id ? updated : a)));
+          })
+          .catch((error) => {
+            console.error("Failed to update article status:", error);
+          });
+      }
+    },
+    [storedArticles]
+  );
 
   const value = useMemo(
     () => ({
