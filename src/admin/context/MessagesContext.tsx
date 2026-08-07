@@ -2,8 +2,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from "react";
 import type { AdminConversation, ConversationMessage, ConversationStatus } from "../types/message";
 import { INITIAL_CONVERSATIONS } from "../data/messagesData";
-import { conversationFromSupabaseRow, messagesRepository } from "./messagesRepository.ts";
+import { conversationFromSupabaseRow, conversationToSupabaseRow, insertConversation, messagesRepository } from "./messagesRepository.ts";
 import { useAuth } from "./AuthContext";
+
+export interface SubmitConversationInput {
+  name: string;
+  email: string;
+  message: string;
+}
 
 interface MessagesContextValue {
   conversations: AdminConversation[];
@@ -12,6 +18,11 @@ interface MessagesContextValue {
   sendReply: (id: string, body: string) => void;
   addNote: (id: string, body: string) => void;
   setStatus: (id: string, status: ConversationStatus) => void;
+  /** Phase 7A — the public contact form's only entry point into this
+   * module. Anonymous-safe: does not touch local `conversations` state
+   * (an anonymous visitor never reads it), and rethrows on failure so
+   * the caller can show its own error UI. */
+  submitConversation: (input: SubmitConversationInput) => Promise<void>;
 }
 
 const MessagesContext = createContext<MessagesContextValue | null>(null);
@@ -131,9 +142,25 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
+  const submitConversation = useCallback(async (input: SubmitConversationInput) => {
+    const id = `conv-${Date.now().toString(36)}`;
+    const time = `اليوم، ${now()}`;
+    const conversation: AdminConversation = {
+      id,
+      customerId: null,
+      customerName: input.name,
+      customerEmail: input.email,
+      status: "open",
+      unread: true,
+      updatedAt: time,
+      messages: [{ id: `${id}-1`, direction: "inbound", author: input.name, body: input.message, time }],
+    };
+    await insertConversation(conversationToSupabaseRow(conversation));
+  }, []);
+
   const value = useMemo(
-    () => ({ conversations, getConversation, markRead, sendReply, addNote, setStatus }),
-    [conversations, getConversation, markRead, sendReply, addNote, setStatus]
+    () => ({ conversations, getConversation, markRead, sendReply, addNote, setStatus, submitConversation }),
+    [conversations, getConversation, markRead, sendReply, addNote, setStatus, submitConversation]
   );
 
   return <MessagesContext.Provider value={value}>{children}</MessagesContext.Provider>;
