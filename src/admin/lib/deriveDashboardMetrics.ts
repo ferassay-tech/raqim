@@ -2,7 +2,13 @@ import type { AdminBook } from "../types/book";
 import type { AdminOrder } from "../types/order";
 import { ORDER_TOTAL } from "../types/order";
 import type { AdminConversation } from "../types/message";
-import type { BestSellingBook, DashboardMetric, LatestMessage, LatestOrder } from "../types/dashboard";
+import type {
+  BestSellingBook,
+  DashboardMetric,
+  LatestMessage,
+  LatestOrder,
+  NeedsAttentionSummary,
+} from "../types/dashboard";
 import { deriveCustomers } from "./deriveCustomers";
 
 /**
@@ -128,4 +134,43 @@ export function deriveLatestMessages(conversations: AdminConversation[], limit =
         unread: conversation.unread,
       };
     });
+}
+
+/**
+ * What genuinely needs the admin's action today — orders awaiting
+ * confirmation and unread conversations — as distinct from "latest"
+ * (recent regardless of state). This is the dashboard's primary zone:
+ * the one thing it should answer fastest.
+ */
+export function deriveNeedsAttention(
+  orders: AdminOrder[],
+  conversations: AdminConversation[],
+  limit = 4
+): NeedsAttentionSummary {
+  const pending = orders
+    .filter((o) => o.status === "pending")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  const unread = conversations.filter((c) => c.unread).sort((a, b) => b.id.localeCompare(a.id));
+
+  return {
+    pendingOrders: {
+      count: pending.length,
+      items: pending.slice(0, limit).map((order) => ({
+        id: order.id,
+        customerName: order.customerName,
+        amount: `$${ORDER_TOTAL(order).toFixed(2)}`,
+        time: order.createdAt,
+      })),
+    },
+    unreadMessages: {
+      count: unread.length,
+      items: unread.slice(0, limit).map((conversation) => ({
+        id: conversation.id,
+        sender: conversation.customerName,
+        snippet: conversation.messages[conversation.messages.length - 1]?.body ?? "",
+        time: conversation.updatedAt,
+      })),
+    },
+  };
 }

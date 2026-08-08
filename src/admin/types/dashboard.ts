@@ -46,3 +46,22 @@ export interface BestSellingBook {
   revenue: string;
   shareOfSales: number;
 }
+
+export interface NeedsAttentionOrder {
+  id: string;
+  customerName: string;
+  amount: string;
+  time: string;
+}
+
+export interface NeedsAttentionMessage {
+  id: string;
+  sender: string;
+  snippet: string;
+  time: string;
+}
+
+export interface NeedsAttentionSummary {
+  pendingOrders: { count: number; items: NeedsAttentionOrder[] };
+  unreadMessages: { count: number; items: NeedsAttentionMessage[] };
+}

@@ -8,9 +8,11 @@ import {
   deriveHeroMetrics,
   deriveLatestMessages,
   deriveLatestOrders,
+  deriveNeedsAttention,
   deriveSecondaryMetrics,
 } from "@/admin/lib/deriveDashboardMetrics";
 import { MetricCard } from "@/admin/components/ui/MetricCard";
+import { NeedsAttentionPanel } from "../components/NeedsAttentionPanel";
 import { LatestOrdersPanel } from "../components/LatestOrdersPanel";
 import { BestSellingBookPanel } from "../components/BestSellingBookPanel";
 import { LatestMessagesPanel } from "../components/LatestMessagesPanel";
@@ -32,6 +34,7 @@ export default function DashboardPage() {
   // no longer part of the real catalog, just recoverable from the trash view.
   const books = useMemo(() => allBooks.filter((b) => b.deletedAt === null), [allBooks]);
 
+  const needsAttention = useMemo(() => deriveNeedsAttention(orders, conversations), [orders, conversations]);
   const heroMetrics = useMemo(() => deriveHeroMetrics(orders, books), [orders, books]);
   const secondaryMetrics = useMemo(() => deriveSecondaryMetrics(books), [books]);
   const bestSellingBook = useMemo(() => deriveBestSellingBook(books, orders), [books, orders]);
@@ -53,6 +56,10 @@ export default function DashboardPage() {
       </Reveal>
 
       <Reveal delay={0.05}>
+        <NeedsAttentionPanel summary={needsAttention} />
+      </Reveal>
+
+      <Reveal delay={0.08}>
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           {heroMetrics.map((metric) => (
             <MetricCard key={metric.id} metric={metric} variant="hero" />
