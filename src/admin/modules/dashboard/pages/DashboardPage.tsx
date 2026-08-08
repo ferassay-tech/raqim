@@ -42,7 +42,7 @@ export default function DashboardPage() {
   const latestMessages = useMemo(() => deriveLatestMessages(conversations), [conversations]);
 
   return (
-    <div className="flex flex-col gap-8 py-2">
+    <div className="flex flex-col gap-10 py-2">
       <Reveal>
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -59,19 +59,22 @@ export default function DashboardPage() {
         <NeedsAttentionPanel summary={needsAttention} />
       </Reveal>
 
-      <Reveal delay={0.08}>
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {heroMetrics.map((metric) => (
-            <MetricCard key={metric.id} metric={metric} variant="hero" />
-          ))}
-        </div>
-      </Reveal>
-
+      {/* Secondary zone — hero + secondary metrics are one "how is business
+          doing" reading, grouped with a tighter internal gap than the space
+          between zones, and arriving together rather than as two staggered
+          reveals. */}
       <Reveal delay={0.1}>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-          {secondaryMetrics.map((metric) => (
-            <MetricCard key={metric.id} metric={metric} variant="compact" />
-          ))}
+        <div className="flex flex-col gap-5">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+            {heroMetrics.map((metric) => (
+              <MetricCard key={metric.id} metric={metric} variant="hero" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {secondaryMetrics.map((metric) => (
+              <MetricCard key={metric.id} metric={metric} variant="compact" />
+            ))}
+          </div>
         </div>
       </Reveal>
 
