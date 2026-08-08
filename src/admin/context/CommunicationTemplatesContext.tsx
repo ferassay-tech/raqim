@@ -102,12 +102,23 @@ function resolveSection(raw: TemplateSectionRaw, language: Language): TemplateSe
   }
 }
 
+// A record persisted before `draft` existed in its current shape (or
+// corrupted by any other means) would otherwise crash every render of
+// this provider — which is mounted globally — taking down the entire
+// app. Treat anything other than a real array as "no sections yet",
+// the same defensive posture already used for legacy string-shaped
+// localized fields (migrateLocalizedText) and for missing nested
+// Settings fields.
+function asSectionArray(draft: unknown): TemplateSectionRaw[] {
+  return Array.isArray(draft) ? draft : [];
+}
+
 function migrateTemplate(raw: CommunicationTemplateRaw): CommunicationTemplateRaw {
-  return { ...raw, draft: raw.draft.map(migrateSection) };
+  return { ...raw, draft: asSectionArray(raw.draft).map(migrateSection) };
 }
 
 function resolveTemplate(raw: CommunicationTemplateRaw, language: Language): CommunicationTemplate {
-  return { ...raw, draft: raw.draft.map((s) => resolveSection(s, language)) };
+  return { ...raw, draft: asSectionArray(raw.draft).map((s) => resolveSection(s, language)) };
 }
 
 /** Keeps `order` authoritative and in sync with array position after any
@@ -235,13 +246,14 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
       setTemplates((prev) =>
         prev.map((t) => {
           if (t.id !== templateId) return t;
+          const draft = asSectionArray(t.draft);
           const section = {
             id: crypto.randomUUID(),
             type,
-            order: t.draft.length,
+            order: draft.length,
             fields,
           } as TemplateSectionRaw;
-          return { ...t, draft: [...t.draft, section], updatedAt: new Date().toISOString() };
+          return { ...t, draft: [...draft, section], updatedAt: new Date().toISOString() };
         })
       );
     },
@@ -255,7 +267,7 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
           t.id === templateId
             ? {
                 ...t,
-                draft: t.draft.map((s) => (s.id === sectionId ? ({ ...s, fields } as TemplateSectionRaw) : s)),
+                draft: asSectionArray(t.draft).map((s) => (s.id === sectionId ? ({ ...s, fields } as TemplateSectionRaw) : s)),
                 updatedAt: new Date().toISOString(),
               }
             : t
@@ -272,7 +284,7 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
           t.id === templateId
             ? {
                 ...t,
-                draft: reindex(t.draft.filter((s) => s.id !== sectionId)),
+                draft: reindex(asSectionArray(t.draft).filter((s) => s.id !== sectionId)),
                 updatedAt: new Date().toISOString(),
               }
             : t
@@ -287,7 +299,7 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
       setTemplates((prev) =>
         prev.map((t) => {
           if (t.id !== templateId) return t;
-          const sorted = [...t.draft].sort((a, b) => a.order - b.order);
+          const sorted = [...asSectionArray(t.draft)].sort((a, b) => a.order - b.order);
           const index = sorted.findIndex((s) => s.id === sectionId);
           const targetIndex = index + direction;
           if (index === -1 || targetIndex < 0 || targetIndex >= sorted.length) return t;
