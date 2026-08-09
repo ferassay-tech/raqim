@@ -13,14 +13,19 @@ const VARIANT_CLASSES: Record<StatusBadgeVariant, string> = {
 interface StatusBadgeProps {
   variant: StatusBadgeVariant;
   children: ReactNode;
+  /** Defaults to a plain dot. Pass a custom icon (e.g. a trend arrow), or
+   * `null` for no leading mark at all. */
+  icon?: ReactNode | null;
 }
 
-export function StatusBadge({ variant, children }: StatusBadgeProps) {
+export function StatusBadge({ variant, children, icon }: StatusBadgeProps) {
+  const leading = icon === null ? null : (icon ?? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />);
+
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${VARIANT_CLASSES[variant]}`}
     >
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+      {leading}
       {children}
     </span>
   );

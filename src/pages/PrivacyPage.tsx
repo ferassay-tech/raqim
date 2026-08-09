@@ -65,7 +65,7 @@ export default function PrivacyPage() {
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("privacy.title"), path: "/privacy" },
-    ]),
+    ], language),
   ]);
 
   return (

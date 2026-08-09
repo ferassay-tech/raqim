@@ -57,7 +57,7 @@ export function SiteNav() {
   const { books } = useBooks();
   const { settings } = useSettings();
   const { wordmark } = settings.brand;
-  const { t } = useLanguage();
+  const { t, localizePath } = useLanguage();
 
   const wordmarkStyle = {
     fontFamily: FONT_STACKS[wordmark.arabicFontFamily],
@@ -102,7 +102,7 @@ export function SiteNav() {
       }`}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-10">
-        <Link to="/" className="flex items-center gap-1">
+        <Link to={localizePath("/")} className="flex items-center gap-1">
           <LogoMark useConfiguredSize className="transition-transform duration-300 hover:scale-105" />
           <span
             style={wordmarkStyle}
@@ -114,14 +114,19 @@ export function SiteNav() {
 
         <nav aria-label={t("nav.mainLabel")} className="hidden items-center gap-8 lg:flex">
           {navLinks.map((link) => (
-            <NavLink key={link.to} to={link.to} label={link.label} active={pathname === link.to} />
+            <NavLink
+              key={link.to}
+              to={localizePath(link.to)}
+              label={link.label}
+              active={pathname === localizePath(link.to)}
+            />
           ))}
         </nav>
 
         <div className="hidden items-center gap-4 lg:flex">
           <LanguageSwitcher />
           <Link
-            to="/search"
+            to={localizePath("/search")}
             aria-label={getValue("nav.search")}
             className="text-sm text-ink-soft transition-colors hover:text-gold"
           >
@@ -129,7 +134,7 @@ export function SiteNav() {
           </Link>
           {ctaBook && (
             <Link
-              to={`/books/${ctaBook.id}`}
+              to={localizePath(`/books/${ctaBook.id}`)}
               className="rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-transform duration-300 hover:-translate-y-0.5 hover:bg-gold-deep"
             >
               {ctaBook.title}
@@ -154,19 +159,19 @@ export function SiteNav() {
             {navLinks.map((link) => (
               <Link
                 key={link.to}
-                to={link.to}
+                to={localizePath(link.to)}
                 className="rounded-lg px-3 py-3 text-base text-ink transition-colors hover:bg-cream"
               >
                 {link.label}
               </Link>
             ))}
-            <Link to="/search" className="rounded-lg px-3 py-3 text-base text-ink hover:bg-cream">
+            <Link to={localizePath("/search")} className="rounded-lg px-3 py-3 text-base text-ink hover:bg-cream">
               {getValue("nav.search")}
             </Link>
             <LanguageSwitcher className="px-3 py-3" />
             {ctaBook && (
               <Link
-                to={`/books/${ctaBook.id}`}
+                to={localizePath(`/books/${ctaBook.id}`)}
                 className="mt-3 rounded-full bg-ink px-5 py-3 text-center text-sm text-ivory"
               >
                 {t("nav.orderPrefix")}{ctaBook.title}

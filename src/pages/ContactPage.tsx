@@ -34,7 +34,7 @@ export default function ContactPage() {
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("contact.eyebrow"), path: "/contact" },
-    ]),
+    ], language),
   ]);
 
   return (
@@ -110,7 +110,7 @@ export default function ContactPage() {
                   tabIndex={-1}
                   autoComplete="off"
                   aria-hidden="true"
-                  style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", opacity: 0 }}
+                  className="sr-only"
                 />
                 <Field
                   id="contact-name"

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import type { LatestMessage } from "@/admin/types/dashboard";
 import { EmptyState } from "@/admin/components/ui/EmptyState";
-import { DashboardPanel } from "./DashboardPanel";
+import { Panel } from "@/admin/components/ui/Panel";
 import { IconMail } from "@/admin/icons";
 
 interface LatestMessagesPanelProps {
@@ -11,14 +11,14 @@ interface LatestMessagesPanelProps {
 export function LatestMessagesPanel({ messages }: LatestMessagesPanelProps) {
   if (messages.length === 0) {
     return (
-      <DashboardPanel title="أحدث الرسائل" viewAllTo="/admin/messages">
+      <Panel title="أحدث الرسائل" viewAllTo="/admin/messages" weight="flat">
         <EmptyState icon={IconMail} title="لا توجد محادثات بعد" description="ستظهر أحدث الرسائل هنا فور ورودها." />
-      </DashboardPanel>
+      </Panel>
     );
   }
 
   return (
-    <DashboardPanel title="أحدث الرسائل" viewAllTo="/admin/messages">
+    <Panel title="أحدث الرسائل" viewAllTo="/admin/messages" weight="flat">
       <ul className="flex flex-col divide-y divide-beige">
         {messages.map((message) => (
           <li key={message.id}>
@@ -44,6 +44,6 @@ export function LatestMessagesPanel({ messages }: LatestMessagesPanelProps) {
           </li>
         ))}
       </ul>
-    </DashboardPanel>
+    </Panel>
   );
 }

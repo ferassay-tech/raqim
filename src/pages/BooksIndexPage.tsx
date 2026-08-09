@@ -17,7 +17,7 @@ export default function BooksIndexPage() {
   const { categories, getCategoryMatchName, getCategoryLabel } = useCategories();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const getDimensions = useAssetDimensions();
-  const { t, language } = useLanguage();
+  const { t, language, localizePath } = useLanguage();
 
   const booksJsonLd = buildGraph([
     webPageSchema({
@@ -29,7 +29,7 @@ export default function BooksIndexPage() {
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("books.breadcrumb.title"), path: "/books" },
-    ]),
+    ], language),
   ]);
 
   const libraryBooks = useMemo(
@@ -111,7 +111,7 @@ export default function BooksIndexPage() {
               {visibleBooks.map((book, i) => (
                 <Reveal key={book.id} delay={i * 0.05}>
                   <Link
-                    to={`/books/${book.id}`}
+                    to={localizePath(`/books/${book.id}`)}
                     className="group block h-full overflow-hidden rounded-[10px] border border-beige bg-cream/40 transition-shadow duration-300 hover:shadow-[0_20px_45px_-20px_rgba(44,36,32,0.25)]"
                   >
                     <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-cream to-beige p-8">

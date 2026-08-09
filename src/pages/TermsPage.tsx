@@ -64,7 +64,7 @@ export default function TermsPage() {
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("terms.title"), path: "/terms" },
-    ]),
+    ], language),
   ]);
 
   return (

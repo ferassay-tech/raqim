@@ -31,7 +31,7 @@ const PaymentMethodPage: React.FC = () => {
   const navigate = useNavigate();
   const { product, book, appliedCoupon, setConfirmation } = useCheckout();
   const { createOrder } = useOrders();
-  const { t, dir, language } = useLanguage();
+  const { t, dir, language, localizePath } = useLanguage();
   const [showConfirmationForm, setShowConfirmationForm] = useState(false);
 
   const config = getPaymentMethod(method);
@@ -44,7 +44,7 @@ const PaymentMethodPage: React.FC = () => {
       >
         <p className="text-lg text-ink">{t("payment.notAvailable.title")}</p>
         <Link
-          to="/checkout"
+          to={localizePath("/checkout")}
           className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-beige"
         >
           {t("payment.notAvailable.backToCheckout")}
@@ -81,7 +81,7 @@ const PaymentMethodPage: React.FC = () => {
       ],
       discount: product.newPrice - discountedPrice,
     });
-    navigate("/order-received", { state: { orderId: order.id } });
+    navigate(localizePath("/order-received"), { state: { orderId: order.id } });
   };
 
   const actionTitle = requiresConfirmation ? t("payment.titlePay") : t("payment.titleBuy");
@@ -96,7 +96,7 @@ const PaymentMethodPage: React.FC = () => {
       />
       <div className="mx-auto flex max-w-2xl flex-col gap-8">
         <Link
-          to="/checkout"
+          to={localizePath("/checkout")}
           className="inline-flex w-fit items-center gap-1.5 text-sm text-ink-soft transition hover:text-ink"
         >
           <IconArrowLeft className="h-4 w-4 rtl:rotate-180" />

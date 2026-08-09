@@ -16,7 +16,7 @@ export default function FutureReleasesPage() {
   const { books } = useBooks();
   const { getCategoryLabel } = useCategories();
   const getDimensions = useAssetDimensions();
-  const { t, language } = useLanguage();
+  const { t, language, localizePath } = useLanguage();
   const upcoming = useMemo(
     () =>
       books
@@ -35,7 +35,7 @@ export default function FutureReleasesPage() {
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("futureReleases.title"), path: "/future-releases" },
-    ]),
+    ], language),
   ]);
 
   return (
@@ -87,7 +87,7 @@ export default function FutureReleasesPage() {
         <Reveal delay={0.3} className="mx-auto mt-16 max-w-2xl text-center">
           <GoldDivider className="mx-auto h-4 w-44 text-gold" />
           <p className="mt-6 text-balance leading-loose text-ink-soft">{t("futureReleases.newsletterNote")}</p>
-          <Link to="/" className="mt-4 inline-block text-sm text-gold hover:underline">
+          <Link to={localizePath("/")} className="mt-4 inline-block text-sm text-gold hover:underline">
             {t("notFound.backHome")}
           </Link>
         </Reveal>

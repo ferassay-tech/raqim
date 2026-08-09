@@ -18,7 +18,7 @@ export default function AuthorPage() {
   const { slug } = useParams<{ slug: string }>();
   const { books } = useBooks();
   const getDimensions = useAssetDimensions();
-  const { t, language } = useLanguage();
+  const { t, language, localizePath } = useLanguage();
 
   // There is no separate Author record — author identity lives on AdminBook
   // itself (author/authorSlug/authorBio). Every visible book matching this
@@ -44,7 +44,7 @@ export default function AuthorPage() {
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: displayName, path: `/authors/${primaryBook.authorSlug}` },
-    ]),
+    ], language),
   ]);
 
   return (
@@ -89,7 +89,7 @@ export default function AuthorPage() {
             {authorBooks.map((book, i) => (
               <Reveal key={book.id} delay={i * 0.08}>
                 <Link
-                  to={`/books/${book.id}`}
+                  to={localizePath(`/books/${book.id}`)}
                   className="group block overflow-hidden rounded-[10px] border border-beige bg-ivory"
                 >
                   <div className="aspect-[3/4] bg-gradient-to-br from-cream to-beige p-8">

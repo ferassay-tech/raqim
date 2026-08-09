@@ -10,7 +10,8 @@
       "Bash(node phase2_diag.mjs)",
       "Bash(node phase2_diag2.mjs)",
       "Bash(node phase2_login.mjs)",
-      "Bash(node phase2_network.mjs)"
+      "Bash(node phase2_network.mjs)",
+      "Bash(xargs grep -l \"label\")"
     ]
   }
 }

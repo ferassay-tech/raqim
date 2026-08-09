@@ -64,11 +64,11 @@ export function DataTable<T>({
   };
 
   if (rows.length === 0 && emptyState) {
-    return <div className="rounded-[10px] border border-beige bg-white/70">{emptyState}</div>;
+    return <div className="rounded-md border border-beige bg-white/70">{emptyState}</div>;
   }
 
   return (
-    <div className="overflow-x-auto rounded-[10px] border border-beige bg-white/70">
+    <div className="overflow-x-auto rounded-md border border-beige bg-white/70">
       <table className="w-full min-w-[720px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-beige">

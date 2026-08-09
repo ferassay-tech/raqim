@@ -11,7 +11,7 @@ import { useLanguage } from "../context/LanguageContext";
 
 export default function BlogIndexPage() {
   const { articles } = useArticles();
-  const { t, language } = useLanguage();
+  const { t, language, localizePath } = useLanguage();
 
   const blogJsonLd = buildGraph([
     webPageSchema({
@@ -23,7 +23,7 @@ export default function BlogIndexPage() {
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("blog.breadcrumb.title"), path: "/blog" },
-    ]),
+    ], language),
   ]);
 
   const publishedPosts = useMemo(
@@ -57,7 +57,7 @@ export default function BlogIndexPage() {
               {publishedPosts.map((post, i) => (
                 <Reveal key={post.slug} delay={i * 0.08} className={i === 0 ? "lg:col-span-2" : ""}>
                   <Link
-                    to={`/blog/${post.slug}`}
+                    to={localizePath(`/blog/${post.slug}`)}
                     className="group block rounded-[10px] border border-beige bg-cream/40 p-8 transition-shadow duration-300 hover:shadow-[0_20px_45px_-20px_rgba(44,36,32,0.25)]"
                   >
                     <div className="flex items-center gap-3 text-xs text-ink-soft">

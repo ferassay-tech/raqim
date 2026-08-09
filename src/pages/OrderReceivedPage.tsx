@@ -8,7 +8,7 @@ import { useLanguage } from "../context/LanguageContext";
 const OrderSuccessPage: React.FC = () => {
   const location = useLocation();
   const orderId = (location.state as { orderId?: string } | null)?.orderId;
-  const { t, dir } = useLanguage();
+  const { t, dir, localizePath } = useLanguage();
 
   return (
     <main
@@ -55,13 +55,13 @@ const OrderSuccessPage: React.FC = () => {
         className="flex flex-col gap-3 sm:flex-row"
       >
         <Link
-          to="/"
+          to={localizePath("/")}
           className="rounded-full bg-ink px-6 py-2.5 text-sm font-medium text-beige transition hover:bg-gold-deep"
         >
           {t("orderReceived.backHome")}
         </Link>
         <Link
-          to="/checkout"
+          to={localizePath("/checkout")}
           className="rounded-full border border-gold px-6 py-2.5 text-sm font-medium text-gold-deep transition hover:bg-beige"
         >
           {t("orderReceived.continueShopping")}

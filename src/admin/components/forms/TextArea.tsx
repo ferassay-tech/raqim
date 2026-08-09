@@ -25,7 +25,7 @@ export function TextArea({ label, value, onChange, rows = 4, placeholder, hint, 
         rows={rows}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full resize-none rounded-[10px] border border-beige bg-ivory px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
+        className="w-full resize-none rounded-md border border-beige bg-ivory px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
       />
       {hint && <span className="mt-1.5 block text-xs text-ink-faint">{hint}</span>}
     </label>

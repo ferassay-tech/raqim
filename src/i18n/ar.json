@@ -124,6 +124,9 @@
   "footer.newsletter.emailLabel": "بريدك الإلكتروني",
   "footer.newsletter.subscribed": "تم الاشتراك",
   "footer.newsletter.subscribeButton": "اشتراك",
+  "footer.newsletter.sending": "جارٍ الإرسال...",
+  "footer.newsletter.invalidEmail": "يرجى إدخال بريد إلكتروني صحيح.",
+  "footer.newsletter.error": "تعذر إتمام الاشتراك. حاولي مرة أخرى.",
 
   "nav.skipToContent": "تخطي إلى المحتوى",
 

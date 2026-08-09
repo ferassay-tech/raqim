@@ -11,16 +11,33 @@
   --radius-md: 0.625rem;
   --radius-lg: 0.75rem;
 
+  /*
+   * RAQIM Design Engine — Spacing Engine (RAQIM-DESIGN-ENGINE.md §3).
+   * Named by the relationship each marks, not by rank — chosen by asking
+   * "what is the relationship between these two things," not "how big a
+   * gap." Values are anchored to what's already in real use across the
+   * app (Section/Page match the Dashboard's own established rhythm) so
+   * declaring them causes no visual change. No component references these
+   * yet; adoption starts in the Shared Components milestone.
+   */
+  --spacing-inline: 0.25rem;
+  --spacing-paragraph: 0.375rem;
+  --spacing-group-tight: 0.75rem;
+  --spacing-group: 1.25rem;
+  --spacing-section: 3rem;
+  --spacing-chapter: 5rem;
+  --spacing-page: 2rem;
+
   --color-ivory: #fbf6ed;
   --color-cream: #f6efe2;
-  --color-beige: #f1e9da;
+  --color-beige: #e6d8bd;
   --color-gold: #b99451;
   --color-gold-deep: #9c7a3c;
   --color-lavender: #c3b4d6;
   --color-mauve: #c9a9ac;
   --color-ink: #2c2420;
-  --color-ink-soft: #5c5147;
-  --color-ink-faint: #8a7d70;
+  --color-ink-soft: #554a40;
+  --color-ink-faint: #796e62;
 
   /* Semantic status colors — admin dashboard only. Deliberately muted and
      warm-leaning (sage / ochre / brick) so they sit quietly alongside the
@@ -29,14 +46,102 @@
   --color-warning: #b8763a;
   --color-danger: #b2544a;
 
+  /*
+   * RAQIM Design Engine — Color Engine (docs/design-system/RAQIM-DESIGN-ENGINE.md §1).
+   * These are the roles named in that document, realized as real values.
+   * Where a role is already served by an existing token above (Surface =
+   * cream, Border = beige, Ink Quiet = ink-faint, Interactive = gold-deep,
+   * Accent/Focus/Selection = gold), no duplicate token is created here —
+   * the existing name continues to serve that role. Only genuinely new
+   * concepts get a new custom property.
+   */
+  --color-canvas: #faf4ea;
+  --color-paper: #fdfbf6;
+  --color-surface-elevated: #fffdf9;
+  --color-surface-floating: #ffffff;
+  --color-divider: #f1e9d8;
+  --color-disabled: #c9beac;
+  --color-focus: var(--color-gold);
+  --color-selection: var(--color-gold);
+  --color-overlay: rgba(44, 36, 32, 0.08);
+  --color-scrim: rgba(44, 36, 32, 0.45);
+
   --font-display: "Amiri", "Times New Roman", serif;
   --font-body: "IBM Plex Sans Arabic", "Segoe UI", sans-serif;
   --font-logotype: "Cormorant Garamond", serif;
+  /* Numeric hierarchy (RAQIM-DESIGN-ENGINE.md §2) — reserved for values
+     meant to be compared in a column: prices, totals, statistics, SKUs.
+     Same type-family strategy as font-body's own Latin pairing, so a
+     number never feels like an unrelated face dropped into the page. */
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /*
+   * RAQIM Design Engine — Typography Engine (RAQIM-DESIGN-ENGINE.md §2).
+   * Twelve steps, each anchored to what's already rendering in the app
+   * today (verified against every h1/h2/h3 currently in use) so defining
+   * the scale causes no visual change on its own — only Body Small and
+   * Caption honestly share one literal size right now (12px); they stay
+   * separate tokens because they're distinguished by ink-tier pairing,
+   * not size, and may diverge later without a rename.
+   */
+  --text-display-xl: 4.5rem;
+  --text-display-xl--line-height: 1.1;
+  --text-display-l: 3.75rem;
+  --text-display-l--line-height: 1.15;
+  --text-h1: 1.875rem;
+  --text-h1--line-height: 1.25;
+  --text-h2: 1.125rem;
+  --text-h2--line-height: 1.3;
+  --text-h3: 1rem;
+  --text-h3--line-height: 1.35;
+  --text-h4: 0.875rem;
+  --text-h4--line-height: 1.4;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.6;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.5;
+  --text-body-sm: 0.75rem;
+  --text-body-sm--line-height: 1.45;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.3;
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1.3;
 
   /* Admin-only shadow tokens (Brand Settings → ThemeSync). Not applied to
-     the public site's own bespoke per-component shadows. */
+     the public site's own bespoke per-component shadows.
+     Elevation Engine mapping (RAQIM-DESIGN-ENGINE.md §5): Canvas, Paper,
+     and Workspace carry no shadow at all — presence there comes from color
+     and border alone. --shadow-soft is Interactive's first real lift.
+     --shadow-md is Floating (dropdowns/popovers). --shadow-lg is Modal —
+     paired with --color-scrim, the strongest separation in the system. */
   --shadow-soft: 0 10px 40px -24px rgba(44, 36, 32, 0.2);
   --shadow-md: 0 20px 45px -20px rgba(44, 36, 32, 0.35);
+  --shadow-lg: 0 32px 64px -24px rgba(44, 36, 32, 0.45);
+
+  /*
+   * RAQIM Design Engine — Motion Engine (RAQIM-DESIGN-ENGINE.md §6).
+   * Behavior contracts given real values. Arrival/ease-arrival codify
+   * exactly what src/components/motion-primitives.tsx's <Reveal> already
+   * does (duration 0.7s, ease [0.16, 1, 0.3, 1]) — declared here so any
+   * future motion work has one source of truth instead of a second
+   * hand-picked curve. Hover/ease-standard match Tailwind's own default
+   * `transition-colors` timing, already in use everywhere. Reduced Motion
+   * has no token of its own — <Reveal> already checks it via Framer
+   * Motion's useReducedMotion() and resolves straight to opacity:1, which
+   * is the correct behavior this engine asks for.
+   */
+  --duration-arrival: 700ms;
+  --duration-departure: 200ms;
+  --duration-hover: 150ms;
+  --duration-press: 80ms;
+  --duration-focus: 100ms;
+  --duration-loading: 1200ms;
+  --duration-success: 400ms;
+  --duration-failure: 400ms;
+  --ease-arrival: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @layer base {
@@ -52,11 +157,35 @@
     font-family: var(--font-body);
   }
 
-  h1,
-  h2,
-  h3,
-  h4 {
+  /* Typography Engine defaults for bare heading elements. Every h1-h3 in
+     the app today already carries its own explicit size class, so this is
+     inert everywhere it's currently used — it only sets a sane default for
+     any future heading that doesn't specify its own size. h4 deliberately
+     leaves the Display face: Amiri's detail degrades below H3 (Foundation
+     §1), so h4 uses the Reading face at a firmer weight instead. */
+  h1 {
     font-family: var(--font-display);
+    font-size: var(--text-h1);
+    line-height: var(--text-h1--line-height);
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: var(--text-h2);
+    line-height: var(--text-h2--line-height);
+  }
+
+  h3 {
+    font-family: var(--font-display);
+    font-size: var(--text-h3);
+    line-height: var(--text-h3--line-height);
+  }
+
+  h4 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: var(--text-h4);
+    line-height: var(--text-h4--line-height);
   }
 
   * {
@@ -64,7 +193,7 @@
   }
 
   ::selection {
-    background-color: var(--color-gold);
+    background-color: var(--color-selection);
     color: var(--color-ivory);
   }
 }

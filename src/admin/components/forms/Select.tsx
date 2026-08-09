@@ -25,7 +25,7 @@ export function Select({ label, value, onChange, options, required }: SelectProp
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={required}
-          className="w-full appearance-none rounded-[10px] border border-beige bg-ivory px-4 py-3 pe-10 text-sm text-ink focus:border-gold focus:outline-none"
+          className="w-full appearance-none rounded-md border border-beige bg-ivory px-4 py-3 pe-10 text-sm text-ink focus:border-gold focus:outline-none"
         >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>

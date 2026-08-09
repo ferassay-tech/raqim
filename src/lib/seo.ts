@@ -16,3 +16,23 @@ export function absoluteUrl(path: string): string {
   if (/^https?:\/\//.test(path)) return path;
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
+
+/**
+ * SEO Milestone 2 — multilingual URL architecture. Arabic is unprefixed
+ * (the canonical/default language, per every existing indexed URL);
+ * English mirrors every public route under /en. Slugs are never
+ * translated (book/author/blog identifiers are the same string in both
+ * languages), so a route's /en prefix is the only difference between its
+ * two language URLs — no per-route translation table is needed.
+ */
+export function stripLanguagePrefix(pathname: string): string {
+  if (pathname === "/en") return "/";
+  if (pathname.startsWith("/en/")) return pathname.slice(3);
+  return pathname;
+}
+
+export function withLanguagePrefix(pathname: string, language: "ar" | "en"): string {
+  const bare = stripLanguagePrefix(pathname);
+  if (language === "ar") return bare;
+  return bare === "/" ? "/en" : `/en${bare}`;
+}

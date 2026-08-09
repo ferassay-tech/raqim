@@ -33,12 +33,6 @@ export interface LatestMessage {
   unread: boolean;
 }
 
-export interface ActivityItem {
-  id: string;
-  text: string;
-  time: string;
-}
-
 export interface BestSellingBook {
   title: string;
   cover: string | null;
@@ -47,21 +41,31 @@ export interface BestSellingBook {
   shareOfSales: number;
 }
 
-export interface NeedsAttentionOrder {
+export interface NeedsAttentionItem {
   id: string;
-  customerName: string;
-  amount: string;
+  kind: "order" | "message";
+  title: string;
+  detail: string;
   time: string;
-}
-
-export interface NeedsAttentionMessage {
-  id: string;
-  sender: string;
-  snippet: string;
-  time: string;
+  href: string;
 }
 
 export interface NeedsAttentionSummary {
-  pendingOrders: { count: number; items: NeedsAttentionOrder[] };
-  unreadMessages: { count: number; items: NeedsAttentionMessage[] };
+  lead: NeedsAttentionItem | null;
+  rest: NeedsAttentionItem[];
+}
+
+export interface PublishingPipelineItem {
+  id: string;
+  title: string;
+  updatedAt: string;
+  href: string;
+}
+
+export interface PublishingPipelineSummary {
+  /** The oldest draft currently being edited, by last-updated time — not a
+   * judgment about neglect, just the one that's gone longest untouched. */
+  lead: PublishingPipelineItem | null;
+  /** Other drafts beyond the lead — mentioned, never enumerated. */
+  remainingCount: number;
 }

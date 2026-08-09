@@ -32,7 +32,7 @@ export function AdminLayout() {
   };
 
   return (
-    <div dir="rtl" className="flex h-dvh overflow-hidden bg-cream/40 text-ink">
+    <div dir="rtl" className="flex h-dvh overflow-hidden bg-canvas text-ink">
       <div className="hidden shrink-0 lg:block">
         <AdminSidebar collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
       </div>

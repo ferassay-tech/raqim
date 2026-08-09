@@ -3,7 +3,7 @@ import type { LatestOrder } from "@/admin/types/dashboard";
 import { StatusBadge } from "@/admin/components/ui/StatusBadge";
 import { ORDER_STATUS_META } from "@/admin/lib/orderStatus";
 import { EmptyState } from "@/admin/components/ui/EmptyState";
-import { DashboardPanel } from "./DashboardPanel";
+import { Panel } from "@/admin/components/ui/Panel";
 import { IconBag } from "@/admin/icons";
 
 interface LatestOrdersPanelProps {
@@ -13,14 +13,14 @@ interface LatestOrdersPanelProps {
 export function LatestOrdersPanel({ orders }: LatestOrdersPanelProps) {
   if (orders.length === 0) {
     return (
-      <DashboardPanel title="أحدث الطلبات" viewAllTo="/admin/orders">
+      <Panel title="أحدث الطلبات" viewAllTo="/admin/orders" weight="flat">
         <EmptyState icon={IconBag} title="لا توجد طلبات بعد" description="ستظهر أحدث الطلبات هنا فور ورودها." />
-      </DashboardPanel>
+      </Panel>
     );
   }
 
   return (
-    <DashboardPanel title="أحدث الطلبات" viewAllTo="/admin/orders">
+    <Panel title="أحدث الطلبات" viewAllTo="/admin/orders" weight="flat">
       <ul className="flex flex-col divide-y divide-beige">
         {orders.map((order) => {
           const meta = ORDER_STATUS_META[order.status];
@@ -45,6 +45,6 @@ export function LatestOrdersPanel({ orders }: LatestOrdersPanelProps) {
           );
         })}
       </ul>
-    </DashboardPanel>
+    </Panel>
   );
 }

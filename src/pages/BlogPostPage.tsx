@@ -20,7 +20,7 @@ export default function BlogPostPage() {
   const post = articles.find((a) => a.slug === slug && a.status === "published");
   const getDimensions = useAssetDimensions();
   const { settings } = useSettings();
-  const { t, language } = useLanguage();
+  const { t, language, localizePath } = useLanguage();
 
   if (!post) return <NotFoundPage />;
 
@@ -43,7 +43,7 @@ export default function BlogPostPage() {
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("blog.breadcrumb.title"), path: "/blog" },
       { name: post.title, path: `/blog/${post.slug}` },
-    ]),
+    ], language),
   ]);
 
   return (
@@ -103,11 +103,11 @@ export default function BlogPostPage() {
           </div>
 
           <div className="mt-16 border-t border-beige pt-8 text-center space-y-4">
-            <Link to="/blog" className="block text-sm text-gold hover:underline">
+            <Link to={localizePath("/blog")} className="block text-sm text-gold hover:underline">
               {t("blog.post.backToBlog")}
             </Link>
 
-            <Link to="/books" className="block text-sm text-ink hover:text-gold transition-colors">
+            <Link to={localizePath("/books")} className="block text-sm text-ink hover:text-gold transition-colors">
               {t("blog.post.browseBooks")}
             </Link>
           </div>

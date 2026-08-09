@@ -1,21 +1,39 @@
 #!/usr/bin/env node
 /**
- * Generates public/sitemap.xml from the site's real content data.
+ * Generates public/sitemap.xml — run once at build time (see the
+ * "generate-sitemap" step in package.json's build script), then served
+ * as a static file. It is not regenerated at runtime or on a schedule.
  *
- * This app has no backend — INITIAL_BOOKS/INITIAL_ARTICLES in
- * src/admin/data are the actual source of truth BooksContext/
- * ArticlesContext hydrate from (admin edits only ever persist to a
- * visitor's own browser localStorage, which a build script cannot read).
- * Importing those same modules here — instead of hand-copying slugs/dates
- * into this file — means adding, removing, or hiding a book/article is
- * reflected automatically the next time this script runs, with the exact
- * same visibility rules the public pages themselves already use.
+ * KNOWN LIMITATION (SEO Milestone 4 audit, confirmed current as of Phase
+ * 6A): this script still derives its book/article entries from the
+ * static INITIAL_BOOKS/INITIAL_ARTICLES arrays in src/admin/data. Those
+ * arrays were the real source of truth when this script was first
+ * written (SEO Phase 5), but Phase 6A moved the live runtime app
+ * (BooksContext/ArticlesContext) onto Supabase — INITIAL_BOOKS/
+ * INITIAL_ARTICLES are now only the synchronous placeholder shown before
+ * that fetch resolves, not what visitors actually see.
+ *
+ * Practical effect: this sitemap's content and lastmod values reflect
+ * whatever was in these seed files at the last code deploy, not whatever
+ * currently exists in the live Supabase database. A book or article
+ * added, edited, hidden, or deleted through the Admin dashboard has no
+ * effect on sitemap.xml until someone updates these seed files and
+ * redeploys. This is a known, intentionally deferred gap — making this
+ * script fetch live from Supabase is a separate future milestone (it
+ * would require build-time network access and credentials, and a new
+ * build-failure mode to handle), not addressed here.
  *
  * Deliberately excluded: /admin (private), and every noindex utility/
  * transactional page (/search, /checkout, /payment/:method,
  * /order-received, /download/:token) — a sitemap should only list what's
  * actually meant to be indexed. robots.txt already disallows all of these;
  * this script doesn't touch robots.txt.
+ *
+ * SEO Milestone 2 — every entry below is built once in its bare/Arabic
+ * shape, then expanded into an Arabic + English pair via the same
+ * withLanguagePrefix() every other part of the SEO system uses (Helmet,
+ * LanguageContext) — one source of truth for the /en mapping, not a
+ * second hand-copied rule living only in this script.
  */
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -23,8 +41,8 @@ import { dirname, resolve } from "node:path";
 import { INITIAL_BOOKS } from "../src/admin/data/booksData.ts";
 import { INITIAL_ARTICLES } from "../src/admin/data/articlesData.ts";
 import { isInLibraryGrid } from "../src/admin/lib/bookPlacement.ts";
+import { SITE_URL, withLanguagePrefix } from "../src/lib/seo.ts";
 
-const SITE_URL = "https://r-aqim.com";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_PATH = resolve(__dirname, "../public/sitemap.xml");
 
@@ -127,7 +145,16 @@ const dedupedEntries = entries.filter((e) => {
   return true;
 });
 
-const body = dedupedEntries
+// SEO Milestone 2 — every indexable Arabic entry gets a matching English
+// entry at the same withLanguagePrefix() mapping Helmet/LanguageContext
+// already use, same lastmod/changefreq/priority (they're the same
+// content, just a different language URL for the same page).
+const localizedEntries = dedupedEntries.flatMap((e) => [
+  e,
+  { ...e, path: withLanguagePrefix(e.path, "en") },
+]);
+
+const body = localizedEntries
   .map(
     (e) => `  <url>
     <loc>${SITE_URL}${e.path}</loc>
@@ -145,4 +172,4 @@ ${body}
 `;
 
 writeFileSync(OUTPUT_PATH, xml, "utf-8");
-console.log(`Sitemap written to ${OUTPUT_PATH} (${dedupedEntries.length} URLs).`);
+console.log(`Sitemap written to ${OUTPUT_PATH} (${localizedEntries.length} URLs, ${dedupedEntries.length} pages × 2 languages).`);

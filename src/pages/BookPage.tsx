@@ -43,7 +43,7 @@ export default function BookPage() {
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("books.breadcrumb.title"), path: "/books" },
       { name: book.title, path: `/books/${book.id}` },
-    ]),
+    ], language),
     ...(hasFullContent && faqItems.length > 0 ? [faqPageSchema(faqItems)] : []),
   ]);
 
@@ -473,7 +473,7 @@ function FinalCTASection({ book }: { book: AdminBook }) {
 function SimpleBookPage({ book }: { book: AdminBook }) {
   const getDimensions = useAssetDimensions();
   const coverDims = getDimensions(book.cover);
-  const { t, language } = useLanguage();
+  const { t, language, localizePath } = useLanguage();
   const { getCategoryLabel } = useCategories();
   return (
     <>
@@ -509,7 +509,7 @@ function SimpleBookPage({ book }: { book: AdminBook }) {
         </div>
       </section>
       <section className="bg-cream px-6 py-16 text-center lg:px-10">
-        <Link to="/books" className="text-sm text-gold hover:underline">
+        <Link to={localizePath("/books")} className="text-sm text-gold hover:underline">
           {t("book.comingSoon.backToBooks")}
         </Link>
       </section>

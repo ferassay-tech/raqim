@@ -58,6 +58,31 @@ export default function App() {
         <Route path="/payment/:method" element={<PaymentMethodPage />} />
         <Route path="/order-received" element={<OrderReceivedPage />} />
         <Route path="/download/:token" element={<DownloadPage />} />
+
+        {/* SEO Milestone 2 — English mirror. Same page components, /en
+            prefix; slugs are never translated (see lib/seo.ts), so each
+            route below is identical to its Arabic counterpart above except
+            for this prefix. Any unmatched /en/... path correctly falls
+            through to the catch-all NotFoundPage at the bottom — its
+            language is still derived correctly from the URL. */}
+        <Route path="/en" element={<HomePage />} />
+        <Route path="/en/books" element={<BooksIndexPage />} />
+        <Route path="/en/books/:slug" element={<BookPage />} />
+        <Route path="/en/about" element={<AboutPage />} />
+        <Route path="/en/authors/:slug" element={<AuthorPage />} />
+        <Route path="/en/future-releases" element={<FutureReleasesPage />} />
+        <Route path="/en/blog" element={<BlogIndexPage />} />
+        <Route path="/en/blog/:slug" element={<BlogPostPage />} />
+        <Route path="/en/faq" element={<FaqPage />} />
+        <Route path="/en/contact" element={<ContactPage />} />
+        <Route path="/en/privacy" element={<PrivacyPage />} />
+        <Route path="/en/terms" element={<TermsPage />} />
+        <Route path="/en/search" element={<SearchPage />} />
+        <Route path="/en/checkout" element={<CheckoutPage />} />
+        <Route path="/en/payment/:method" element={<PaymentMethodPage />} />
+        <Route path="/en/order-received" element={<OrderReceivedPage />} />
+        <Route path="/en/download/:token" element={<DownloadPage />} />
+
         <Route
           path="/admin/*"
           element={

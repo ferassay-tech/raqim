@@ -3,13 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { useClickOutside } from "@/admin/lib/useClickOutside";
 import { useAuth } from "@/admin/context/AuthContext";
 import { CustomerAvatar } from "@/admin/components/ui/CustomerAvatar";
-import {
-  IconBell,
-  IconChevronDown,
-  IconMenu,
-  IconPlus,
-  IconSearch,
-} from "@/admin/icons";
+import { Button } from "@/admin/components/ui/Button";
+import { SearchInput } from "@/admin/components/ui/SearchInput";
+import { IconBell, IconChevronDown, IconMenu, IconPlus } from "@/admin/icons";
 
 // Starts empty — there is no backend event source to populate this from
 // yet. Wire this up to real order/message/stock events once one exists.
@@ -31,6 +27,10 @@ export function AdminTopbar({ onOpenMobileMenu }: AdminTopbarProps) {
   const [openMenu, setOpenMenu] = useState<"notifications" | "quick" | "profile" | null>(
     null
   );
+  // Decorative only, same as before this migration — no search backend
+  // exists yet. Held in state purely so this can use the shared
+  // SearchInput component instead of duplicating its markup.
+  const [searchQuery, setSearchQuery] = useState("");
 
   const notificationsRef = useRef<HTMLDivElement>(null);
   const quickRef = useRef<HTMLDivElement>(null);
@@ -53,25 +53,18 @@ export function AdminTopbar({ onOpenMobileMenu }: AdminTopbarProps) {
         <IconMenu className="h-5 w-5" />
       </button>
 
-      <label className="relative hidden max-w-sm flex-1 sm:block">
-        <IconSearch className="pointer-events-none absolute inset-y-0 right-3.5 my-auto h-4 w-4 text-ink-faint" />
-        <input
-          type="search"
-          placeholder="ابحثي عن كتاب، طلب، عميل..."
-          className="w-full rounded-full border border-beige bg-white/70 py-2.5 pe-10 ps-4 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
-        />
-      </label>
+      <SearchInput
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder="ابحثي عن كتاب، طلب، عميل..."
+        className="hidden max-w-sm flex-1 sm:block"
+      />
 
       <div className="ms-auto flex items-center gap-2">
         <div className="relative" ref={quickRef}>
-          <button
-            type="button"
-            onClick={() => setOpenMenu((v) => (v === "quick" ? null : "quick"))}
-            className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2.5 text-sm text-ivory transition-colors hover:bg-gold-deep"
-          >
-            <IconPlus className="h-4 w-4" />
+          <Button icon={IconPlus} onClick={() => setOpenMenu((v) => (v === "quick" ? null : "quick"))}>
             <span className="hidden sm:inline">جديد</span>
-          </button>
+          </Button>
           {openMenu === "quick" && (
             <div className="absolute end-0 z-40 mt-2 w-52 overflow-hidden rounded-2xl border border-beige bg-ivory shadow-(--shadow-md)">
               {QUICK_ACTIONS.map((action) => (

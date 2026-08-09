@@ -8,6 +8,7 @@ import type {
   LatestMessage,
   LatestOrder,
   NeedsAttentionSummary,
+  PublishingPipelineSummary,
 } from "../types/dashboard";
 import { deriveCustomers } from "./deriveCustomers";
 
@@ -45,6 +46,11 @@ export function deriveHeroMetrics(orders: AdminOrder[], books: AdminBook[]): Das
   ];
 }
 
+/**
+ * Visitors/Downloads placeholders were removed from here — they never had
+ * real data behind them and don't belong on the Dashboard until a real
+ * analytics integration exists (see Future Improvements in the handoff).
+ */
 export function deriveSecondaryMetrics(books: AdminBook[]): DashboardMetric[] {
   return [
     {
@@ -52,18 +58,6 @@ export function deriveSecondaryMetrics(books: AdminBook[]): DashboardMetric[] {
       label: "إجمالي الكتب",
       value: books.length.toLocaleString("en-US"),
       caption: "في الكتالوج",
-    },
-    {
-      id: "visitors",
-      label: "الزوار",
-      value: "—",
-      caption: "بانتظار ربط أداة تحليلات",
-    },
-    {
-      id: "downloads",
-      label: "التحميلات",
-      value: "—",
-      caption: "بانتظار ربط أداة تحليلات",
     },
   ];
 }
@@ -138,39 +132,57 @@ export function deriveLatestMessages(conversations: AdminConversation[], limit =
 
 /**
  * What genuinely needs the admin's action today — orders awaiting
- * confirmation and unread conversations — as distinct from "latest"
- * (recent regardless of state). This is the dashboard's primary zone:
- * the one thing it should answer fastest.
+ * confirmation and unread conversations, merged into a single list and
+ * led by whichever has been waiting longest. One transparent rule (oldest
+ * first) rather than a hidden priority score, so the lead item only ever
+ * changes when it's actually resolved — never reshuffles on its own.
  */
-export function deriveNeedsAttention(
-  orders: AdminOrder[],
-  conversations: AdminConversation[],
-  limit = 4
-): NeedsAttentionSummary {
-  const pending = orders
+export function deriveNeedsAttention(orders: AdminOrder[], conversations: AdminConversation[]): NeedsAttentionSummary {
+  const pendingItems = orders
     .filter((o) => o.status === "pending")
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    .map((order) => ({
+      id: order.id,
+      kind: "order" as const,
+      title: order.customerName,
+      detail: `$${ORDER_TOTAL(order).toFixed(2)}`,
+      time: order.createdAt,
+      href: `/admin/orders/${order.id}`,
+    }));
 
-  const unread = conversations.filter((c) => c.unread).sort((a, b) => b.id.localeCompare(a.id));
+  const unreadItems = conversations
+    .filter((c) => c.unread)
+    .map((conversation) => ({
+      id: conversation.id,
+      kind: "message" as const,
+      title: conversation.customerName,
+      detail: conversation.messages[conversation.messages.length - 1]?.body ?? "",
+      time: conversation.updatedAt,
+      href: `/admin/messages/${conversation.id}`,
+    }));
+
+  const [lead, ...rest] = [...pendingItems, ...unreadItems].sort((a, b) => a.time.localeCompare(b.time));
+
+  return { lead: lead ?? null, rest };
+}
+
+/**
+ * Whether anything in the catalog is waiting to be finished. The oldest
+ * draft by last edit leads — the same transparent "longest waiting first"
+ * rule used for Work Start, applied here instead to drafts. It's identified
+ * honestly as the oldest draft currently being edited, not as a judgment
+ * about which book has been neglected.
+ */
+export function derivePublishingPipeline(books: AdminBook[]): PublishingPipelineSummary {
+  const drafts = books
+    .filter((b) => b.status === "draft")
+    .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+
+  const [lead, ...rest] = drafts;
 
   return {
-    pendingOrders: {
-      count: pending.length,
-      items: pending.slice(0, limit).map((order) => ({
-        id: order.id,
-        customerName: order.customerName,
-        amount: `$${ORDER_TOTAL(order).toFixed(2)}`,
-        time: order.createdAt,
-      })),
-    },
-    unreadMessages: {
-      count: unread.length,
-      items: unread.slice(0, limit).map((conversation) => ({
-        id: conversation.id,
-        sender: conversation.customerName,
-        snippet: conversation.messages[conversation.messages.length - 1]?.body ?? "",
-        time: conversation.updatedAt,
-      })),
-    },
+    lead: lead
+      ? { id: lead.id, title: lead.title, updatedAt: lead.updatedAt, href: `/admin/books/edit/${lead.id}` }
+      : null,
+    remainingCount: rest.length,
   };
 }

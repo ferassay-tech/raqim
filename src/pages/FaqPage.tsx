@@ -10,14 +10,14 @@ import { useLanguage } from "../context/LanguageContext";
 export default function FaqPage() {
   const [open, setOpen] = useState<number | null>(0);
   const { faqs } = useSiteContent();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const faqJsonLd = buildGraph([
     faqPageSchema(faqs),
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("book.faq.eyebrow"), path: "/faq" },
-    ]),
+    ], language),
   ]);
 
   return (

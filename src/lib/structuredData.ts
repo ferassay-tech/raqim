@@ -1,7 +1,7 @@
 import type { AdminBook } from "../admin/types/book";
 import type { AdminArticle } from "../admin/types/article";
 import type { Language } from "../context/LanguageContext";
-import { absoluteUrl, SITE_NAME, SITE_URL } from "./seo";
+import { absoluteUrl, SITE_NAME, SITE_URL, withLanguagePrefix } from "./seo";
 import { CONTACT_EMAILS } from "../config/contactEmails";
 import { localizeProperName } from "./properNames";
 
@@ -66,14 +66,14 @@ export interface BreadcrumbItem {
 /** Generic breadcrumb trail — no visible breadcrumb UI exists on the public
  * site yet, so this is pure structured data describing the real route
  * hierarchy, not a mismatch against something shown on screen. */
-export function breadcrumbSchema(items: BreadcrumbItem[]) {
+export function breadcrumbSchema(items: BreadcrumbItem[], language: Language) {
   return {
     "@type": "BreadcrumbList",
     itemListElement: items.map((item, i) => ({
       "@type": "ListItem",
       position: i + 1,
       name: item.name,
-      item: absoluteUrl(item.path),
+      item: absoluteUrl(withLanguagePrefix(item.path, language)),
     })),
   };
 }
@@ -97,11 +97,12 @@ export function personSchema({
   description?: string;
   language: Language;
 }) {
+  const localizedAuthorUrl = slug ? absoluteUrl(withLanguagePrefix(`/authors/${slug}`, language)) : undefined;
   return {
     "@type": "Person",
     ...(slug && {
-      "@id": `${SITE_URL}/authors/${slug}#person`,
-      url: absoluteUrl(`/authors/${slug}`),
+      "@id": `${localizedAuthorUrl}#person`,
+      url: localizedAuthorUrl,
     }),
     name: localizeProperName(name, language),
     ...(description && { description }),
@@ -124,10 +125,11 @@ export function webPageSchema({
   path: string;
   language: Language;
 }) {
+  const localizedUrl = absoluteUrl(withLanguagePrefix(path, language));
   return {
     "@type": "WebPage",
-    "@id": `${absoluteUrl(path)}#webpage`,
-    url: absoluteUrl(path),
+    "@id": `${localizedUrl}#webpage`,
+    url: localizedUrl,
     name,
     ...(description && { description }),
     inLanguage: language,
@@ -137,11 +139,12 @@ export function webPageSchema({
 
 export function bookSchema(book: AdminBook, language: Language) {
   const usdPrice = book.prices.USD;
+  const localizedBookUrl = absoluteUrl(withLanguagePrefix(`/books/${book.id}`, language));
   return {
     "@type": "Book",
     name: book.title,
     description: book.description,
-    url: absoluteUrl(`/books/${book.id}`),
+    url: localizedBookUrl,
     author: personSchema({ name: book.author, slug: book.authorSlug, language }),
     inLanguage: language,
     bookFormat: "https://schema.org/EBook",
@@ -154,7 +157,7 @@ export function bookSchema(book: AdminBook, language: Language) {
         price: usdPrice.price,
         priceCurrency: "USD",
         availability: "https://schema.org/InStock",
-        url: absoluteUrl(`/books/${book.id}`),
+        url: localizedBookUrl,
         ...(book.sku && { sku: book.sku }),
       },
     }),
@@ -191,18 +194,19 @@ export function bookSchema(book: AdminBook, language: Language) {
 }
 
 export function articleSchema(article: AdminArticle, language: Language) {
+  const localizedArticleUrl = absoluteUrl(withLanguagePrefix(`/blog/${article.slug}`, language));
   return {
     "@type": "Article",
     headline: article.title,
     description: article.excerpt,
-    url: absoluteUrl(`/blog/${article.slug}`),
+    url: localizedArticleUrl,
     inLanguage: language,
     author: personSchema({ name: article.author, language }),
     publisher: { "@id": `${SITE_URL}/#organization` },
     datePublished: article.publishedAt ?? article.updatedAt,
     dateModified: article.updatedAt,
     ...(article.coverImage && { image: absoluteUrl(article.coverImage) }),
-    mainEntityOfPage: absoluteUrl(`/blog/${article.slug}`),
+    mainEntityOfPage: localizedArticleUrl,
   };
 }
 

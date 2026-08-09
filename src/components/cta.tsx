@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "../context/LanguageContext";
 
 /**
  * Bespoke CTA garment set — per design-brief.md, zero shared button style.
@@ -18,6 +19,7 @@ export function StampCTA({
   children: ReactNode;
   className?: string;
 }) {
+  const { localizePath } = useLanguage();
   const classes = `group relative inline-flex items-center gap-3 rounded-[10px] bg-gold px-8 py-4 text-base font-medium text-ink shadow-[0_10px_30px_-12px_rgba(185,148,81,0.55)] transition-all duration-200 ease-out hover:bg-gold-deep hover:shadow-[0_14px_34px_-10px_rgba(156,122,60,0.6)] active:translate-y-[2px] active:scale-[0.98] active:skew-x-[0.5deg] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${className}`;
 
   const inner = (
@@ -43,7 +45,7 @@ export function StampCTA({
 
   if (to) {
     return (
-      <Link to={to} className={classes}>
+      <Link to={localizePath(to)} className={classes}>
         {inner}
       </Link>
     );
@@ -72,6 +74,7 @@ export function UnderlineLink({
    * ancestor element is expected to already handle the click/navigation. */
   interactive?: boolean;
 }) {
+  const { localizePath } = useLanguage();
   const classes = `group relative inline-flex items-center gap-2 text-gold focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-deep ${className}`;
 
   const inner = (
@@ -109,7 +112,7 @@ export function UnderlineLink({
   }
 
   return (
-    <Link to={to} className={classes}>
+    <Link to={localizePath(to)} className={classes}>
       {inner}
     </Link>
   );
@@ -125,8 +128,9 @@ export function NumeralCTA({
   label: string;
   to: string;
 }) {
+  const { localizePath } = useLanguage();
   return (
-    <Link to={to} className="group inline-flex flex-col items-start gap-2">
+    <Link to={localizePath(to)} className="group inline-flex flex-col items-start gap-2">
       <span className="font-logotype text-[5rem] leading-none text-gold transition-transform duration-300 group-hover:-translate-y-1 sm:text-[7rem]">
         {numeral}
       </span>

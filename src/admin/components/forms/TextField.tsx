@@ -37,7 +37,7 @@ export function TextField({
           placeholder={placeholder}
           required={required}
           dir={dir}
-          className="w-full rounded-[10px] border border-beige bg-ivory px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
+          className="w-full rounded-md border border-beige bg-ivory px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
         />
         {suffix && (
           <span className="pointer-events-none absolute inset-y-0 start-3.5 my-auto text-xs text-ink-faint">

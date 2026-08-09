@@ -13,7 +13,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const { books } = useBooks();
   const { articles } = useArticles();
-  const { t, language } = useLanguage();
+  const { t, language, localizePath } = useLanguage();
 
   const results = useMemo(() => {
     const q = query.trim();
@@ -74,7 +74,7 @@ export default function SearchPage() {
                 {results.books.map((b, i) => (
                   <Reveal key={b.id} delay={i * 0.04}>
                     <Link
-                      to={`/books/${b.id}`}
+                      to={localizePath(`/books/${b.id}`)}
                       className="flex items-center justify-between rounded-[10px] border border-beige bg-ivory px-5 py-4 transition-colors hover:border-gold"
                     >
                       <span className="font-display text-lg text-ink">{b.title}</span>
@@ -93,7 +93,7 @@ export default function SearchPage() {
                 {results.posts.map((p, i) => (
                   <Reveal key={p.slug} delay={i * 0.04}>
                     <Link
-                      to={`/blog/${p.slug}`}
+                      to={localizePath(`/blog/${p.slug}`)}
                       className="flex items-center justify-between rounded-[10px] border border-beige bg-ivory px-5 py-4 transition-colors hover:border-gold"
                     >
                       <span className="text-ink">{p.title}</span>

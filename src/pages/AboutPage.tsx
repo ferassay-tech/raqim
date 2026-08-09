@@ -20,7 +20,7 @@ export default function AboutPage() {
     breadcrumbSchema([
       { name: t("about.breadcrumb.home"), path: "/" },
       { name: t("about.eyebrow"), path: "/about" },
-    ]),
+    ], language),
   ]);
 
   return (

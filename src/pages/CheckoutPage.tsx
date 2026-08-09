@@ -17,7 +17,7 @@ const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { product, book, appliedCoupon, setAppliedCoupon, setSelectedMethodId } = useCheckout();
   const { coupons } = useCoupons();
-  const { t, dir } = useLanguage();
+  const { t, dir, localizePath } = useLanguage();
   const [couponInput, setCouponInput] = useState(appliedCoupon?.code ?? "");
   const [couponError, setCouponError] = useState<string | null>(null);
 
@@ -46,7 +46,7 @@ const CheckoutPage: React.FC = () => {
 
   const handleSelectMethod = (id: PaymentMethodId) => {
     setSelectedMethodId(id);
-    navigate(`/payment/${id}`);
+    navigate(localizePath(`/payment/${id}`));
   };
 
   return (
@@ -62,7 +62,7 @@ const CheckoutPage: React.FC = () => {
       />
       <div className="mx-auto flex max-w-3xl flex-col gap-10">
         <Link
-          to={book ? `/books/${book.id}` : "/books"}
+          to={localizePath(book ? `/books/${book.id}` : "/books")}
           className="inline-flex w-fit items-center gap-1.5 text-sm text-ink-soft transition hover:text-ink"
         >
           <IconArrowLeft className="h-4 w-4 rtl:rotate-180" />

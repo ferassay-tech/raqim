@@ -124,6 +124,9 @@
   "footer.newsletter.emailLabel": "Your Email",
   "footer.newsletter.subscribed": "Subscribed",
   "footer.newsletter.subscribeButton": "Subscribe",
+  "footer.newsletter.sending": "Sending...",
+  "footer.newsletter.invalidEmail": "Please enter a valid email address.",
+  "footer.newsletter.error": "Couldn't complete your subscription. Please try again.",
 
   "nav.skipToContent": "Skip to content",
 

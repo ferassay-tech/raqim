@@ -7,10 +7,11 @@ export function AdminBreadcrumbs() {
   const { pathname } = useLocation();
   const segments = pathname.split("/").filter(Boolean).filter((s) => s !== "admin");
 
+  // The dashboard is the root of the admin — a breadcrumb trail here would
+  // only repeat the page's own title directly beneath it, so it's omitted
+  // rather than shown as an empty/redundant trail.
   if (segments.length === 0 || (segments.length === 1 && segments[0] === "dashboard")) {
-    return (
-      <p className="px-4 py-4 text-sm text-ink-soft sm:px-6 lg:px-8">لوحة التحكم</p>
-    );
+    return null;
   }
 
   let path = "/admin";
