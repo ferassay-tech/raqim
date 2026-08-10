@@ -2,6 +2,7 @@ import { Route } from "react-router-dom";
 import SettingsPage from "./pages/SettingsPage";
 import SiteContentPage from "./pages/SiteContentPage";
 import ProfilePage from "./pages/ProfilePage";
+import BrandStudioPage from "./pages/BrandStudioPage";
 
 export const settingsRoutes = (
   <>
@@ -9,5 +10,6 @@ export const settingsRoutes = (
     <Route path="settings/:section" element={<SettingsPage />} />
     <Route path="content" element={<SiteContentPage />} />
     <Route path="profile" element={<ProfilePage />} />
+    <Route path="brand-studio" element={<BrandStudioPage />} />
   </>
 );

@@ -118,6 +118,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         ...(storedSettings.brand?.logo === LEGACY_LOGO_PATH ? { logo: BRAND_ASSETS.logo } : {}),
         logoSizing: { ...INITIAL_SETTINGS.brand.logoSizing, ...storedSettings.brand?.logoSizing },
         wordmark: { ...INITIAL_SETTINGS.brand.wordmark, ...storedSettings.brand?.wordmark },
+        // Same reasoning as logoSizing/wordmark above — a record persisted
+        // before the `numeric` font role existed (Brand Studio milestone)
+        // would otherwise read back a `fonts` object missing that key.
+        fonts: { ...INITIAL_SETTINGS.brand.fonts, ...storedSettings.brand?.fonts },
       },
       seo: {
         ...INITIAL_SETTINGS.seo,

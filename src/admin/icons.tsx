@@ -305,3 +305,16 @@ export const IconPanelCollapse: FC<IconProps> = ({ className }) => (
     <path d="M11.2 10 9 12l2.2 2" {...strokeProps} />
   </svg>
 );
+
+export const IconPalette: FC<IconProps> = ({ className }) => (
+  <svg {...base} className={className}>
+    <path
+      d="M12 3.5c-4.7 0-8.5 3.6-8.5 8s3.4 7 6.5 7c1 0 1.5-.5 1.5-1.3 0-.4-.2-.7-.4-1a1.4 1.4 0 0 1-.3-.9c0-.7.6-1.3 1.3-1.3H14c3 0 6.5-2 6.5-6 0-2.5-3.7-4.5-8.5-4.5Z"
+      {...strokeProps}
+    />
+    <circle cx="7.7" cy="10.2" r="1" fill="currentColor" stroke="none" />
+    <circle cx="10.8" cy="7.3" r="1" fill="currentColor" stroke="none" />
+    <circle cx="14.9" cy="7.6" r="1" fill="currentColor" stroke="none" />
+    <circle cx="17.3" cy="10.7" r="1" fill="currentColor" stroke="none" />
+  </svg>
+);

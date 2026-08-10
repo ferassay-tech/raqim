@@ -11,6 +11,13 @@ export const FONT_STACKS: Record<BrandFontFamily, string> = {
   Amiri: '"Amiri", "Times New Roman", serif',
   "IBM Plex Sans Arabic": '"IBM Plex Sans Arabic", "Segoe UI", sans-serif',
   "Cormorant Garamond": '"Cormorant Garamond", serif',
+  "IBM Plex Mono": '"IBM Plex Mono", ui-monospace, monospace',
+  "Markazi Text": '"Markazi Text", serif',
+  "Reem Kufi": '"Reem Kufi", sans-serif',
+  "Aref Ruqaa": '"Aref Ruqaa", serif',
+  Mada: '"Mada", sans-serif',
+  "Readex Pro": '"Readex Pro", sans-serif',
+  Rakkas: '"Rakkas", serif',
 };
 
 const COLOR_VARS: Record<keyof BrandColorTokens, string> = {
@@ -49,6 +56,7 @@ export function ThemeSync() {
     root.setProperty("--font-display", FONT_STACKS[fonts.display]);
     root.setProperty("--font-body", FONT_STACKS[fonts.body]);
     root.setProperty("--font-logotype", FONT_STACKS[fonts.logotype]);
+    root.setProperty("--font-mono", FONT_STACKS[fonts.numeric]);
   }, [fonts]);
 
   useEffect(() => {

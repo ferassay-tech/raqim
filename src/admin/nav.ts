@@ -15,6 +15,7 @@ import {
   IconUser,
   IconPencil,
   IconArchive,
+  IconPalette,
 } from "./icons";
 
 export interface AdminNavItem {
@@ -74,6 +75,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     label: "النظام",
     items: [
       { to: "/admin/settings", label: "الإعدادات", icon: IconGear },
+      { to: "/admin/brand-studio", label: "استوديو الهوية", icon: IconPalette },
       { to: "/admin/profile", label: "الملف الشخصي", icon: IconUser },
     ],
   },
@@ -107,6 +109,7 @@ export const ADMIN_SEGMENT_LABELS: Record<string, string> = {
   "template-categories": "التصنيفات",
   history: "السجل",
   settings: "الإعدادات",
+  "brand-studio": "استوديو الهوية",
   profile: "الملف الشخصي",
   general: "عام",
   brand: "الهوية البصرية",

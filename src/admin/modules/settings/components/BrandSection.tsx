@@ -31,6 +31,7 @@ const FONT_ROLE_LABELS: Record<BrandFontRole, string> = {
   display: "خط العناوين (Display)",
   body: "خط النصوص (Body)",
   logotype: "خط الشعار (Logotype)",
+  numeric: "خط الأرقام (Numeric)",
 };
 
 const FONT_OPTIONS = BRAND_FONT_OPTIONS.map((f) => ({ value: f, label: f }));

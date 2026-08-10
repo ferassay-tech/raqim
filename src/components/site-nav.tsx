@@ -56,11 +56,15 @@ export function SiteNav() {
   const { getValue } = useSiteContent();
   const { books } = useBooks();
   const { settings } = useSettings();
-  const { wordmark } = settings.brand;
+  const { wordmark, fonts } = settings.brand;
   const { t, localizePath } = useLanguage();
 
   const wordmarkStyle = {
-    fontFamily: FONT_STACKS[wordmark.arabicFontFamily],
+    // Font family is driven by the Logotype role (settings.brand.fonts.logotype
+    // → ThemeSync/FONT_STACKS), the same source every other Logotype consumer
+    // uses — wordmark.arabicFontFamily/englishFontFamily remain the source for
+    // weight/letter-spacing/size below, unchanged.
+    fontFamily: FONT_STACKS[fonts.logotype],
     fontWeight: wordmark.fontWeight,
     letterSpacing: `${wordmark.letterSpacing}em`,
     "--wordmark-size-mobile": `${wordmark.fontSizeMobile}px`,

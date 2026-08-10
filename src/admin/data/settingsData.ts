@@ -58,6 +58,7 @@ export const INITIAL_SETTINGS: AdminSettingsRaw = {
       display: "Amiri",
       body: "IBM Plex Sans Arabic",
       logotype: "Cormorant Garamond",
+      numeric: "IBM Plex Mono",
     },
     radius: { base: 0.625, sm: 0.5, md: 0.625, lg: 0.75 },
     spacing: 0.25,

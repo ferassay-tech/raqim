@@ -25,12 +25,27 @@ export interface BrandColorTokens {
   inkFaint: string;
 }
 
-export type BrandFontRole = "display" | "body" | "logotype";
+export type BrandFontRole = "display" | "body" | "logotype" | "numeric";
 
-/** The only three font families actually loaded (index.html's Google Fonts
- * link) — an Admin picks which role each plays, never a new family, so no
- * new font ever needs loading. */
-export const BRAND_FONT_OPTIONS = ["Amiri", "IBM Plex Sans Arabic", "Cormorant Garamond"] as const;
+/** Every font family actually loaded (index.html's Google Fonts link) — an
+ * Admin picks which role each plays, never a family outside this list, so
+ * no new font ever needs loading elsewhere. The first four are the ones
+ * actually assigned to a role by default; the remaining six (added for the
+ * font-library expansion) are registered and selectable but not assigned to
+ * any role automatically — see INITIAL_SETTINGS.brand.fonts for the real
+ * defaults. */
+export const BRAND_FONT_OPTIONS = [
+  "Amiri",
+  "IBM Plex Sans Arabic",
+  "Cormorant Garamond",
+  "IBM Plex Mono",
+  "Markazi Text",
+  "Reem Kufi",
+  "Aref Ruqaa",
+  "Mada",
+  "Readex Pro",
+  "Rakkas",
+] as const;
 export type BrandFontFamily = (typeof BRAND_FONT_OPTIONS)[number];
 
 export interface BrandRadiusTokens {
