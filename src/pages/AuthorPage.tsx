@@ -38,6 +38,13 @@ export default function AuthorPage() {
   const authorName = primaryBook.author;
   const authorBio = primaryBook.authorBio;
   const displayName = localizeProperName(authorName, language);
+  // Same real-content signal BookPage.tsx uses for its own noindex decision:
+  // an author backed only by coming-soon placeholders (e.g. authorSlug
+  // "raqim", where "author" is really just the publisher's own name reused
+  // as a stand-in) has no real bio or identity to show — not indexable.
+  // Reindexes automatically the moment a real (non-comingSoon) book is
+  // assigned to this author, with no hardcoded slug check.
+  const hasFullContent = authorBooks.some((b) => b.placement !== "comingSoon");
 
   const authorJsonLd = buildGraph([
     personSchema({ name: authorName, slug: primaryBook.authorSlug, description: authorBio, language }),
@@ -53,8 +60,9 @@ export default function AuthorPage() {
         title={`${displayName}${t("author.seoTitleSuffix")}`}
         description={authorBio}
         path={`/authors/${primaryBook.authorSlug}`}
+        noindex={hasFullContent ? undefined : "follow"}
       />
-      <StructuredData json={authorJsonLd} />
+      {hasFullContent && <StructuredData json={authorJsonLd} />}
       <section className="px-6 py-20 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-[0.6fr_1.4fr]">
           <Reveal className="flex justify-center">

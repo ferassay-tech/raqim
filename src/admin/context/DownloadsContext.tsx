@@ -1,8 +1,17 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { DownloadToken } from "../types/download";
-import { usePersistedState } from "../lib/usePersistedState";
+import type { DownloadToken, MintedDownloadToken } from "../types/download";
+import {
+  downloadTokensRepository,
+  generateRawToken,
+  hashToken,
+  recordDownloadTokenUse,
+  resolveDownloadToken,
+  tokenFromSupabaseRow,
+} from "./downloadTokensRepository.ts";
+import type { DownloadTokenRow, ResolvedDownloadToken } from "./downloadTokensRepository.ts";
 import { useSettings } from "./SettingsContext";
+import { useAuth } from "./AuthContext";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -14,113 +23,125 @@ function computeExpiresAt(expiryDays: number | null): string | null {
 }
 
 interface DownloadsContextValue {
+  /** Admin-only — fetched once a real session exists (see below). Empty for
+   * a public visitor; DownloadPage never reads this list, it calls
+   * resolveToken directly. */
   tokens: DownloadToken[];
   getTokensForOrder: (orderId: string) => DownloadToken[];
-  generateToken: (orderId: string, fileIds: string[]) => DownloadToken;
-  regenerateToken: (orderId: string) => DownloadToken | null;
-  disableToken: (tokenId: string) => void;
-  recordDownload: (tokenId: string) => void;
-  /** Returns the token only if it exists, isn't disabled, hasn't expired,
-   * and hasn't reached its download limit — the one check the public
-   * DownloadPage relies on. */
-  resolveToken: (tokenId: string) => DownloadToken | null;
+  generateToken: (orderId: string, fileIds: string[]) => Promise<MintedDownloadToken>;
+  regenerateToken: (orderId: string) => Promise<MintedDownloadToken | null>;
+  disableToken: (tokenId: string) => Promise<void>;
+  /** Public — records one completed file download by raw token. */
+  recordDownload: (rawToken: string) => Promise<void>;
+  /** Public — the one thing DownloadPage relies on. Resolves entirely
+   * server-side (resolve_download_token), so it works from any browser,
+   * not just the one that generated the token. */
+  resolveToken: (rawToken: string) => Promise<ResolvedDownloadToken | null>;
 }
 
 const DownloadsContext = createContext<DownloadsContextValue | null>(null);
 
-const now = () => new Date().toISOString();
-
 /**
- * Secure-download-token records. IMPORTANT — read before assuming this is
- * "secure" in the real sense: this app has no backend, so a token here is
- * an opaque client-generated id checked against a client-persisted list.
- * Anyone with devtools access to this browser's localStorage could in
- * principle forge a matching record. What this genuinely provides today:
- * (a) no static file path is ever exposed to a customer — only this
- * opaque token is, and (b) the complete data model (expiry, disable,
- * count, reserved analytics fields) a real server-side implementation
- * needs, so moving minting/validation server-side later is a location
- * change, not a redesign. Real security starts the day resolveToken (and
- * generateToken) move into a server/edge function that owns this table
- * instead of the browser.
+ * P0-1 — Supabase-backed download tokens, replacing the old
+ * localStorage-only implementation (usePersistedState). That version could
+ * never work for a real customer: a token minted in the admin's own browser
+ * only ever existed in that browser's localStorage, so the emailed
+ * /download/{token} link would fail to resolve on the customer's own
+ * device. See the migration (20260810120001) and downloadTokensRepository.ts
+ * for the full security model — only a hash of the token is ever stored,
+ * and only two SECURITY DEFINER functions ever touch the table on an
+ * anonymous customer's behalf.
+ *
+ * Deliberately the second context (after Orders) that gates its mount-fetch
+ * on auth state: the `tokens` list is Admin-UI-only (same reasoning as
+ * OrdersContext) — a public visitor never reads it, only ever calls
+ * resolveToken/recordDownload, which don't depend on this list at all.
  */
 export function DownloadsProvider({ children }: { children: ReactNode }) {
-  const [tokens, setTokens] = usePersistedState<DownloadToken[]>("download_tokens", []);
+  const [tokens, setTokens] = useState<DownloadToken[]>([]);
   const { settings } = useSettings();
+  const { isAuthenticated } = useAuth();
   const { downloadLinkExpiryDays, downloadLinkMaxDownloads } = settings.storage;
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    downloadTokensRepository
+      .list()
+      .then((rows) => {
+        if (cancelled) return;
+        setTokens(rows.map(tokenFromSupabaseRow));
+      })
+      .catch((error) => {
+        console.error("Failed to load download tokens from Supabase:", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const getTokensForOrder = useCallback(
     (orderId: string) => tokens.filter((t) => t.orderId === orderId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [tokens]
   );
 
-  const generateToken = useCallback(
-    (orderId: string, fileIds: string[]) => {
-      const token: DownloadToken = {
+  const mint = useCallback(
+    async (orderId: string, fileIds: string[]): Promise<MintedDownloadToken> => {
+      const rawToken = generateRawToken();
+      const tokenHash = await hashToken(rawToken);
+      const row: DownloadTokenRow = {
         id: crypto.randomUUID(),
-        orderId,
-        fileIds,
-        createdAt: now(),
-        expiresAt: computeExpiresAt(downloadLinkExpiryDays),
-        maxDownloads: downloadLinkMaxDownloads,
+        order_id: orderId,
+        token_hash: tokenHash,
+        file_ids: fileIds,
+        expires_at: computeExpiresAt(downloadLinkExpiryDays),
+        max_downloads: downloadLinkMaxDownloads,
+        download_count: 0,
         disabled: false,
-        downloadCount: 0,
-        lastDownloadedAt: null,
-        clientIp: null,
-        deviceInfo: null,
+        last_downloaded_at: null,
+        created_at: new Date().toISOString(),
       };
+      // Insert order status is re-verified by the RLS policy itself
+      // (download_tokens_insert_editor_or_owner) — an order that isn't
+      // actually 'paid' is rejected at the database, not just skipped here.
+      const created = await downloadTokensRepository.create(row);
+      const token = tokenFromSupabaseRow(created);
       setTokens((prev) => [token, ...prev]);
-      return token;
+      return { token, rawToken };
     },
-    [setTokens, downloadLinkExpiryDays, downloadLinkMaxDownloads]
+    [downloadLinkExpiryDays, downloadLinkMaxDownloads]
   );
 
+  const generateToken = useCallback((orderId: string, fileIds: string[]) => mint(orderId, fileIds), [mint]);
+
   const regenerateToken = useCallback(
-    (orderId: string) => {
+    async (orderId: string): Promise<MintedDownloadToken | null> => {
       const existing = tokens.filter((t) => t.orderId === orderId);
       if (existing.length === 0) return null;
       const mostRecent = [...existing].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
 
-      const fresh: DownloadToken = {
-        id: crypto.randomUUID(),
-        orderId,
-        fileIds: mostRecent.fileIds,
-        createdAt: now(),
-        expiresAt: computeExpiresAt(downloadLinkExpiryDays),
-        maxDownloads: downloadLinkMaxDownloads,
-        disabled: false,
-        downloadCount: 0,
-        lastDownloadedAt: null,
-        clientIp: null,
-        deviceInfo: null,
-      };
-      setTokens((prev) => [fresh, ...prev.map((t) => (t.orderId === orderId ? { ...t, disabled: true } : t))]);
-      return fresh;
+      await Promise.all(
+        existing
+          .filter((t) => !t.disabled)
+          .map((t) => downloadTokensRepository.update(t.id, { disabled: true }))
+      );
+      setTokens((prev) => prev.map((t) => (t.orderId === orderId ? { ...t, disabled: true } : t)));
+
+      return mint(orderId, mostRecent.fileIds);
     },
-    [tokens, setTokens, downloadLinkExpiryDays, downloadLinkMaxDownloads]
+    [tokens, mint]
   );
 
-  const disableToken = useCallback((tokenId: string) => {
+  const disableToken = useCallback(async (tokenId: string) => {
+    await downloadTokensRepository.update(tokenId, { disabled: true });
     setTokens((prev) => prev.map((t) => (t.id === tokenId ? { ...t, disabled: true } : t)));
-  }, [setTokens]);
+  }, []);
 
-  const recordDownload = useCallback((tokenId: string) => {
-    setTokens((prev) =>
-      prev.map((t) => (t.id === tokenId ? { ...t, downloadCount: t.downloadCount + 1, lastDownloadedAt: now() } : t))
-    );
-  }, [setTokens]);
+  const recordDownload = useCallback(async (rawToken: string) => {
+    await recordDownloadTokenUse(rawToken);
+  }, []);
 
-  const resolveToken = useCallback(
-    (tokenId: string) => {
-      const token = tokens.find((t) => t.id === tokenId);
-      if (!token) return null;
-      if (token.disabled) return null;
-      if (token.expiresAt && new Date(token.expiresAt) < new Date()) return null;
-      if (token.maxDownloads !== null && token.downloadCount >= token.maxDownloads) return null;
-      return token;
-    },
-    [tokens]
-  );
+  const resolveToken = useCallback(async (rawToken: string) => resolveDownloadToken(rawToken), []);
 
   const value = useMemo(
     () => ({ tokens, getTokensForOrder, generateToken, regenerateToken, disableToken, recordDownload, resolveToken }),

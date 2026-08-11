@@ -8,12 +8,21 @@ import { localizeProperName } from "./properNames";
 /** Combines any number of schema.org node objects into one JSON-LD script's
  * worth of content via `@graph` — one `<script>` tag per page instead of
  * one per schema, which is the form Google's own docs recommend for pages
- * that legitimately carry more than one schema type. */
+ * that legitimately carry more than one schema type.
+ *
+ * The result is injected directly into a `<script>` tag via
+ * dangerouslySetInnerHTML (see StructuredData.tsx) — JSON.stringify alone
+ * does not escape "<", so a field containing a literal "</script>" (e.g. an
+ * admin-authored book title or review quote) would otherwise close the tag
+ * early at the HTML-parser level. Escaping "<" as its unicode form here,
+ * once, centrally, makes every schema this function ever returns safe to
+ * embed — the JSON meaning is unchanged (< decodes back to "<" for any
+ * real JSON-LD consumer), no schema field or SEO behavior is affected. */
 export function buildGraph(nodes: object[]): string {
   return JSON.stringify({
     "@context": "https://schema.org",
     "@graph": nodes,
-  });
+  }).replace(/</g, "\\u003c");
 }
 
 /** Sitewide Organization schema — real data only. `sameAs` is intentionally

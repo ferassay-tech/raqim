@@ -46,8 +46,12 @@ type HelmetProps = {
   imageAlt?: string;
   type?: OgType;
   /** True for transactional/utility/private pages (checkout, payment,
-   * order-received, download, search, 404) that should never be indexed. */
-  noindex?: boolean;
+   * order-received, download, search, 404) that should never be indexed —
+   * emits "noindex,nofollow". Pass "follow" instead for a page that's too
+   * thin to index today but whose real internal links (e.g. an author page)
+   * are still worth crawling — emits "noindex,follow". Either value skips
+   * hreflang the same way (see below): indexation doesn't apply either way. */
+  noindex?: boolean | "follow";
   /** ISO date strings — set on Article pages only. */
   publishedTime?: string;
   modifiedTime?: string;
@@ -192,7 +196,11 @@ export function Helmet({
       setHreflang("x-default", arUrl);
     }
 
-    setMeta('meta[name="robots"]', "name", noindex ? "noindex,nofollow" : "index,follow");
+    setMeta(
+      'meta[name="robots"]',
+      "name",
+      noindex === "follow" ? "noindex,follow" : noindex ? "noindex,nofollow" : "index,follow"
+    );
 
     if (publishedTime) setMeta('meta[property="article:published_time"]', "property", publishedTime);
     else removeMeta('meta[property="article:published_time"]');

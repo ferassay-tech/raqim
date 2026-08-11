@@ -50,16 +50,23 @@ export default function BookPage() {
   if (!hasFullContent) {
     return (
       <PageShell>
+        {/* Coming-soon records carry only placeholder title/description/author
+            data (no real book yet) — too thin to justify indexing. noindex
+            keeps it out of search results while "follow" still lets crawlers
+            reach the real pages it links to (author, books index). No
+            structured data either, matching every other noindex route on
+            this site (search/checkout/payment/order-received/download/404),
+            none of which emit a JSON-LD Book/Product node. */}
         <Helmet
-          title={`${book.title} — ${t("home.hero.titleFallback")}`}
-          description={book.description}
+          title={book.seoTitle || `${book.title} — ${t("home.hero.titleFallback")}`}
+          description={book.seoDescription || book.description}
           image={book.cover ?? undefined}
           imageWidth={coverDims?.width}
           imageHeight={coverDims?.height}
           path={`/books/${book.id}`}
           type="book"
+          noindex="follow"
         />
-        <StructuredData json={bookJsonLd} />
         <SimpleBookPage book={book} />
       </PageShell>
     );
@@ -68,8 +75,8 @@ export default function BookPage() {
   return (
     <PageShell>
       <Helmet
-        title={`${book.title} — ${t("home.hero.titleFallback")}`}
-        description={book.description}
+        title={book.seoTitle || `${book.title} — ${t("home.hero.titleFallback")}`}
+        description={book.seoDescription || book.description}
         image={book.cover ?? undefined}
         imageWidth={coverDims?.width}
         imageHeight={coverDims?.height}
@@ -329,7 +336,7 @@ function AuthorSection({ book }: { book: AdminBook }) {
 
 function PurchaseSection({ book }: { book: AdminBook }) {
   const price = book.prices.USD;
-  const { t, language } = useLanguage();
+  const { t, language, localizePath } = useLanguage();
   return (
     <section id="purchase" className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
       <Reveal className="mx-auto max-w-3xl rounded-[10px] border border-gold/30 bg-ivory p-10 text-center lg:p-14">
@@ -350,6 +357,15 @@ function PurchaseSection({ book }: { book: AdminBook }) {
           <StampCTA to="/checkout">{book.ctaLabel || t("home.cta.orderNow")}</StampCTA>
         </div>
         <p className="mt-4 text-xs text-ink-soft">{t("book.purchase.helperText")}</p>
+        <p className="mt-2 text-xs text-ink-faint">
+          <Link to={localizePath("/terms")} className="underline hover:text-gold-deep">
+            {t("terms.title")}
+          </Link>
+          {" · "}
+          <Link to={localizePath("/privacy")} className="underline hover:text-gold-deep">
+            {t("privacy.title")}
+          </Link>
+        </p>
       </Reveal>
     </section>
   );

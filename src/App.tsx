@@ -23,6 +23,7 @@ import PaymentMethodPage from "./pages/PaymentMethodPage";
 import OrderReceivedPage from "./pages/OrderReceivedPage";
 import DownloadPage from "./pages/DownloadPage";
 import { AdminProviders } from "./admin/context/AdminProviders";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Lazy-loaded: public visitors (the overwhelming majority of traffic) never
 // need the admin dashboard's JS at all. AdminProviders (the CMS data-context
@@ -86,9 +87,11 @@ export default function App() {
         <Route
           path="/admin/*"
           element={
-            <Suspense fallback={null}>
-              <AdminApp />
-            </Suspense>
+            <ErrorBoundary variant="admin">
+              <Suspense fallback={null}>
+                <AdminApp />
+              </Suspense>
+            </ErrorBoundary>
           }
         />
         <Route path="*" element={<NotFoundPage />} />

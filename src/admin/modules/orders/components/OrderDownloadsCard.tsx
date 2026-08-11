@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AdminOrder } from "@/admin/types/order";
 import { useDownloads } from "@/admin/context/DownloadsContext";
 import { useLibrary } from "@/admin/context/LibraryContext";
@@ -47,15 +47,18 @@ function writeLastEmailSent(orderId: string, iso: string) {
 /**
  * Only Confirmed ("paid") orders unlock download generation — the concrete
  * form of Part 7's "Only Confirmed orders should unlock download
- * generation." A future real payment provider plugs into this the moment
- * it calls setOrderStatus(id, "paid"); nothing else here changes.
+ * generation." Re-enforced server-side too (P0-1): the download_tokens
+ * INSERT policy itself re-checks the order is 'paid', not just this effect.
  *
- * Token generation itself is automatic (see the effect below): the moment an
- * order is paid and has at least one linked library file, a token is minted
- * without the admin needing to click anything — "approve the order" IS "the
- * download link now exists." The manual button below only remains for the
- * case where files get attached to the book *after* the order was approved
- * (nothing to link yet at approval time), or to force a fresh link later.
+ * P0-1 — tokens are now Supabase-backed (download_tokens), and only a hash
+ * of the raw token is ever stored. That means the raw, usable
+ * /download/{token} URL exists ONLY in this component's own state, right
+ * after generateToken()/regenerateToken() resolves — it cannot be recovered
+ * from `activeToken` alone (which only carries admin-safe metadata: id,
+ * expiry, download count, disabled). If this card remounts after a token
+ * was already minted (e.g. a page refresh), `rawToken` is empty even though
+ * a real, working token still exists server-side — the UI below says so
+ * explicitly and offers "إعادة توليد الرابط" to mint a fresh, usable one.
  */
 export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
   const { getTokensForOrder, generateToken, regenerateToken, disableToken } = useDownloads();
@@ -68,10 +71,14 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
   const [emailStatus, setEmailStatus] = useState<EmailSendStatus>("idle");
   const [toast, setToast] = useState<ToastState | null>(null);
   const [lastEmailSentAt, setLastEmailSentAt] = useState<string | null>(null);
+  const [rawToken, setRawToken] = useState<string | null>(null);
+  const [isMinting, setIsMinting] = useState(false);
+  const mintingRef = useRef(false);
 
   useEffect(() => {
     setLastEmailSentAt(readLastEmailSentMap()[order.id] ?? null);
     setEmailStatus("idle");
+    setRawToken(null);
   }, [order.id]);
 
   const linkedFiles = useMemo(() => {
@@ -89,19 +96,68 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
 
   const tokens = getTokensForOrder(order.id);
   const activeToken = tokens.find((t) => !t.disabled) ?? null;
-  const downloadUrl = activeToken ? `${window.location.origin}/download/${activeToken.id}` : null;
+  const downloadUrl = rawToken ? `${window.location.origin}/download/${rawToken}` : null;
 
+  // Shared across the auto-mint effect below AND handleGenerate/
+  // handleRegenerate — the confirmed duplicate-token race: regenerateToken()
+  // disables the existing token(s) and updates local state before its own
+  // mint() resolves, which makes activeToken briefly become null and
+  // re-triggers this effect. Previously only the effect itself checked this
+  // ref, so a manual regenerate/generate click was invisible to it and a
+  // second, independent mint would start concurrently. Setting it before
+  // and clearing it after every mint attempt — from all three call sites —
+  // closes that gap.
   useEffect(() => {
-    if (order.status === "paid" && canManage && linkedFiles.length > 0 && !activeToken) {
-      generateToken(order.id, linkedFiles.map((f) => f.id));
+    if (
+      order.status === "paid" &&
+      canManage &&
+      linkedFiles.length > 0 &&
+      !activeToken &&
+      !mintingRef.current
+    ) {
+      mintingRef.current = true;
+      generateToken(order.id, linkedFiles.map((f) => f.id))
+        .then(({ rawToken: minted }) => setRawToken(minted))
+        .catch((error) => {
+          console.error("Failed to auto-generate download token:", error);
+        })
+        .finally(() => {
+          mintingRef.current = false;
+        });
     }
     // Deliberately reacts to the order's approval and to files becoming
     // available — not a one-time mount effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order.status, order.id, linkedFiles, activeToken, canManage]);
 
-  const handleGenerate = () => {
-    generateToken(order.id, linkedFiles.map((f) => f.id));
+  const handleGenerate = async () => {
+    if (mintingRef.current) return;
+    mintingRef.current = true;
+    setIsMinting(true);
+    try {
+      const { rawToken: minted } = await generateToken(order.id, linkedFiles.map((f) => f.id));
+      setRawToken(minted);
+    } catch {
+      setToast({ variant: "error", message: "تعذّر توليد رابط التحميل." });
+    } finally {
+      setIsMinting(false);
+      mintingRef.current = false;
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (mintingRef.current) return;
+    mintingRef.current = true;
+    setIsMinting(true);
+    try {
+      const minted = await regenerateToken(order.id);
+      if (minted) setRawToken(minted.rawToken);
+    } catch {
+      setToast({ variant: "error", message: "تعذّرت إعادة توليد رابط التحميل." });
+    } finally {
+      setIsMinting(false);
+      mintingRef.current = false;
+    }
   };
 
   const handleSendEmail = async () => {
@@ -184,16 +240,24 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
         <button
           type="button"
           onClick={handleGenerate}
-          className="mt-4 w-full rounded-full bg-ink py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
+          disabled={isMinting}
+          className="mt-4 w-full rounded-full bg-ink py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep disabled:cursor-wait disabled:opacity-60"
         >
-          توليد رابط تحميل
+          {isMinting ? "جارٍ التوليد..." : "توليد رابط تحميل"}
         </button>
       ) : (
         <div className="mt-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2 rounded-[10px] bg-cream/60 px-4 py-3">
-            <span className="truncate text-xs text-ink" dir="ltr">{downloadUrl}</span>
-            <CopyIconButton value={downloadUrl ?? ""} label="نسخ الرابط" className="h-6 w-6 shrink-0" />
-          </div>
+          {downloadUrl ? (
+            <div className="flex items-center justify-between gap-2 rounded-[10px] bg-cream/60 px-4 py-3">
+              <span className="truncate text-xs text-ink" dir="ltr">{downloadUrl}</span>
+              <CopyIconButton value={downloadUrl} label="نسخ الرابط" className="h-6 w-6 shrink-0" />
+            </div>
+          ) : (
+            <p className="rounded-[10px] bg-cream/60 p-3 text-xs text-ink-faint">
+              يوجد رابط تحميل نشط لهذا الطلب، لكن لا يمكن استرجاع نصه في هذه الجلسة — استخدمي «إعادة توليد الرابط» أدناه
+              للحصول على رابط جديد قابل للنسخ أو الإرسال.
+            </p>
+          )}
 
           <dl className="grid grid-cols-2 gap-3 text-xs text-ink-soft">
             <div>
@@ -230,16 +294,17 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => regenerateToken(order.id)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-beige px-4 py-2 text-xs text-ink-soft transition-colors hover:border-gold hover:text-ink"
+              onClick={handleRegenerate}
+              disabled={isMinting}
+              className="inline-flex items-center gap-1.5 rounded-full border border-beige px-4 py-2 text-xs text-ink-soft transition-colors hover:border-gold hover:text-ink disabled:cursor-wait disabled:opacity-60"
             >
               <IconRefresh className="h-3.5 w-3.5" />
-              إعادة توليد الرابط
+              {isMinting ? "جارٍ التوليد..." : "إعادة توليد الرابط"}
             </button>
             <button
               type="button"
               onClick={handleSendEmail}
-              disabled={emailStatus === "sending"}
+              disabled={!downloadUrl || emailStatus === "sending"}
               aria-busy={emailStatus === "sending"}
               className="inline-flex items-center gap-1.5 rounded-full border border-beige px-4 py-2 text-xs text-ink-soft transition-colors hover:border-gold hover:text-ink disabled:cursor-wait disabled:opacity-60 disabled:hover:border-beige disabled:hover:text-ink-soft"
             >
@@ -280,7 +345,11 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
         description="لن يتمكن العميل من استخدام هذا الرابط بعد تعطيله. يمكنك توليد رابط جديد لاحقًا."
         confirmLabel="تعطيل"
         onConfirm={() => {
-          if (activeToken) disableToken(activeToken.id);
+          if (activeToken) {
+            disableToken(activeToken.id).catch(() => {
+              setToast({ variant: "error", message: "تعذّر تعطيل رابط التحميل." });
+            });
+          }
           setConfirmDisable(false);
         }}
         onCancel={() => setConfirmDisable(false)}

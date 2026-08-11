@@ -73,29 +73,43 @@ const visibleBooks = INITIAL_BOOKS.filter((b) => b.deletedAt === null && isInLib
   (a, b) => a.displayOrder - b.displayOrder
 );
 
-// Same distinction BookPage.tsx itself makes (`hasFullContent`) between a
-// fully published title and a coming-soon placeholder — reused here as the
-// real, principled signal for priority, instead of a hand-picked number.
-const bookEntries = visibleBooks.map((book) => ({
-  path: `/books/${book.id}`,
-  lastmod: book.updatedAt,
-  changefreq: "monthly",
-  priority: book.placement === "comingSoon" ? "0.6" : "0.8",
-}));
+// Same distinction BookPage.tsx itself makes (`hasFullContent`): coming-soon
+// records are placeholder-only (no real title/author/description yet) and
+// BookPage.tsx now marks their route noindex,follow for that reason — a
+// sitemap must never list a noindex URL (Search Console flags this as
+// "Submitted URL marked noindex"), so they're excluded here entirely rather
+// than just deprioritized. visibleBooks itself stays unfiltered — it also
+// feeds authorEntries below, which is unaffected by this phase.
+const bookEntries = visibleBooks
+  .filter((book) => book.placement !== "comingSoon")
+  .map((book) => ({
+    path: `/books/${book.id}`,
+    lastmod: book.updatedAt,
+    changefreq: "monthly",
+    priority: "0.8",
+  }));
 
 // One entry per unique author reachable from a visible book — mirrors
 // AuthorPage's own resolution (every visible book matching a slug, the
 // earliest by displayOrder standing in as the representative record).
+// Same real-content signal AuthorPage.tsx itself now uses (its own
+// `hasFullContent`): an author backed only by coming-soon placeholders
+// (e.g. "raqim", where "author" is really just the publisher's own name
+// reused as a stand-in) has no real bio/identity and is noindex,follow on
+// the page itself — excluded here for the same reason a noindex page must
+// never appear in the sitemap.
 const authorSlugsInOrder = [...new Set(visibleBooks.map((b) => b.authorSlug))];
-const authorEntries = authorSlugsInOrder.map((slug) => {
-  const primaryBook = visibleBooks.find((b) => b.authorSlug === slug);
-  return {
-    path: `/authors/${slug}`,
-    lastmod: primaryBook.updatedAt,
-    changefreq: "monthly",
-    priority: "0.6",
-  };
-});
+const authorEntries = authorSlugsInOrder
+  .filter((slug) => visibleBooks.some((b) => b.authorSlug === slug && b.placement !== "comingSoon"))
+  .map((slug) => {
+    const primaryBook = visibleBooks.find((b) => b.authorSlug === slug);
+    return {
+      path: `/authors/${slug}`,
+      lastmod: primaryBook.updatedAt,
+      changefreq: "monthly",
+      priority: "0.6",
+    };
+  });
 
 // Same visibility rule as BlogIndexPage/BlogPostPage/SearchPage: only
 // published posts are publicly reachable. Sorted newest-first, same as

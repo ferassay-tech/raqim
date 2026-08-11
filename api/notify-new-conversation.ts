@@ -58,12 +58,15 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const escapedCustomerName = escapeHtml(customerName);
+  const escapedCustomerEmail = escapeHtml(customerEmail);
+  const escapedMessage = escapeHtml(message);
   const subject = `رسالة تواصل جديدة من ${customerName} — رقيم`;
-  const escapedMessage = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const html = `
     <p>وصلت رسالة جديدة عبر نموذج التواصل:</p>
-    <p><strong>الاسم:</strong> ${customerName}</p>
-    <p><strong>البريد الإلكتروني:</strong> ${customerEmail}</p>
+    <p><strong>الاسم:</strong> ${escapedCustomerName}</p>
+    <p><strong>البريد الإلكتروني:</strong> ${escapedCustomerEmail}</p>
     <p><strong>الرسالة:</strong></p>
     <p>${escapedMessage}</p>
   `;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { PageShell } from "../components/page-shell";
 import { GoldDivider } from "../components/ornaments";
@@ -10,21 +10,84 @@ import { getStorageAdapter } from "../admin/services/storage";
 import type { LibraryFile } from "../admin/types/library";
 import { useLanguage } from "../context/LanguageContext";
 
+type TokenResolution =
+  | { status: "checking" }
+  | { status: "resolved"; fileIds: string[] }
+  | { status: "invalid" };
+
 export default function DownloadPage() {
   const { token: tokenId } = useParams<{ token: string }>();
   const { resolveToken, recordDownload } = useDownloads();
-  const { getFile } = useLibrary();
+  const { files: libraryFiles, getFile } = useLibrary();
   const { t } = useLanguage();
   const [pendingFileId, setPendingFileId] = useState<string | null>(null);
   const [failedFileId, setFailedFileId] = useState<string | null>(null);
 
-  const token = tokenId ? resolveToken(tokenId) : null;
-  const files = token
-    ? token.fileIds.map((id) => getFile(id)).filter((f): f is LibraryFile => Boolean(f))
-    : [];
+  // Token resolution (resolve_download_token) is a one-time Supabase
+  // round-trip per tokenId — this part genuinely only needs to run once.
+  // It resolves to the token's fileIds only, NOT to real LibraryFile
+  // records: LibraryContext loads its own file list on its own schedule (a
+  // separate Supabase fetch, mounted elsewhere in the tree), so looking
+  // those ids up is deliberately kept OUT of this one-shot effect and done
+  // reactively below instead. Doing the lookup here was the P0-1
+  // regression: a token resolution that raced ahead of a still-loading
+  // library made getFile() return nothing for a file that genuinely
+  // existed, and — because this effect only ever ran once per tokenId —
+  // permanently locked the page into "invalid" with no way to recover once
+  // the library data actually arrived a moment later.
+  const [tokenResolution, setTokenResolution] = useState<TokenResolution>({ status: "checking" });
+
+  useEffect(() => {
+    if (!tokenId) {
+      setTokenResolution({ status: "invalid" });
+      return;
+    }
+    let cancelled = false;
+    setTokenResolution({ status: "checking" });
+    resolveToken(tokenId)
+      .then((resolved) => {
+        if (cancelled) return;
+        setTokenResolution(resolved ? { status: "resolved", fileIds: resolved.fileIds } : { status: "invalid" });
+      })
+      .catch((error) => {
+        console.error("Failed to resolve download token:", error);
+        if (!cancelled) setTokenResolution({ status: "invalid" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tokenId, resolveToken]);
+
+  // Reactive, not one-shot — recomputed on every render (same as the
+  // pre-P0-1 page did for this exact lookup), so a library list that
+  // finishes loading *after* the token already resolved still naturally
+  // produces the right files on the very next render instead of getting
+  // stuck.
+  const files: LibraryFile[] =
+    tokenResolution.status === "resolved"
+      ? tokenResolution.fileIds.map((id) => getFile(id)).filter((f): f is LibraryFile => Boolean(f))
+      : [];
+
+  const status: "checking" | "ready" | "invalid" =
+    tokenResolution.status === "checking"
+      ? "checking"
+      : tokenResolution.status === "invalid"
+        ? "invalid"
+        : files.length > 0
+          ? "ready"
+          : // Token resolved but no matching files yet. LibraryContext starts
+            // with an empty list before its own fetch resolves, which is
+            // indistinguishable from "genuinely no matching files" by
+            // looking at length alone — so treat a still-empty library as
+            // "keep checking" rather than falsely declaring the link dead,
+            // and only fall through to "invalid" once the library has
+            // actually loaded something and the file still isn't in it.
+            libraryFiles.length === 0
+            ? "checking"
+            : "invalid";
 
   const handleDownload = async (file: LibraryFile) => {
-    if (!token) return;
+    if (!tokenId) return;
     setFailedFileId(null);
     setPendingFileId(file.id);
     try {
@@ -43,7 +106,7 @@ export default function DownloadPage() {
       link.download = file.filename;
       link.click();
       URL.revokeObjectURL(objectUrl);
-      recordDownload(token.id);
+      await recordDownload(tokenId);
     } catch {
       setFailedFileId(file.id);
     } finally {
@@ -60,7 +123,12 @@ export default function DownloadPage() {
         noindex
       />
       <section className="flex min-h-[70vh] flex-col items-center justify-center px-6 py-20 text-center lg:px-10">
-        {!token || files.length === 0 ? (
+        {status === "checking" ? (
+          <Reveal className="max-w-md">
+            <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("download.checkingLabel")}</p>
+            <h1 className="mt-4 font-display text-3xl text-ink md:text-4xl">{t("download.checkingTitle")}</h1>
+          </Reveal>
+        ) : status === "invalid" ? (
           <Reveal className="max-w-md">
             <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("download.invalidLabel")}</p>
             <h1 className="mt-4 font-display text-3xl text-ink md:text-4xl">{t("download.invalidTitle")}</h1>
