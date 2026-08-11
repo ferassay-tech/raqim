@@ -3,6 +3,35 @@ import type { TemplateSection, TemplateSectionRaw } from "./section";
 
 export type CommunicationTemplateStatus = "draft" | "published" | "archived";
 
+/**
+ * Visual/system chrome controls for the download-link email — deliberately
+ * separate from `draft` (the 4 admin-editable content Sections). Content
+ * Sections control message copy; this controls the surrounding premium
+ * structure (brand bars, book card, order info, security notice) and the
+ * 3 identity colors used throughout both the chrome and the content rows.
+ * `null` for any template that has no such chrome to configure (every
+ * template type other than the download-link one, for now).
+ */
+export interface DownloadEmailDesignSettings {
+  showBrandHeader: boolean;
+  showBookCard: boolean;
+  showOrderInfo: boolean;
+  showSecurityNotice: boolean;
+  /** The dark chrome footer bar (support email/copyright) — distinct from
+   * the admin's own editable "footer" content Section (the small note
+   * above it, e.g. "رقيم — دار نشر رقمية"). */
+  showBrandFooterBar: boolean;
+  /** Page/card background — currently #fbf6ed. */
+  backgroundColor: string;
+  /** Drives the CTA button and every gold accent (chrome + content) — the
+   * current design already uses one consistent gold everywhere, so one
+   * knob, not separate "button color"/"brand color" settings. */
+  accentColor: string;
+  /** Primary text color and the dark chrome bars' background — currently
+   * #2c2420, already used both ways in the existing design. */
+  inkColor: string;
+}
+
 /** A single message definition — e.g. one Template row per (channel, purpose)
  * pair, such as the existing download-link email, a future WhatsApp order
  * update, or a marketing newsletter. `draft` is the template's actual
@@ -20,6 +49,7 @@ export interface CommunicationTemplate {
   description: string;
   status: CommunicationTemplateStatus;
   draft: TemplateSection[];
+  designSettings: DownloadEmailDesignSettings | null;
   publishedVersionId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -40,6 +70,7 @@ export interface CommunicationTemplateRaw {
   description: string;
   status: CommunicationTemplateStatus;
   draft: TemplateSectionRaw[];
+  designSettings: DownloadEmailDesignSettings | null;
   publishedVersionId: string | null;
   createdAt: string;
   updatedAt: string;

@@ -11,10 +11,12 @@ import { useCommunicationTemplates } from "@/admin/context/CommunicationTemplate
 import type { CommunicationTemplateFormValues } from "@/admin/context/CommunicationTemplatesContext";
 import { useCommunicationCategories } from "@/admin/context/CommunicationCategoriesContext";
 import type { Language } from "@/context/LanguageContext";
+import { DOWNLOAD_EMAIL_TEMPLATE_ID, DEFAULT_DOWNLOAD_EMAIL_DESIGN_SETTINGS } from "@/admin/data/communicationTemplatesData";
 import { listChannels } from "../services/channelRegistry";
 import { TemplateSectionFormModal } from "../components/TemplateSectionFormModal";
 import { TemplatePreviewModal } from "../components/TemplatePreviewModal";
 import type { TemplateSection, TemplateSectionRaw, TemplateSectionType } from "../types/section";
+import type { DownloadEmailDesignSettings } from "../types/template";
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "مسودة" },
@@ -34,11 +36,47 @@ const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
   { value: "en", label: "English" },
 ];
 
+/** The 5 chrome elements the download email's design settings can show/hide
+ * — visual/system chrome, deliberately kept out of the 4 content Sections
+ * above (see DownloadEmailDesignSettings's own doc comment). */
+const DESIGN_VISIBILITY_OPTIONS: { key: keyof Pick<
+  DownloadEmailDesignSettings,
+  "showBrandHeader" | "showBookCard" | "showOrderInfo" | "showSecurityNotice" | "showBrandFooterBar"
+>; label: string }[] = [
+  { key: "showBrandHeader", label: "رأس العلامة التجارية (الشعار)" },
+  { key: "showBookCard", label: "بطاقة الكتاب" },
+  { key: "showOrderInfo", label: "معلومات الطلب" },
+  { key: "showSecurityNotice", label: "إشعار الأمان" },
+  { key: "showBrandFooterBar", label: "تذييل العلامة التجارية (الدعم وحقوق النشر)" },
+];
+
+const DESIGN_COLOR_OPTIONS: { key: keyof Pick<DownloadEmailDesignSettings, "backgroundColor" | "accentColor" | "inkColor">; label: string }[] = [
+  { key: "backgroundColor", label: "لون الخلفية" },
+  { key: "accentColor", label: "اللون الأساسي (الذهبي)" },
+  { key: "inkColor", label: "لون النص" },
+];
+
+/** Shown instead of Arabic text whenever the English tab is selected and a
+ * field's English value hasn't been written yet — silently substituting
+ * Arabic there would make the language switch look broken (exactly the bug
+ * this replaces): the section list/preview would look identical in both
+ * tabs even though they hold genuinely different, independent content. */
+const MISSING_ENGLISH_PLACEHOLDER = "⟨لا يوجد محتوى إنجليزي بعد⟩";
+
+/** Never falls back to Arabic when `language` is "en" — only Arabic itself
+ * is allowed to fall back to "" (its own required-field validation already
+ * guarantees non-empty in practice). */
+function resolveForLanguage(v: { ar: string; en: string }, language: Language): string {
+  const value = v[language];
+  if (value) return value;
+  return language === "ar" ? "" : MISSING_ENGLISH_PLACEHOLDER;
+}
+
 /** One-line preview so a collapsed section card still says something
  * useful without opening it — reads whichever language is currently being
- * edited, falling back to Arabic. */
+ * edited; see resolveForLanguage for why it never falls back to Arabic. */
 function previewFor(section: TemplateSectionRaw, language: Language): string {
-  const resolve = (v: { ar: string; en: string }) => v[language] || v.ar || "";
+  const resolve = (v: { ar: string; en: string }) => resolveForLanguage(v, language);
   switch (section.type) {
     case "header":
       return resolve(section.fields.title) || "بدون عنوان";
@@ -52,7 +90,7 @@ function previewFor(section: TemplateSectionRaw, language: Language): string {
 }
 
 function resolveSectionForPreview(section: TemplateSectionRaw, language: Language): TemplateSection {
-  const resolve = (v: { ar: string; en: string }) => v[language] || v.ar || "";
+  const resolve = (v: { ar: string; en: string }) => resolveForLanguage(v, language);
   switch (section.type) {
     case "header":
       return {
@@ -84,6 +122,7 @@ export default function CommunicationTemplateEditorPage() {
     deleteSection,
     moveSectionUp,
     moveSectionDown,
+    updateDesignSettings,
   } = useCommunicationTemplates();
   const { categories } = useCommunicationCategories();
   const channels = listChannels();
@@ -150,6 +189,18 @@ export default function CommunicationTemplateEditorPage() {
     setSectionModalOpen(true);
   };
 
+  // Only the download-link template has chrome to configure today (see
+  // DownloadEmailDesignSettings's own doc comment) — every other template
+  // has `designSettings: null` and shows no Design section at all.
+  const isDownloadLinkTemplate = template.id === DOWNLOAD_EMAIL_TEMPLATE_ID;
+  const designSettings = template.designSettings ?? DEFAULT_DOWNLOAD_EMAIL_DESIGN_SETTINGS;
+  const setDesignSetting = <K extends keyof DownloadEmailDesignSettings>(
+    key: K,
+    value: DownloadEmailDesignSettings[K]
+  ) => {
+    updateDesignSettings(template.id, { ...designSettings, [key]: value });
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="تعديل القالب" description={template.name} />
@@ -208,6 +259,53 @@ export default function CommunicationTemplateEditorPage() {
           </button>
         </div>
       </div>
+
+      {isDownloadLinkTemplate && (
+        <div className="flex flex-col gap-4 rounded-[10px] border border-beige bg-white/70 p-6">
+          <div>
+            <h2 className="font-display text-lg text-ink">التصميم</h2>
+            <p className="mt-1 text-xs text-ink-faint">
+              تتحكم في الشكل العام للبريد (الإطار البصري) — وليس في نصوصه. النصوص تُدار من قسم «المحتوى» أدناه.
+            </p>
+          </div>
+
+          <div>
+            <span className="mb-2 block text-sm text-ink">العناصر الظاهرة</span>
+            <div className="flex flex-wrap gap-4">
+              {DESIGN_VISIBILITY_OPTIONS.map((option) => (
+                <label key={option.key} className="flex items-center gap-2 text-sm text-ink-soft">
+                  <input
+                    type="checkbox"
+                    checked={designSettings[option.key]}
+                    onChange={(e) => setDesignSetting(option.key, e.target.checked)}
+                    className="h-4 w-4 rounded border-beige accent-gold-deep"
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {DESIGN_COLOR_OPTIONS.map((option) => (
+              <div key={option.key} className="rounded-[10px] border border-beige p-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={designSettings[option.key]}
+                    onChange={(e) => setDesignSetting(option.key, e.target.value)}
+                    className="h-10 w-10 shrink-0 cursor-pointer rounded-md border border-beige bg-transparent p-0"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-ink">{option.label}</p>
+                    <p dir="ltr" className="truncate text-xs text-ink-faint">{designSettings[option.key]}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
@@ -331,6 +429,8 @@ export default function CommunicationTemplateEditorPage() {
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}
         sections={previewSections}
+        templateId={template.id}
+        designSettings={template.designSettings}
       />
 
       <ConfirmDialog

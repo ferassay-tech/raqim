@@ -18,13 +18,32 @@ function escapeHtml(value: string): string {
  * has Tailwind) and inside a raw HTML email (never runs Tailwind, needs
  * real values either way), so a literal copy here is correct in both
  * places rather than a dependency either one would have to resolve. */
-const COLOR = {
+const DEFAULT_COLOR = {
   gold: "#b99451",
   ink: "#2c2420",
   inkSoft: "#5c5147",
   inkFaint: "#8a7d70",
   beigeDashed: "#e3d5b8",
 };
+
+/** Optional overrides for the download-link template's persisted
+ * `accentColor`/`inkColor` design settings — omitted (or any field left
+ * out) falls back to the default above, so the one real production caller
+ * (OrderDownloadsCard.tsx, which never passes this) renders byte-identical
+ * output to before these settings existed. `inkSoft`/`inkFaint`/
+ * `beigeDashed` stay fixed structural tones, not exposed as settings. */
+export interface RenderTemplateColorOverrides {
+  accentColor?: string;
+  inkColor?: string;
+}
+
+function resolveColors(overrides?: RenderTemplateColorOverrides) {
+  return {
+    ...DEFAULT_COLOR,
+    gold: overrides?.accentColor ?? DEFAULT_COLOR.gold,
+    ink: overrides?.inkColor ?? DEFAULT_COLOR.ink,
+  };
+}
 
 /**
  * Restores the premium, table-based "bulletproof email" structure this
@@ -39,17 +58,17 @@ const COLOR = {
  * chrome (brand header/footer bars, the real order-info card) that this
  * admin-editable content alone has no access to.
  */
-function renderSection(section: TemplateSection): string {
+function renderSection(section: TemplateSection, colors: ReturnType<typeof resolveColors>): string {
   switch (section.type) {
     case "header":
       return `
         <tr>
           <td align="center" style="padding:40px 40px 16px;font-family:Tahoma,Arial,sans-serif;">
-            <p style="margin:0 0 10px;color:${COLOR.gold};font-size:12px;letter-spacing:3px;text-transform:uppercase;">جاهز للتحميل</p>
-            <h1 style="margin:0 0 ${section.fields.subtitle ? "10px" : "0"};color:${COLOR.ink};font-size:26px;line-height:1.4;font-weight:700;font-family:Georgia,'Times New Roman',serif;">${escapeHtml(section.fields.title)}</h1>
+            <p style="margin:0 0 10px;color:${colors.gold};font-size:12px;letter-spacing:3px;text-transform:uppercase;">جاهز للتحميل</p>
+            <h1 style="margin:0 0 ${section.fields.subtitle ? "10px" : "0"};color:${colors.ink};font-size:26px;line-height:1.4;font-weight:700;font-family:Georgia,'Times New Roman',serif;">${escapeHtml(section.fields.title)}</h1>
             ${
               section.fields.subtitle
-                ? `<p style="margin:0;font-size:14px;color:${COLOR.inkSoft};">${escapeHtml(section.fields.subtitle)}</p>`
+                ? `<p style="margin:0;font-size:14px;color:${colors.inkSoft};">${escapeHtml(section.fields.subtitle)}</p>`
                 : ""
             }
           </td>
@@ -58,7 +77,7 @@ function renderSection(section: TemplateSection): string {
       return `
         <tr>
           <td style="padding:4px 40px 24px;font-family:Tahoma,Arial,sans-serif;">
-            <p style="margin:0;font-size:15px;line-height:1.9;color:${COLOR.inkSoft};white-space:pre-wrap;">${escapeHtml(
+            <p style="margin:0;font-size:15px;line-height:1.9;color:${colors.inkSoft};white-space:pre-wrap;">${escapeHtml(
               section.fields.richText
             )}</p>
           </td>
@@ -69,8 +88,8 @@ function renderSection(section: TemplateSection): string {
           <td align="center" style="padding:0 40px 28px;">
             <table role="presentation" cellpadding="0" cellspacing="0">
               <tr>
-                <td align="center" style="border-radius:10px;background-color:${COLOR.gold};">
-                  <a href="${escapeHtml(section.fields.url)}" target="_blank" style="display:inline-block;padding:16px 44px;color:${COLOR.ink};font-family:Tahoma,Arial,sans-serif;font-size:15.5px;font-weight:700;text-decoration:none;">${escapeHtml(
+                <td align="center" style="border-radius:10px;background-color:${colors.gold};">
+                  <a href="${escapeHtml(section.fields.url)}" target="_blank" style="display:inline-block;padding:16px 44px;color:${colors.ink};font-family:Tahoma,Arial,sans-serif;font-size:15.5px;font-weight:700;text-decoration:none;">${escapeHtml(
                     section.fields.label
                   )}</a>
                 </td>
@@ -81,8 +100,8 @@ function renderSection(section: TemplateSection): string {
     case "footer":
       return `
         <tr>
-          <td style="padding:16px 40px 8px;border-top:1px dashed ${COLOR.beigeDashed};font-family:Tahoma,Arial,sans-serif;">
-            <p style="margin:0;font-size:12px;line-height:1.9;color:${COLOR.inkFaint};text-align:center;">${escapeHtml(
+          <td style="padding:16px 40px 8px;border-top:1px dashed ${colors.beigeDashed};font-family:Tahoma,Arial,sans-serif;">
+            <p style="margin:0;font-size:12px;line-height:1.9;color:${colors.inkFaint};text-align:center;">${escapeHtml(
               section.fields.text
             )}</p>
           </td>
@@ -90,7 +109,8 @@ function renderSection(section: TemplateSection): string {
   }
 }
 
-export function renderTemplateToHtml(sections: TemplateSection[]): string {
+export function renderTemplateToHtml(sections: TemplateSection[], colorOverrides?: RenderTemplateColorOverrides): string {
   const sorted = [...sections].sort((a, b) => a.order - b.order);
-  return sorted.map(renderSection).join("");
+  const colors = resolveColors(colorOverrides);
+  return sorted.map((s) => renderSection(s, colors)).join("");
 }

@@ -4,11 +4,17 @@ import type {
   CommunicationTemplate,
   CommunicationTemplateRaw,
   CommunicationTemplateStatus,
+  DownloadEmailDesignSettings,
 } from "../modules/communications/types/template";
 import type { CommunicationChannelId } from "../modules/communications/types/channel";
 import type { TemplateSection, TemplateSectionRaw, TemplateSectionType } from "../modules/communications/types/section";
 import type { LocalizedText } from "../types/siteContent";
-import { INITIAL_COMMUNICATION_TEMPLATES } from "../data/communicationTemplatesData";
+import {
+  DOWNLOAD_EMAIL_TEMPLATE_ID,
+  DEFAULT_DOWNLOAD_EMAIL_DESIGN_SETTINGS,
+  DOWNLOAD_EMAIL_ENGLISH_DEFAULTS,
+  INITIAL_COMMUNICATION_TEMPLATES,
+} from "../data/communicationTemplatesData";
 import { usePersistedState } from "../lib/usePersistedState";
 import { useLanguage } from "../../context/LanguageContext";
 import type { Language } from "../../context/LanguageContext";
@@ -43,6 +49,9 @@ interface CommunicationTemplatesContextValue {
   deleteSection: (templateId: string, sectionId: string) => void;
   moveSectionUp: (templateId: string, sectionId: string) => void;
   moveSectionDown: (templateId: string, sectionId: string) => void;
+  /** `null` for any template with no `designSettings` (i.e. every template
+   * other than the download-link one) — nothing calls this for those. */
+  updateDesignSettings: (templateId: string, settings: DownloadEmailDesignSettings) => void;
 }
 
 const CommunicationTemplatesContext = createContext<CommunicationTemplatesContextValue | null>(null);
@@ -113,8 +122,52 @@ function asSectionArray(draft: unknown): TemplateSectionRaw[] {
   return Array.isArray(draft) ? draft : [];
 }
 
+// A record persisted before `designSettings` existed (every template saved
+// during this session's earlier testing, including tpl-download-link
+// itself) would otherwise read as `undefined` forever — real persisted
+// data always wins over the seed default, so without this the Design
+// section would have nothing to show for an existing download-link
+// template. Only the download-link template gets a non-null default here;
+// every other template genuinely has no chrome to configure and stays null,
+// same as a freshly created one via "قالب جديد".
+function migrateDesignSettings(raw: CommunicationTemplateRaw): DownloadEmailDesignSettings | null {
+  if (raw.designSettings) return raw.designSettings;
+  return raw.id === DOWNLOAD_EMAIL_TEMPLATE_ID ? DEFAULT_DOWNLOAD_EMAIL_DESIGN_SETTINGS : null;
+}
+
+// Backfills the known English defaults (see DOWNLOAD_EMAIL_ENGLISH_DEFAULTS)
+// onto an already-persisted tpl-download-link record whose sections predate
+// them — only when that field's `.en` is still genuinely empty, so any
+// English text an admin has actually typed is never overwritten, and only
+// for these exact original section ids (a later-added or re-created section
+// has no entry in the map and passes through untouched). Arabic, `url`,
+// `subtitle`, structure, and order are never touched by this function.
+function backfillDownloadEmailEnglish(section: TemplateSectionRaw): TemplateSectionRaw {
+  const defaults = DOWNLOAD_EMAIL_ENGLISH_DEFAULTS[section.id];
+  if (!defaults) return section;
+  switch (section.type) {
+    case "header":
+      if (section.fields.title.en || !defaults.title) return section;
+      return { ...section, fields: { ...section.fields, title: { ...section.fields.title, en: defaults.title } } };
+    case "body":
+      if (section.fields.richText.en || !defaults.richText) return section;
+      return { ...section, fields: { ...section.fields, richText: { ...section.fields.richText, en: defaults.richText } } };
+    case "button":
+      if (section.fields.label.en || !defaults.label) return section;
+      return { ...section, fields: { ...section.fields, label: { ...section.fields.label, en: defaults.label } } };
+    case "footer":
+      if (section.fields.text.en || !defaults.text) return section;
+      return { ...section, fields: { ...section.fields, text: { ...section.fields.text, en: defaults.text } } };
+  }
+}
+
 function migrateTemplate(raw: CommunicationTemplateRaw): CommunicationTemplateRaw {
-  return { ...raw, draft: asSectionArray(raw.draft).map(migrateSection) };
+  const migratedSections = asSectionArray(raw.draft).map(migrateSection);
+  return {
+    ...raw,
+    draft: raw.id === DOWNLOAD_EMAIL_TEMPLATE_ID ? migratedSections.map(backfillDownloadEmailEnglish) : migratedSections,
+    designSettings: migrateDesignSettings(raw),
+  };
 }
 
 function resolveTemplate(raw: CommunicationTemplateRaw, language: Language): CommunicationTemplate {
@@ -165,6 +218,7 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
         description: values.description,
         status: values.status,
         draft: [],
+        designSettings: null,
         publishedVersionId: null,
         createdAt: now,
         updatedAt: now,
@@ -318,6 +372,15 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
     moveSection,
   ]);
 
+  const updateDesignSettings = useCallback(
+    (templateId: string, settings: DownloadEmailDesignSettings) => {
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === templateId ? { ...t, designSettings: settings, updatedAt: new Date().toISOString() } : t))
+      );
+    },
+    [setTemplates]
+  );
+
   const value = useMemo(
     () => ({
       templates,
@@ -333,6 +396,7 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
       deleteSection,
       moveSectionUp,
       moveSectionDown,
+      updateDesignSettings,
     }),
     [
       templates,
@@ -348,6 +412,7 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
       deleteSection,
       moveSectionUp,
       moveSectionDown,
+      updateDesignSettings,
     ]
   );
 
