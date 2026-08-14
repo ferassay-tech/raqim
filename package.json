@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run generate-sitemap && tsc -b && vite build",
+    "build": "npm run generate-sitemap && tsc -b && vite build && npm run prerender-seo",
     "preview": "vite preview",
     "lint": "eslint .",
-    "generate-sitemap": "node scripts/generate-sitemap.mjs"
+    "generate-sitemap": "node scripts/generate-sitemap.mjs",
+    "prerender-seo": "node scripts/prerender-seo.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",

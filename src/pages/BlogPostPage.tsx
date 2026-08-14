@@ -6,17 +6,38 @@ import { GoldDivider } from "../components/ornaments";
 import { Helmet } from "../components/Helmet";
 import { StructuredData } from "../components/StructuredData";
 import { useArticles } from "../admin/context/ArticlesContext";
+import { useBooks } from "../admin/context/BooksContext";
 import { useSettings } from "../admin/context/SettingsContext";
 import { formatArticleDate, formatReadTime } from "../admin/lib/articleStatus";
 import { buildGraph, articleSchema, breadcrumbSchema, organizationSchema } from "../lib/structuredData";
 import { useAssetDimensions } from "../lib/mediaDimensions";
 import { useLanguage } from "../context/LanguageContext";
-import { DEFAULT_OG_IMAGE } from "../lib/seo";
+import { DEFAULT_OG_IMAGE, resolveArticleSeoTitle, resolveArticleSeoDescription } from "../lib/seo";
 import { BRAND_ASSETS } from "../config/brandAssets";
+
+/** The one author every current article is by — same real, non-fabricated
+ * data BookPage/AuthorPage already use (AdminBook.author/.authorSlug).
+ * Articles have no dedicated author field of their own beyond a plain
+ * name string, so the byline link only applies when that name matches this
+ * known author; a future second author would need a real authorSlug field
+ * on AdminArticle to link correctly, not a hardcoded guess. */
+const KNOWN_AUTHOR_SLUG: Record<string, string> = { "مها نصر": "maha-nasr" };
+
+/** Articles genuinely about the book's own subject get one natural,
+ * contextual link to it — not forced into every article (an article about
+ * a mother's daily legacy, for instance, is only loosely related and gets
+ * no link). Keyed by slug rather than a new admin-editable field: only 2 of
+ * the 3 current articles are directly on-topic, so a full CMS field isn't
+ * justified yet — promote this if more articles need it later. */
+const RELATED_BOOK_BY_SLUG: Record<string, string> = {
+  "sabr-hajar": "kuni-hajar",
+  "kitab-hadiya": "kuni-hajar",
+};
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const { articles } = useArticles();
+  const { getBook } = useBooks();
   const post = articles.find((a) => a.slug === slug && a.status === "published");
   const getDimensions = useAssetDimensions();
   const { settings } = useSettings();
@@ -26,9 +47,12 @@ export default function BlogPostPage() {
 
   const coverDims = getDimensions(post.coverImage);
   const paragraphs = post.content.split(/\n{2,}/).filter((p) => p.trim().length > 0);
+  const authorSlug = KNOWN_AUTHOR_SLUG[post.author];
+  const relatedBookId = RELATED_BOOK_BY_SLUG[post.slug];
+  const relatedBook = relatedBookId ? getBook(relatedBookId) : undefined;
 
   const postJsonLd = buildGraph([
-    articleSchema(post, language),
+    articleSchema(post, language, authorSlug),
     // articleSchema's `publisher` references the sitewide Organization node
     // by `@id` — that node only actually exists in this document's own
     // graph if it's included here too, so every page that uses articleSchema
@@ -49,8 +73,8 @@ export default function BlogPostPage() {
   return (
     <PageShell>
       <Helmet
-        title={post.seoTitle || `${post.title}${t("blog.post.seoTitleSuffix")}`}
-        description={post.seoDescription || post.excerpt}
+        title={resolveArticleSeoTitle(post, t("blog.post.seoTitleSuffix"))}
+        description={resolveArticleSeoDescription(post)}
         path={`/blog/${post.slug}`}
         image={post.coverImage ?? undefined}
         imageWidth={coverDims?.width}
@@ -75,6 +99,18 @@ export default function BlogPostPage() {
             <h1 className="mt-5 text-balance text-center font-display text-4xl leading-tight text-ink md:text-5xl">
               {post.title}
             </h1>
+          </Reveal>
+          <Reveal delay={0.09}>
+            <p className="mt-3 text-center text-sm text-ink-soft">
+              {t("blog.post.byPrefix")}
+              {authorSlug ? (
+                <Link to={localizePath(`/authors/${authorSlug}`)} className="text-gold hover:underline">
+                  {post.author}
+                </Link>
+              ) : (
+                post.author
+              )}
+            </p>
           </Reveal>
           <Reveal delay={0.12}>
             <div className="mt-6 flex justify-center">
@@ -101,6 +137,20 @@ export default function BlogPostPage() {
               </Reveal>
             ))}
           </div>
+
+          {relatedBook && (
+            <Reveal>
+              <p className="mt-14 text-center text-base leading-loose text-ink-soft">
+                {t("blog.post.relatedBookPrefix")}
+                <Link
+                  to={localizePath(`/books/${relatedBook.id}`)}
+                  className="font-medium text-gold hover:underline"
+                >
+                  {relatedBook.title}
+                </Link>
+              </p>
+            </Reveal>
+          )}
 
           <div className="mt-16 border-t border-beige pt-8 text-center space-y-4">
             <Link to={localizePath("/blog")} className="block text-sm text-gold hover:underline">

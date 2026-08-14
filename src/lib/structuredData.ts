@@ -1,9 +1,9 @@
 import type { AdminBook } from "../admin/types/book";
 import type { AdminArticle } from "../admin/types/article";
 import type { Language } from "../context/LanguageContext";
-import { absoluteUrl, SITE_NAME, SITE_URL, withLanguagePrefix } from "./seo";
-import { CONTACT_EMAILS } from "../config/contactEmails";
-import { localizeProperName } from "./properNames";
+import { absoluteUrl, SITE_NAME, SITE_URL, withLanguagePrefix } from "./seo.ts";
+import { CONTACT_EMAILS } from "../config/contactEmails.ts";
+import { localizeProperName } from "./properNames.ts";
 
 /** Combines any number of schema.org node objects into one JSON-LD script's
  * worth of content via `@graph` — one `<script>` tag per page instead of
@@ -202,7 +202,7 @@ export function bookSchema(book: AdminBook, language: Language) {
   };
 }
 
-export function articleSchema(article: AdminArticle, language: Language) {
+export function articleSchema(article: AdminArticle, language: Language, authorSlug?: string) {
   const localizedArticleUrl = absoluteUrl(withLanguagePrefix(`/blog/${article.slug}`, language));
   return {
     "@type": "Article",
@@ -210,7 +210,7 @@ export function articleSchema(article: AdminArticle, language: Language) {
     description: article.excerpt,
     url: localizedArticleUrl,
     inLanguage: language,
-    author: personSchema({ name: article.author, language }),
+    author: personSchema({ name: article.author, slug: authorSlug, language }),
     publisher: { "@id": `${SITE_URL}/#organization` },
     datePublished: article.publishedAt ?? article.updatedAt,
     dateModified: article.updatedAt,

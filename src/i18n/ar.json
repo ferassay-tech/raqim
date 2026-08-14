@@ -194,6 +194,8 @@
   "blog.post.seoTitleSuffix": " — مدونة رقيم",
   "blog.post.backToBlog": "العودة إلى المدونة",
   "blog.post.browseBooks": "تصفح كتب رقيم",
+  "blog.post.byPrefix": "بقلم ",
+  "blog.post.relatedBookPrefix": "استُلهمت هذه المقالة من روح كتاب ",
 
   "checkout.seo.title": "إتمام الشراء — رقيم",
   "checkout.seo.description": "أكملي عملية الشراء واختاري طريقة الدفع المناسبة.",

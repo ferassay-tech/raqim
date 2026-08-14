@@ -12,4 +12,4 @@ Disallow: /en/order-received
 Disallow: /en/download
 Disallow: /en/search
 
-Sitemap: https://r-aqim.com/sitemap.xml
+Sitemap: https://www.r-aqim.com/sitemap.xml

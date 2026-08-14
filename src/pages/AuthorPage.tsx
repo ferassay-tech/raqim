@@ -13,6 +13,7 @@ import { useBooks } from "../admin/context/BooksContext";
 import { isInLibraryGrid } from "../admin/lib/bookPlacement";
 import { useLanguage } from "../context/LanguageContext";
 import { localizeProperName } from "../lib/properNames";
+import { resolveAuthorSeoTitle } from "../lib/seo";
 
 export default function AuthorPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -57,7 +58,7 @@ export default function AuthorPage() {
   return (
     <PageShell>
       <Helmet
-        title={`${displayName}${t("author.seoTitleSuffix")}`}
+        title={resolveAuthorSeoTitle(displayName, t("author.seoTitleSuffix"))}
         description={authorBio}
         path={`/authors/${primaryBook.authorSlug}`}
         noindex={hasFullContent ? undefined : "follow"}

@@ -14,6 +14,7 @@ import { useSettings } from "../admin/context/SettingsContext";
 import { useCategories } from "../admin/context/CategoriesContext";
 import type { AdminBook } from "../admin/types/book";
 import { buildGraph, bookSchema, breadcrumbSchema, faqPageSchema } from "../lib/structuredData";
+import { resolveBookSeoTitle, resolveBookSeoDescription } from "../lib/seo";
 import { useAssetDimensions } from "../lib/mediaDimensions";
 import { useLanguage } from "../context/LanguageContext";
 import { localizeProperName } from "../lib/properNames";
@@ -58,8 +59,8 @@ export default function BookPage() {
             this site (search/checkout/payment/order-received/download/404),
             none of which emit a JSON-LD Book/Product node. */}
         <Helmet
-          title={book.seoTitle || `${book.title} — ${t("home.hero.titleFallback")}`}
-          description={book.seoDescription || book.description}
+          title={resolveBookSeoTitle(book, t("home.hero.titleFallback"))}
+          description={resolveBookSeoDescription(book)}
           image={book.cover ?? undefined}
           imageWidth={coverDims?.width}
           imageHeight={coverDims?.height}

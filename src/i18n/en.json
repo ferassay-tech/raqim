@@ -194,6 +194,8 @@
   "blog.post.seoTitleSuffix": " — Raqim Blog",
   "blog.post.backToBlog": "Back to Blog",
   "blog.post.browseBooks": "Browse Raqim's Books",
+  "blog.post.byPrefix": "By ",
+  "blog.post.relatedBookPrefix": "This article draws on the spirit of ",
 
   "checkout.seo.title": "Checkout — Raqim",
   "checkout.seo.description": "Complete your purchase and choose the payment method that works for you.",

@@ -166,10 +166,17 @@ export const INITIAL_BOOKS: AdminBookRaw[] = [
     badges: [{ ar: "إصدار رقيم الأول", en: "Raqim's First Release" }],
     accentColor: null,
 
-    seoTitle: { ar: "كوني هاجر — رقيم", en: "Be Hajar — Raqim" },
+    // AR title/description already lead with "كوني هاجر" — the book's one
+    // real name in Arabic, matching how every Arabic reader searches for
+    // it — left as-is. EN pairs the book's established English rendering
+    // ("Be Hajar", already used in its author bio and cover copy) with the
+    // Arabic title's transliteration ("Kuni Hajar") — not inventing a new
+    // translation, just naming the same real book both ways so an English
+    // searcher typing either one recognizes it.
+    seoTitle: { ar: "كوني هاجر — رقيم", en: "Be Hajar (Kuni Hajar) by Maha Nasar — Raqim" },
     seoDescription: {
       ar: "كتاب كوني هاجر لمها نصر، دليل الأم المسلمة للثبات والسكينة، إصدار رقيم الأول.",
-      en: "Be Hajar by Maha Nasar — a Muslim mother's guide to steadfastness and inner peace, Raqim's first release.",
+      en: "Be Hajar — known in Arabic as Kuni Hajar — is Maha Nasar's debut book: a Muslim mother's guide to steadfastness and inner peace. Raqim's first release.",
     },
 
     sales: 0,

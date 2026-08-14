@@ -38,19 +38,13 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { INITIAL_BOOKS } from "../src/admin/data/booksData.ts";
-import { INITIAL_ARTICLES } from "../src/admin/data/articlesData.ts";
-import { isInLibraryGrid } from "../src/admin/lib/bookPlacement.ts";
 import { SITE_URL, withLanguagePrefix } from "../src/lib/seo.ts";
+import { getIndexableRoutes, STATIC_LASTMOD } from "./lib/indexableRoutes.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_PATH = resolve(__dirname, "../public/sitemap.xml");
 
-// Static marketing pages have no CMS "last modified" field to derive from —
-// same fixed anchor date the hand-written sitemap already used, kept as a
-// constant so regenerating doesn't manufacture a bogus lastmod bump on
-// content that hasn't actually changed.
-const STATIC_LASTMOD = "2026-07-27";
+const { books, authors, articles, blogIndexLastmod } = getIndexableRoutes();
 
 /** @type {{ path: string; lastmod: string; changefreq: string; priority: string }[]} */
 const staticEntries = [
@@ -67,58 +61,21 @@ const trailingStaticEntries = [
   { path: "/terms", lastmod: STATIC_LASTMOD, changefreq: "yearly", priority: "0.3" },
 ];
 
-// Same visibility rule as BooksIndexPage/HomePage/AuthorPage: soft-deleted
-// and `hidden`-placement books never appear on the public site.
-const visibleBooks = INITIAL_BOOKS.filter((b) => b.deletedAt === null && isInLibraryGrid(b.placement)).sort(
-  (a, b) => a.displayOrder - b.displayOrder
-);
+const bookEntries = books.map((book) => ({
+  path: `/books/${book.id}`,
+  lastmod: book.updatedAt,
+  changefreq: "monthly",
+  priority: "0.8",
+}));
 
-// Same distinction BookPage.tsx itself makes (`hasFullContent`): coming-soon
-// records are placeholder-only (no real title/author/description yet) and
-// BookPage.tsx now marks their route noindex,follow for that reason — a
-// sitemap must never list a noindex URL (Search Console flags this as
-// "Submitted URL marked noindex"), so they're excluded here entirely rather
-// than just deprioritized. visibleBooks itself stays unfiltered — it also
-// feeds authorEntries below, which is unaffected by this phase.
-const bookEntries = visibleBooks
-  .filter((book) => book.placement !== "comingSoon")
-  .map((book) => ({
-    path: `/books/${book.id}`,
-    lastmod: book.updatedAt,
-    changefreq: "monthly",
-    priority: "0.8",
-  }));
+const authorEntries = authors.map(({ slug, primaryBook }) => ({
+  path: `/authors/${slug}`,
+  lastmod: primaryBook.updatedAt,
+  changefreq: "monthly",
+  priority: "0.6",
+}));
 
-// One entry per unique author reachable from a visible book — mirrors
-// AuthorPage's own resolution (every visible book matching a slug, the
-// earliest by displayOrder standing in as the representative record).
-// Same real-content signal AuthorPage.tsx itself now uses (its own
-// `hasFullContent`): an author backed only by coming-soon placeholders
-// (e.g. "raqim", where "author" is really just the publisher's own name
-// reused as a stand-in) has no real bio/identity and is noindex,follow on
-// the page itself — excluded here for the same reason a noindex page must
-// never appear in the sitemap.
-const authorSlugsInOrder = [...new Set(visibleBooks.map((b) => b.authorSlug))];
-const authorEntries = authorSlugsInOrder
-  .filter((slug) => visibleBooks.some((b) => b.authorSlug === slug && b.placement !== "comingSoon"))
-  .map((slug) => {
-    const primaryBook = visibleBooks.find((b) => b.authorSlug === slug);
-    return {
-      path: `/authors/${slug}`,
-      lastmod: primaryBook.updatedAt,
-      changefreq: "monthly",
-      priority: "0.6",
-    };
-  });
-
-// Same visibility rule as BlogIndexPage/BlogPostPage/SearchPage: only
-// published posts are publicly reachable. Sorted newest-first, same as
-// BlogIndexPage's own listing order.
-const publishedArticles = [...INITIAL_ARTICLES]
-  .filter((a) => a.status === "published")
-  .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
-
-const articleEntries = publishedArticles.map((article) => ({
+const articleEntries = articles.map((article) => ({
   path: `/blog/${article.slug}`,
   lastmod: article.updatedAt,
   changefreq: "monthly",
@@ -130,7 +87,7 @@ const articleEntries = publishedArticles.map((article) => ({
 // generic static-page date.
 const blogIndexEntry = {
   path: "/blog",
-  lastmod: publishedArticles[0]?.updatedAt ?? STATIC_LASTMOD,
+  lastmod: blogIndexLastmod,
   changefreq: "weekly",
   priority: "0.7",
 };
