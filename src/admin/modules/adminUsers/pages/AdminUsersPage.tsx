@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/admin/components/ui/PageHeader";
 import { DataTable } from "@/admin/components/ui/DataTable";
 import type { DataTableColumn } from "@/admin/components/ui/DataTable";
@@ -21,6 +21,7 @@ import type {
   AdminInvitation,
   AdminInvitationStatus,
   AdminProfileWithEmail,
+  AssignableAdminRole,
   UserPermissionOverrideRow,
 } from "@/admin/types/adminUser";
 
@@ -74,7 +75,13 @@ export default function AdminUsersPage() {
 
   const [tab, setTab] = useState<string>("users");
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteResult, setInviteResult] = useState<{ email: string; rawToken: string; expiresAt: string } | null>(null);
+  const [inviteResult, setInviteResult] = useState<{
+    email: string;
+    role: AssignableAdminRole;
+    rawToken: string;
+    expiresAt: string;
+    emailStatus: "sending" | "sent" | "failed";
+  } | null>(null);
   const [roleChangeTarget, setRoleChangeTarget] = useState<AdminProfileWithEmail | null>(null);
   const [suspendTarget, setSuspendTarget] = useState<AdminProfileWithEmail | null>(null);
   const [reactivateTarget, setReactivateTarget] = useState<AdminProfileWithEmail | null>(null);
@@ -111,6 +118,34 @@ export default function AdminUsersPage() {
       cancelled = true;
     };
   }, [selectedUserId, getUserPermissionOverrides]);
+
+  // Fires the invitation email independently of the invite-creation call
+  // above so InviteAdminModal can close immediately once the invitation
+  // itself exists — the invitation is already valid in the database at
+  // that point, and email delivery is a best-effort follow-up, never a
+  // reason to roll it back. Guards every state update against a newer
+  // invite having since been created (rawToken match) so a slow response
+  // can't clobber a fresher result the owner is now looking at.
+  const sendInvitationEmail = useCallback(
+    async (email: string, role: AssignableAdminRole, token: string, expiresAt: string) => {
+      try {
+        const response = await fetch("/api/send-admin-invitation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, role, token, expiresAt }),
+        });
+        const body = await response.json().catch(() => ({}) as { error?: string });
+        if (!response.ok) {
+          throw new Error(body?.error || "تعذر إرسال البريد الإلكتروني.");
+        }
+        setInviteResult((prev) => (prev && prev.rawToken === token ? { ...prev, emailStatus: "sent" } : prev));
+      } catch (err) {
+        console.error("Failed to send admin invitation email:", err);
+        setInviteResult((prev) => (prev && prev.rawToken === token ? { ...prev, emailStatus: "failed" } : prev));
+      }
+    },
+    []
+  );
 
   const permissionsByRole = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -453,8 +488,15 @@ export default function AdminUsersPage() {
         onClose={() => setInviteOpen(false)}
         onInvite={async (email, role) => {
           const result = await inviteAdmin(email, role);
-          setInviteResult({ email, rawToken: result.rawToken, expiresAt: result.expiresAt });
+          setInviteResult({
+            email,
+            role,
+            rawToken: result.rawToken,
+            expiresAt: result.expiresAt,
+            emailStatus: "sending",
+          });
           setToast({ variant: "success", message: `تم إنشاء الدعوة لـ${email}.` });
+          void sendInvitationEmail(email, role, result.rawToken, result.expiresAt);
         }}
       />
 
@@ -473,9 +515,44 @@ export default function AdminUsersPage() {
         }
       >
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-ink-soft">
-            لم يُفعَّل الإرسال التلقائي للبريد الإلكتروني بعد لهذه الخطوة — انسخي رمز الدعوة وشاركيه يدويًا مع
-            <span dir="ltr"> {inviteResult?.email}</span> مؤقتًا.
+          {inviteResult?.emailStatus === "sending" && (
+            <p className="text-sm text-ink-soft">
+              جارٍ إرسال بريد الدعوة إلى <span dir="ltr">{inviteResult.email}</span>...
+            </p>
+          )}
+          {inviteResult?.emailStatus === "sent" && (
+            <p className="flex items-center gap-2 text-sm text-success">
+              <IconCheck className="h-4 w-4 shrink-0" />
+              تم إرسال الدعوة بنجاح إلى <span dir="ltr">{inviteResult.email}</span>
+            </p>
+          )}
+          {inviteResult?.emailStatus === "failed" && (
+            <div className="flex flex-col gap-2">
+              <p className="flex items-center gap-2 text-sm text-danger">
+                <IconAlertTriangle className="h-4 w-4 shrink-0" />
+                تم إنشاء الدعوة، لكن تعذر إرسال البريد الإلكتروني. يمكنك إعادة المحاولة.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!inviteResult) return;
+                  setInviteResult({ ...inviteResult, emailStatus: "sending" });
+                  void sendInvitationEmail(
+                    inviteResult.email,
+                    inviteResult.role,
+                    inviteResult.rawToken,
+                    inviteResult.expiresAt
+                  );
+                }}
+                className="self-start rounded-full border border-danger/40 px-4 py-1.5 text-xs text-danger transition-colors hover:bg-danger/10"
+              >
+                إعادة المحاولة
+              </button>
+            </div>
+          )}
+
+          <p className="text-xs text-ink-faint">
+            يمكنك أيضًا مشاركة رابط الدعوة يدويًا كخيار احتياطي إذا لم تصل الرسالة:
           </p>
           {inviteResult && (
             <div className="flex items-center justify-between gap-2 rounded-[10px] bg-cream/60 px-4 py-3">
