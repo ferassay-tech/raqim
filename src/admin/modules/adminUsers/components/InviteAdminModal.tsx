@@ -4,6 +4,7 @@ import { TextField } from "@/admin/components/forms/TextField";
 import { Select } from "@/admin/components/forms/Select";
 import { ASSIGNABLE_ADMIN_ROLES } from "@/admin/types/adminUser";
 import type { AssignableAdminRole } from "@/admin/types/adminUser";
+import { getErrorMessage } from "@/admin/lib/errorMessage";
 
 const ROLE_LABELS: Record<AssignableAdminRole, string> = {
   super_admin: "مدير عام (Super Admin)",
@@ -53,7 +54,7 @@ export function InviteAdminModal({ open, onClose, onInvite }: InviteAdminModalPr
       reset();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر إرسال الدعوة.");
+      setError(getErrorMessage(err, "تعذّر إرسال الدعوة."));
     } finally {
       setIsSubmitting(false);
     }

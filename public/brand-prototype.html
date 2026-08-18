@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
+<title>RAQIM — Brand Typography &amp; Color Prototype (internal research only)</title>
+
+<!-- Google Fonts: every family used below is free/OFL and loaded live for
+     comparison purposes only. Commercial candidates discussed in the
+     written report (29LT Riwaya, Fedra Serif Arabic) are NOT loadable here
+     without a purchased license, so they are represented in Direction A by
+     their closest free stand-ins (clearly labeled) rather than shown live. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=El+Messiri:wght@400;600;700&family=Reem+Kufi:wght@400;700&family=Markazi+Text:wght@400;500;600;700&family=Mada:wght@400;500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Spectral:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --lab-canvas: #EFEDE7;
+    --lab-ink: #1a1a1a;
+    --lab-border: #D8D5CC;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--lab-canvas);
+    color: var(--lab-ink);
+    font-family: Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .intro {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 56px 24px 40px;
+  }
+  .intro .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8a8578;
+  }
+  .intro h1 {
+    font-size: 28px;
+    margin: 10px 0 12px;
+    font-weight: 600;
+  }
+  .intro p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #4a463c;
+    max-width: 640px;
+  }
+
+  /* ---------- Specimen gallery (raw candidates) ---------- */
+  .gallery {
+    max-width: 1040px;
+    margin: 0 auto 64px;
+    padding: 0 24px;
+  }
+  .gallery h2 {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6b675a;
+    border-bottom: 1px solid var(--lab-border);
+    padding-bottom: 10px;
+    margin-bottom: 4px;
+  }
+  .specimen-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--lab-border);
+    border: 1px solid var(--lab-border);
+    margin-top: 16px;
+  }
+  .specimen {
+    background: #FAF9F5;
+    padding: 20px 22px;
+  }
+  .specimen .role {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #a39c88;
+    margin-bottom: 6px;
+  }
+  .specimen .name {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: #6b675a;
+    margin-bottom: 10px;
+  }
+  .specimen .sample-ar {
+    font-size: 26px;
+    line-height: 1.4;
+    direction: rtl;
+  }
+  .specimen .sample-en {
+    font-size: 20px;
+    line-height: 1.4;
+    margin-top: 6px;
+  }
+  .specimen .sample-num {
+    font-size: 22px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Direction sections ---------- */
+  .direction {
+    padding: 72px 24px 88px;
+    background: var(--canvas);
+    color: var(--ink);
+    border-top: 1px solid rgba(0,0,0,0.06);
+  }
+  .direction-inner {
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  .direction-label {
+    font-family: var(--font-numeric);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .direction-name {
+    font-family: var(--font-display-en);
+    font-size: 15px;
+    color: var(--ink);
+    opacity: 0.6;
+    margin-bottom: 40px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 48px;
+    margin-bottom: 48px;
+  }
+  @media (max-width: 760px) {
+    .row { grid-template-columns: 1fr; }
+  }
+
+  .heading-ar {
+    font-family: var(--font-display-ar);
+    font-size: 44px;
+    line-height: 1.25;
+    direction: rtl;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+  .heading-en {
+    font-family: var(--font-display-en);
+    font-style: italic;
+    font-size: 30px;
+    line-height: 1.3;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  .body-ar {
+    font-family: var(--font-reading-ar);
+    font-size: 17px;
+    line-height: 1.9;
+    direction: rtl;
+    color: var(--ink);
+    opacity: 0.86;
+    margin: 0 0 14px;
+  }
+  .body-en {
+    font-family: var(--font-reading-en);
+    font-size: 15.5px;
+    line-height: 1.75;
+    color: var(--ink);
+    opacity: 0.86;
+    margin: 0;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 28px;
+  }
+  .nav-label {
+    font-family: var(--font-numeric);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0.55;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 3px;
+  }
+  .small-meta {
+    font-family: var(--font-reading-en);
+    font-size: 12.5px;
+    color: var(--ink);
+    opacity: 0.5;
+  }
+  .small-meta-ar {
+    font-family: var(--font-reading-ar);
+    font-size: 13px;
+    direction: rtl;
+    color: var(--ink);
+    opacity: 0.5;
+  }
+
+  .stat-block {
+    display: flex;
+    gap: 40px;
+    margin: 36px 0;
+    flex-wrap: wrap;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+  }
+  .stat .number {
+    font-family: var(--font-numeric);
+    font-size: 40px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .stat .label {
+    font-family: var(--font-numeric);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0.5;
+    margin-top: 8px;
+  }
+  .price {
+    font-family: var(--font-numeric);
+    font-size: 26px;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .btn {
+    display: inline-block;
+    font-family: var(--font-reading-en);
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--paper);
+    background: var(--accent);
+    padding: 12px 26px;
+    border-radius: 3px;
+    border: none;
+    cursor: default;
+    margin-top: 18px;
+  }
+  .btn:hover { background: var(--interactive); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 44px 0;
+    color: var(--accent);
+    opacity: 0.7;
+  }
+  .divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--divider);
+  }
+  .divider span { font-size: 13px; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 26px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .panel .book-title {
+    font-family: var(--font-display-ar);
+    font-size: 21px;
+    direction: rtl;
+    color: var(--ink);
+    margin: 0 0 4px;
+  }
+  .panel .book-author {
+    font-family: var(--font-reading-en);
+    font-size: 12.5px;
+    color: var(--ink);
+    opacity: 0.55;
+  }
+  .panel .tag {
+    font-family: var(--font-numeric);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--highlight);
+    padding: 4px 10px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .colophon {
+    margin-top: 56px;
+    padding-top: 44px;
+    border-top: 1px solid var(--divider);
+    text-align: center;
+  }
+  .colophon .book-title-treatment {
+    font-family: var(--font-display-ar);
+    font-size: 56px;
+    direction: rtl;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
+  .colophon .rule {
+    width: 60px;
+    height: 2px;
+    background: var(--accent);
+    margin: 0 auto 14px;
+  }
+  .colophon .sub {
+    font-family: var(--font-numeric);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0.5;
+  }
+
+  footer {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: #6b675a;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <div class="kicker">RAQIM — Internal Research Prototype — Not for production</div>
+    <h1>Brand Typography &amp; Color — Visual Comparison</h1>
+    <p>
+      This page exists only to compare typography and color candidates in the browser
+      before a final choice is made. It is a static file with no connection to the
+      live application, its routes, its Design Tokens, or its Dashboard. Nothing here
+      is final. Scroll to compare the raw font specimens, then the three full palette
+      + typography directions below.
+    </p>
+  </div>
+
+  <!-- ================= RAW SPECIMEN GALLERY ================= -->
+  <div class="gallery">
+    <h2>Display candidates — Arabic</h2>
+    <div class="specimen-grid">
+      <div class="specimen">
+        <div class="role">Display · Arabic</div>
+        <div class="name">Amiri (Google Fonts, OFL, free)</div>
+        <div class="sample-ar" style="font-family:'Amiri',serif;">كوني حَجَر</div>
+      </div>
+      <div class="specimen">
+        <div class="role">Display · Arabic</div>
+        <div class="name">El Messiri (Google Fonts, OFL, free)</div>
+        <div class="sample-ar" style="font-family:'El Messiri',sans-serif; font-weight:600;">كوني حَجَر</div>
+      </div>
+      <div class="specimen">
+        <div class="role">Display · Arabic (accent use only)</div>
+        <div class="name">Reem Kufi (Google Fonts, OFL, free)</div>
+        <div class="sample-ar" style="font-family:'Reem Kufi',sans-serif;">كوني حَجَر</div>
+      </div>
+      <div class="specimen">
+        <div class="role">Display · Arabic (commercial — described, not loaded live)</div>
+        <div class="name">29LT Riwaya (29LT foundry, licensed)</div>
+        <div class="sample-ar" style="font-family:'Amiri',serif; opacity:0.55;">— not embeddable without a purchased license —</div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:40px;">Display candidates — Latin (English)</h2>
+    <div class="specimen-grid">
+      <div class="specimen">
+        <div class="role">Display · Latin</div>
+        <div class="name">Newsreader, italic (Google Fonts, OFL, free)</div>
+        <div class="sample-en" style="font-family:'Newsreader',serif; font-style:italic;">A Legacy That Lasts</div>
+      </div>
+      <div class="specimen">
+        <div class="role">Display · Latin</div>
+        <div class="name">Fraunces (Google Fonts, OFL, free)</div>
+        <div class="sample-en" style="font-family:'Fraunces',serif; font-weight:600;">A Legacy That Lasts</div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:40px;">Reading candidates — Arabic</h2>
+    <div class="specimen-grid">
+      <div class="specimen">
+        <div class="role">Reading · Arabic (commercial — described, not loaded live)</div>
+        <div class="name">Fedra Serif Arabic (TPTQ Arabic / Typotheque, licensed)</div>
+        <div class="sample-ar" style="font-family:'Markazi Text',serif; opacity:0.55;">— not embeddable without a purchased license —</div>
+      </div>
+      <div class="specimen">
+        <div class="role">Reading · Arabic</div>
+        <div class="name">Markazi Text (Google Fonts, OFL, free)</div>
+        <div class="sample-ar" style="font-family:'Markazi Text',serif;">تأمل في معنى الأثر الحقيقي الذي تتركه الأم في أبنائها</div>
+      </div>
+      <div class="specimen">
+        <div class="role">Reading · Arabic</div>
+        <div class="name">Mada (Google Fonts, OFL, free)</div>
+        <div class="sample-ar" style="font-family:'Mada',sans-serif;">تأمل في معنى الأثر الحقيقي الذي تتركه الأم في أبنائها</div>
+      </div>
+      <div class="specimen">
+        <div class="role">Reading · Arabic</div>
+        <div class="name">IBM Plex Sans Arabic (Google Fonts, OFL, free)</div>
+        <div class="sample-ar" style="font-family:'IBM Plex Sans Arabic',sans-serif;">تأمل في معنى الأثر الحقيقي الذي تتركه الأم في أبنائها</div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:40px;">Numeric / data candidates</h2>
+    <div class="specimen-grid">
+      <div class="specimen">
+        <div class="role">Numeric</div>
+        <div class="name">IBM Plex Mono (Google Fonts, OFL, free)</div>
+        <div class="sample-num" style="font-family:'IBM Plex Mono',monospace;">$24.00 · 1,204</div>
+      </div>
+      <div class="specimen">
+        <div class="role">Numeric (tabular oldstyle/lining)</div>
+        <div class="name">Spectral (Google Fonts, OFL, free)</div>
+        <div class="sample-num" style="font-family:'Spectral',serif;">$24.00 · 1,204</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= DIRECTION A — MATBAʿA ================= -->
+  <section class="direction" style="
+      --canvas:#EDEAE2; --paper:#F7F5EF; --surface:#FFFFFF; --ink:#1C1B19;
+      --accent:#1F4C4A; --highlight:#D8CBAE; --interactive:#163836;
+      --border:#DAD5C8; --divider:#E3DFD3;
+      --font-display-ar:'Amiri',serif; --font-display-en:'Newsreader',serif;
+      --font-reading-ar:'Markazi Text',serif; --font-reading-en:'Newsreader',serif;
+      --font-numeric:'Spectral',serif;
+    ">
+    <div class="direction-inner">
+      <div class="direction-label">Direction A</div>
+      <div class="direction-name">Matbaʿa (المطبعة — "The Printing Press") — Ink &amp; Paper, petrol accent</div>
+
+      <div class="row">
+        <div>
+          <h2 class="heading-ar">كوني حَجَر</h2>
+          <h3 class="heading-en">A Legacy That Lasts</h3>
+        </div>
+        <div>
+          <p class="body-ar">تأمل في معنى الأثر الحقيقي الذي تتركه الأم في أبنائها، وكيف يختلف عن مجرد الإنجاز الظاهر.</p>
+          <p class="body-en">A reflection on the real legacy a mother leaves in her children — and how it differs from what simply gets done.</p>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="nav-label">الكتب</span>
+        <span class="nav-label">The Library</span>
+        <span class="small-meta-ar">٦ دقائق قراءة</span>
+        <span class="small-meta">6 min read</span>
+      </div>
+
+      <div class="stat-block">
+        <div class="stat">
+          <div class="number">1,204</div>
+          <div class="label">Copies in print</div>
+        </div>
+        <div class="stat">
+          <div class="price">$24.00</div>
+          <div class="label">Hardcover edition</div>
+        </div>
+      </div>
+
+      <button class="btn">Add to Library</button>
+
+      <div class="divider"><span>❧</span></div>
+
+      <div class="panel">
+        <div>
+          <p class="book-title">كوني حَجَر</p>
+          <p class="book-author">Maha Nasr — Fiction, 2026</p>
+        </div>
+        <span class="tag">New</span>
+      </div>
+
+      <div class="colophon">
+        <div class="book-title-treatment">كوني حَجَر</div>
+        <div class="rule"></div>
+        <div class="sub">Raqim — House of Letters</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DIRECTION B — MUQADDIMA ================= -->
+  <section class="direction" style="
+      --canvas:#F2EEE6; --paper:#FBF9F4; --surface:#FFFFFF; --ink:#211C1F;
+      --accent:#5B3A52; --highlight:#E4C9A6; --interactive:#452D3F;
+      --border:#DDD6C8; --divider:#E7E1D4;
+      --font-display-ar:'El Messiri',sans-serif; --font-display-en:'Fraunces',serif;
+      --font-reading-ar:'Mada',sans-serif; --font-reading-en:'Source Sans 3',sans-serif;
+      --font-numeric:'IBM Plex Mono',monospace;
+    ">
+    <div class="direction-inner">
+      <div class="direction-label">Direction B</div>
+      <div class="direction-name">Muqaddima (المقدّمة — "The Foreword") — Bookcloth &amp; Bone, aubergine accent</div>
+
+      <div class="row">
+        <div>
+          <h2 class="heading-ar" style="font-weight:600;">كوني حَجَر</h2>
+          <h3 class="heading-en">A Legacy That Lasts</h3>
+        </div>
+        <div>
+          <p class="body-ar">تأمل في معنى الأثر الحقيقي الذي تتركه الأم في أبنائها، وكيف يختلف عن مجرد الإنجاز الظاهر.</p>
+          <p class="body-en">A reflection on the real legacy a mother leaves in her children — and how it differs from what simply gets done.</p>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="nav-label">الكتب</span>
+        <span class="nav-label">The Library</span>
+        <span class="small-meta-ar">٦ دقائق قراءة</span>
+        <span class="small-meta">6 min read</span>
+      </div>
+
+      <div class="stat-block">
+        <div class="stat">
+          <div class="number">1,204</div>
+          <div class="label">Copies in print</div>
+        </div>
+        <div class="stat">
+          <div class="price">$24.00</div>
+          <div class="label">Hardcover edition</div>
+        </div>
+      </div>
+
+      <button class="btn">Add to Library</button>
+
+      <div class="divider"><span>·</span></div>
+
+      <div class="panel">
+        <div>
+          <p class="book-title" style="font-weight:600;">كوني حَجَر</p>
+          <p class="book-author">Maha Nasr — Fiction, 2026</p>
+        </div>
+        <span class="tag">New</span>
+      </div>
+
+      <div class="colophon">
+        <div class="book-title-treatment" style="font-weight:600;">كوني حَجَر</div>
+        <div class="rule"></div>
+        <div class="sub">Raqim — House of Letters</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DIRECTION C — HASHIYA ================= -->
+  <section class="direction" style="
+      --canvas:#E9E7E1; --paper:#F5F4EF; --surface:#FFFFFF; --ink:#17181C;
+      --accent:#22344E; --highlight:#CBB98C; --interactive:#182740;
+      --border:#D6D3C9; --divider:#DFDCD2;
+      --font-display-ar:'El Messiri',sans-serif; --font-display-en:'Newsreader',serif;
+      --font-reading-ar:'IBM Plex Sans Arabic',sans-serif; --font-reading-en:'IBM Plex Sans Arabic',sans-serif;
+      --font-numeric:'IBM Plex Mono',monospace;
+    ">
+    <div class="direction-inner">
+      <div class="direction-label">Direction C</div>
+      <div class="direction-name">Hashiya (الحاشية — "The Margin Note") — Slate &amp; Chalk, ink-blue accent</div>
+
+      <div class="row">
+        <div>
+          <h2 class="heading-ar" style="font-weight:400;">كوني حَجَر</h2>
+          <h3 class="heading-en" style="font-style:italic;">A Legacy That Lasts</h3>
+        </div>
+        <div>
+          <p class="body-ar">تأمل في معنى الأثر الحقيقي الذي تتركه الأم في أبنائها، وكيف يختلف عن مجرد الإنجاز الظاهر.</p>
+          <p class="body-en">A reflection on the real legacy a mother leaves in her children — and how it differs from what simply gets done.</p>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span class="nav-label">الكتب</span>
+        <span class="nav-label">The Library</span>
+        <span class="small-meta-ar">٦ دقائق قراءة</span>
+        <span class="small-meta">6 min read</span>
+      </div>
+
+      <div class="stat-block">
+        <div class="stat">
+          <div class="number">1,204</div>
+          <div class="label">Copies in print</div>
+        </div>
+        <div class="stat">
+          <div class="price">$24.00</div>
+          <div class="label">Hardcover edition</div>
+        </div>
+      </div>
+
+      <button class="btn">Add to Library</button>
+
+      <div class="divider"><span>—</span></div>
+
+      <div class="panel">
+        <div>
+          <p class="book-title" style="font-weight:400;">كوني حَجَر</p>
+          <p class="book-author">Maha Nasr — Fiction, 2026</p>
+        </div>
+        <span class="tag">New</span>
+      </div>
+
+      <div class="colophon">
+        <div class="book-title-treatment" style="font-family:'Reem Kufi',sans-serif; font-size:44px;">كوني حَجَر</div>
+        <div class="rule"></div>
+        <div class="sub">Raqim — House of Letters</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    RAQIM — internal brand research prototype. This file is static, self-contained, not linked from
+    any application route, not referenced by the Design Token system, and not committed. Delete it
+    freely once a decision is made. See the accompanying written report for full candidate research,
+    licensing notes, and rejected combinations.
+  </footer>
+
+</body>
+</html>

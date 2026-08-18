@@ -22,6 +22,15 @@
  * src/config/brandAssets.ts, and src/config/contactEmails.ts hold; keep
  * them in sync by hand if the real domain, logo path, or support address
  * ever changes.
+ *
+ * CANONICAL DEFINITION NOTICE: buildEmailDocument() below (the premium
+ * chrome — header/footer bars, book card, order-info table, security
+ * notice) is mirrored, not imported, in src/emails/downloadEmailDocument.ts,
+ * which the admin Template Preview (TemplatePreviewModal.tsx) uses to show
+ * a faithful preview without this file importing from src/. That src/ file
+ * is the canonical copy to edit first — if you change this function's
+ * markup/styles, apply the identical change there by hand, or the preview
+ * will silently drift out of sync with the real sent email.
  */
 const SITE_URL = "https://r-aqim.com";
 const LOGO_PATH = "/Raqim-logo.webp";

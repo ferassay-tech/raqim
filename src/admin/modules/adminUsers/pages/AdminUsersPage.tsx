@@ -13,10 +13,21 @@ import type { ToastState } from "@/admin/components/ui/Toast";
 import { Modal } from "@/admin/components/ui/Modal";
 import { Select } from "@/admin/components/forms/Select";
 import { CopyIconButton } from "@/admin/components/ui/CopyIconButton";
-import { IconUsers, IconPlus, IconCheck, IconClose, IconAlertTriangle } from "@/admin/icons";
+import {
+  IconUsers,
+  IconPlus,
+  IconCheck,
+  IconClose,
+  IconAlertTriangle,
+  IconRefresh,
+  IconPencil,
+  IconTrash,
+} from "@/admin/icons";
 import { useAdminUsers } from "@/admin/context/AdminUsersContext";
 import { InviteAdminModal } from "../components/InviteAdminModal";
 import { ChangeRoleModal } from "../components/ChangeRoleModal";
+import { EditInvitationModal } from "../components/EditInvitationModal";
+import { logAndGetErrorMessage } from "@/admin/lib/errorMessage";
 import type {
   AdminInvitation,
   AdminInvitationStatus,
@@ -67,6 +78,9 @@ export default function AdminUsersPage() {
     inviteAdmin,
     approveInvitation,
     rejectInvitation,
+    revokeInvitation,
+    resendInvitation,
+    editInvitationRole,
     suspendAdmin,
     reactivateAdmin,
     changeAdminRole,
@@ -76,16 +90,22 @@ export default function AdminUsersPage() {
   const [tab, setTab] = useState<string>("users");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteResult, setInviteResult] = useState<{
+    kind: "create" | "resend" | "edit";
     email: string;
     role: AssignableAdminRole;
     rawToken: string;
     expiresAt: string;
-    emailStatus: "sending" | "sent" | "failed";
+    /** "idle" is edit-only: a new invitation exists but no email has been
+     * sent for it yet — the owner must explicitly choose to send it, since
+     * the previously-sent email (if any) may still reference the old role. */
+    emailStatus: "idle" | "sending" | "sent" | "failed";
   } | null>(null);
   const [roleChangeTarget, setRoleChangeTarget] = useState<AdminProfileWithEmail | null>(null);
   const [suspendTarget, setSuspendTarget] = useState<AdminProfileWithEmail | null>(null);
   const [reactivateTarget, setReactivateTarget] = useState<AdminProfileWithEmail | null>(null);
   const [rejectTarget, setRejectTarget] = useState<AdminInvitation | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<AdminInvitation | null>(null);
+  const [editTarget, setEditTarget] = useState<AdminInvitation | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
 
@@ -147,6 +167,37 @@ export default function AdminUsersPage() {
     []
   );
 
+  // Revokes the existing pending invitation and creates a fresh one (new
+  // token, new expiry) in one atomic RPC call, then reuses the exact same
+  // "creating" result modal/email flow inviteAdmin's onInvite already
+  // drives — resending is create_admin_invitation's happy path again, just
+  // for a row that already existed.
+  const handleResendInvitation = useCallback(
+    async (invitation: AdminInvitation) => {
+      setPendingActionId(invitation.id);
+      try {
+        const result = await resendInvitation(invitation.id);
+        setInviteResult({
+          kind: "resend",
+          email: result.email,
+          role: result.role,
+          rawToken: result.rawToken,
+          expiresAt: result.expiresAt,
+          emailStatus: "sending",
+        });
+        void sendInvitationEmail(result.email, result.role, result.rawToken, result.expiresAt);
+      } catch (err) {
+        setToast({
+          variant: "error",
+          message: logAndGetErrorMessage("resend_admin_invitation RPC error:", err, "تعذر إعادة إرسال الدعوة."),
+        });
+      } finally {
+        setPendingActionId(null);
+      }
+    },
+    [resendInvitation, sendInvitationEmail]
+  );
+
   const permissionsByRole = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const row of rolePermissions) {
@@ -166,7 +217,7 @@ export default function AdminUsersPage() {
       await action();
       setToast({ variant: "success", message: successMessage });
     } catch (err) {
-      setToast({ variant: "error", message: err instanceof Error ? err.message : "حدث خطأ غير متوقع." });
+      setToast({ variant: "error", message: logAndGetErrorMessage("Admin action failed:", err, "حدث خطأ غير متوقع.") });
     } finally {
       setPendingActionId(null);
     }
@@ -294,32 +345,74 @@ export default function AdminUsersPage() {
       header: "",
       align: "end",
       render: (i) => {
-        if (!isOwner || i.status !== "accepted") return null;
+        if (!isOwner) return null;
         const busy = pendingActionId === i.id;
-        return (
-          <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                runAction(i.id, () => approveInvitation(i.id), `تمت الموافقة على ${i.email} كـ${ROLE_LABELS[i.role] ?? i.role}.`)
-              }
-              className="inline-flex items-center gap-1 rounded-full border border-gold/50 px-3 py-1.5 text-xs text-gold-deep transition-colors hover:bg-gold/10 disabled:opacity-50"
-            >
-              <IconCheck className="h-3.5 w-3.5" />
-              موافقة
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setRejectTarget(i)}
-              className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs text-danger transition-colors hover:bg-danger/10 disabled:opacity-50"
-            >
-              <IconClose className="h-3.5 w-3.5" />
-              رفض
-            </button>
-          </div>
-        );
+
+        if (i.status === "pending") {
+          return (
+            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => handleResendInvitation(i)}
+                title="إعادة إرسال الدعوة"
+                aria-label="إعادة إرسال الدعوة"
+                className="grid h-8 w-8 place-items-center rounded-full text-ink-faint transition-colors hover:bg-cream hover:text-ink disabled:pointer-events-none disabled:opacity-50"
+              >
+                <IconRefresh className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setEditTarget(i)}
+                title="تعديل الصلاحية"
+                aria-label="تعديل الصلاحية"
+                className="grid h-8 w-8 place-items-center rounded-full text-ink-faint transition-colors hover:bg-cream hover:text-ink disabled:pointer-events-none disabled:opacity-50"
+              >
+                <IconPencil className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setRevokeTarget(i)}
+                title="إلغاء الدعوة"
+                aria-label="إلغاء الدعوة"
+                className="grid h-8 w-8 place-items-center rounded-full text-danger/80 transition-colors hover:bg-danger/10 hover:text-danger disabled:pointer-events-none disabled:opacity-50"
+              >
+                <IconTrash className="h-4 w-4" />
+              </button>
+            </div>
+          );
+        }
+
+        if (i.status === "accepted") {
+          return (
+            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  runAction(i.id, () => approveInvitation(i.id), `تمت الموافقة على ${i.email} كـ${ROLE_LABELS[i.role] ?? i.role}.`)
+                }
+                className="inline-flex items-center gap-1 rounded-full border border-gold/50 px-3 py-1.5 text-xs text-gold-deep transition-colors hover:bg-gold/10 disabled:opacity-50"
+              >
+                <IconCheck className="h-3.5 w-3.5" />
+                موافقة
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setRejectTarget(i)}
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs text-danger transition-colors hover:bg-danger/10 disabled:opacity-50"
+              >
+                <IconClose className="h-3.5 w-3.5" />
+                رفض
+              </button>
+            </div>
+          );
+        }
+
+        return null;
       },
     },
   ];
@@ -489,6 +582,7 @@ export default function AdminUsersPage() {
         onInvite={async (email, role) => {
           const result = await inviteAdmin(email, role);
           setInviteResult({
+            kind: "create",
             email,
             role,
             rawToken: result.rawToken,
@@ -500,10 +594,33 @@ export default function AdminUsersPage() {
         }}
       />
 
+      <EditInvitationModal
+        invitation={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSubmit={async (invitationId, email, newRole) => {
+          const result = await editInvitationRole(invitationId, email, newRole);
+          setInviteResult({
+            kind: "edit",
+            email: result.email,
+            role: result.role,
+            rawToken: result.rawToken,
+            expiresAt: result.expiresAt,
+            emailStatus: "idle",
+          });
+          setToast({ variant: "success", message: `تم تحديث صلاحية دعوة ${email}.` });
+        }}
+      />
+
       <Modal
         open={Boolean(inviteResult)}
         onClose={() => setInviteResult(null)}
-        title="تم إنشاء الدعوة"
+        title={
+          inviteResult?.kind === "resend"
+            ? "تمت إعادة إرسال الدعوة"
+            : inviteResult?.kind === "edit"
+              ? "تم تحديث صلاحية الدعوة"
+              : "تم إنشاء الدعوة"
+        }
         footer={
           <button
             type="button"
@@ -515,6 +632,30 @@ export default function AdminUsersPage() {
         }
       >
         <div className="flex flex-col gap-3">
+          {inviteResult?.emailStatus === "idle" && (
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-ink-soft">
+                تم حفظ الصلاحية الجديدة وإنشاء دعوة جديدة بها لـ<span dir="ltr">{inviteResult.email}</span>. إن كانت
+                رسالة سابقة قد أُرسلت لهذا البريد، فقد تحتوي على الصلاحية القديمة.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!inviteResult) return;
+                  setInviteResult({ ...inviteResult, emailStatus: "sending" });
+                  void sendInvitationEmail(
+                    inviteResult.email,
+                    inviteResult.role,
+                    inviteResult.rawToken,
+                    inviteResult.expiresAt
+                  );
+                }}
+                className="self-start rounded-full bg-ink px-4 py-1.5 text-xs font-medium text-ivory transition-colors hover:bg-gold-deep"
+              >
+                إرسال الدعوة المحدّثة الآن
+              </button>
+            </div>
+          )}
           {inviteResult?.emailStatus === "sending" && (
             <p className="text-sm text-ink-soft">
               جارٍ إرسال بريد الدعوة إلى <span dir="ltr">{inviteResult.email}</span>...
@@ -618,6 +759,20 @@ export default function AdminUsersPage() {
           setRejectTarget(null);
         }}
         onCancel={() => setRejectTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(revokeTarget)}
+        title="إلغاء الدعوة"
+        description={`هل تريدين إلغاء دعوة ${revokeTarget?.email ?? ""}؟ سيتوقف رابط الدعوة الحالي عن العمل، ويمكنك دعوة هذا البريد مجددًا لاحقًا.`}
+        confirmLabel="إلغاء الدعوة"
+        onConfirm={() => {
+          if (revokeTarget) {
+            runAction(revokeTarget.id, () => revokeInvitation(revokeTarget.id), `تم إلغاء دعوة ${revokeTarget.email}.`);
+          }
+          setRevokeTarget(null);
+        }}
+        onCancel={() => setRevokeTarget(null)}
       />
 
       <Toast toast={toast} onDismiss={() => setToast(null)} />

@@ -114,6 +114,30 @@ interface AdminUsersContextValue {
   inviteAdmin: (email: string, role: AssignableAdminRole) => Promise<{ rawToken: string; expiresAt: string }>;
   approveInvitation: (invitationId: string) => Promise<void>;
   rejectInvitation: (invitationId: string, reason?: string) => Promise<void>;
+  /** pending -> revoked. The row is kept (audit trail), never deleted. Once
+   * revoked, create_admin_invitation() no longer sees this email as having
+   * an active invitation, so a fresh one can be created for it. */
+  revokeInvitation: (invitationId: string) => Promise<void>;
+  /** Atomically revokes the given pending invitation and creates a brand
+   * new one (new token, new 7-day expiry, same email/role) — see migration
+   * 20260818160001. Returns exactly what the caller needs to immediately
+   * POST to /api/send-admin-invitation, mirroring inviteAdmin's shape. */
+  resendInvitation: (
+    invitationId: string
+  ) => Promise<{ email: string; role: AssignableAdminRole; rawToken: string; expiresAt: string }>;
+  /** Changes a pending invitation's role. No RPC exists to update a role in
+   * place (and the token/expiry must stay consistent with whatever's in
+   * the sent email anyway), so this composes two already-existing,
+   * already-secured RPCs client-side: revoke_admin_invitation() on the old
+   * row, then create_admin_invitation() with the new role for the same
+   * email — no new migration required. If the second call fails, the old
+   * invitation is left revoked with no replacement; the owner can just
+   * invite the email again from the normal flow. */
+  editInvitationRole: (
+    invitationId: string,
+    email: string,
+    newRole: AssignableAdminRole
+  ) => Promise<{ email: string; role: AssignableAdminRole; rawToken: string; expiresAt: string }>;
   suspendAdmin: (userId: string) => Promise<void>;
   reactivateAdmin: (userId: string) => Promise<void>;
   changeAdminRole: (userId: string, newRole: AssignableAdminRole) => Promise<void>;
@@ -177,7 +201,10 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
     async (email: string, role: AssignableAdminRole) => {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase.rpc("create_admin_invitation", { p_email: email, p_role: role });
-      if (error) throw error;
+      if (error) {
+        console.error("create_admin_invitation RPC error:", error);
+        throw error;
+      }
       const row = (data as { raw_token: string; expires_at: string }[] | null)?.[0];
       if (!row) throw new Error("Invitation was not created.");
       await load();
@@ -205,6 +232,58 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
       });
       if (error) throw error;
       await load();
+    },
+    [load]
+  );
+
+  const revokeInvitation = useCallback(
+    async (invitationId: string) => {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.rpc("revoke_admin_invitation", { p_invitation_id: invitationId });
+      if (error) throw error;
+      await load();
+    },
+    [load]
+  );
+
+  const resendInvitation = useCallback(
+    async (invitationId: string) => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.rpc("resend_admin_invitation", { p_invitation_id: invitationId });
+      if (error) throw error;
+      const row = (
+        data as { raw_token: string; expires_at: string; email: string; role: string }[] | null
+      )?.[0];
+      if (!row) throw new Error("Invitation was not resent.");
+      await load();
+      return {
+        email: row.email,
+        role: row.role as AssignableAdminRole,
+        rawToken: row.raw_token,
+        expiresAt: row.expires_at,
+      };
+    },
+    [load]
+  );
+
+  const editInvitationRole = useCallback(
+    async (invitationId: string, email: string, newRole: AssignableAdminRole) => {
+      const supabase = getSupabaseClient();
+      const { error: revokeError } = await supabase.rpc("revoke_admin_invitation", {
+        p_invitation_id: invitationId,
+      });
+      if (revokeError) throw revokeError;
+
+      const { data, error: createError } = await supabase.rpc("create_admin_invitation", {
+        p_email: email,
+        p_role: newRole,
+      });
+      if (createError) throw createError;
+
+      const row = (data as { raw_token: string; expires_at: string }[] | null)?.[0];
+      if (!row) throw new Error("Invitation was not recreated after the role change.");
+      await load();
+      return { email, role: newRole, rawToken: row.raw_token, expiresAt: row.expires_at };
     },
     [load]
   );
@@ -262,6 +341,9 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
       inviteAdmin,
       approveInvitation,
       rejectInvitation,
+      revokeInvitation,
+      resendInvitation,
+      editInvitationRole,
       suspendAdmin,
       reactivateAdmin,
       changeAdminRole,
@@ -278,6 +360,9 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
       inviteAdmin,
       approveInvitation,
       rejectInvitation,
+      revokeInvitation,
+      resendInvitation,
+      editInvitationRole,
       suspendAdmin,
       reactivateAdmin,
       changeAdminRole,
