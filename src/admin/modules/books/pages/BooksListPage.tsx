@@ -20,6 +20,9 @@ import { BookCoverThumb } from "../components/BookCoverThumb";
 import { BookRowActions } from "../components/BookRowActions";
 import { BookPreviewDrawer } from "../components/BookPreviewDrawer";
 import { IconArchive, IconBook, IconCheck, IconPlus, IconRefresh, IconTrash } from "@/admin/icons";
+import { useHasPermission } from "@/admin/lib/useHasPermission";
+import type { BulkAction } from "@/admin/components/ui/BulkActionBar";
+import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
 
 const STATUS_VARIANT = {
   published: "success",
@@ -45,11 +48,29 @@ const SORT_ACCESSORS: Record<SortKey, (b: AdminBook) => string | number> = {
 };
 
 export default function BooksListPage() {
-  const { books, deleteBooks, deleteBook, duplicateBook, setBooksStatus, restoreBook, restoreBooks, permanentlyDeleteBook } =
-    useBooks();
+  const {
+    books,
+    deleteBooks,
+    deleteBook,
+    duplicateBook,
+    setBooksStatus,
+    restoreBook,
+    restoreBooks,
+    permanentlyDeleteBook,
+    loadError,
+    reload,
+  } = useBooks();
   const { categories, getCategoryMatchName } = useCategories();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const hasPermission = useHasPermission();
+  const canCreate = hasPermission("books.create");
+  // books.edit backs every plain update: edit, archive/unarchive, and moving
+  // a book to/from the trash (deletedAt is a column update, not a DELETE).
+  const canEdit = hasPermission("books.edit");
+  // books.delete only backs the hard, irreversible delete from the trash view.
+  const canDelete = hasPermission("books.delete");
 
   const [flash, setFlash] = useState<string | null>((location.state as { flash?: string } | null)?.flash ?? null);
   const [showTrash, setShowTrash] = useState(false);
@@ -203,22 +224,26 @@ export default function BooksListPage() {
       render: (b) =>
         showTrash ? (
           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => restoreBook(b.id)}
-              aria-label="استعادة"
-              className="grid h-8 w-8 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-cream hover:text-ink"
-            >
-              <IconRefresh className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setPermanentTarget(b)}
-              aria-label="حذف نهائي"
-              className="grid h-8 w-8 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-danger/10 hover:text-danger"
-            >
-              <IconTrash className="h-4 w-4" />
-            </button>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => restoreBook(b.id)}
+                aria-label="استعادة"
+                className="grid h-8 w-8 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-cream hover:text-ink"
+              >
+                <IconRefresh className="h-4 w-4" />
+              </button>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setPermanentTarget(b)}
+                aria-label="حذف نهائي"
+                className="grid h-8 w-8 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-danger/10 hover:text-danger"
+              >
+                <IconTrash className="h-4 w-4" />
+              </button>
+            )}
           </div>
         ) : (
           <BookRowActions
@@ -228,6 +253,9 @@ export default function BooksListPage() {
             onDuplicate={() => duplicateBook(b.id)}
             onArchive={() => setBooksStatus([b.id], b.status === "archived" ? "draft" : "archived")}
             onDelete={() => setDeleteTarget(b)}
+            canEdit={canEdit}
+            canDuplicate={canCreate}
+            canDelete={canEdit}
           />
         ),
     },
@@ -252,7 +280,7 @@ export default function BooksListPage() {
             >
               المحذوفة ({trashCount})
             </button>
-            {!showTrash && (
+            {!showTrash && canCreate && (
               <Link
                 to="/admin/books/new"
                 className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-gold-deep"
@@ -264,6 +292,8 @@ export default function BooksListPage() {
           </div>
         }
       />
+
+      {loadError && <LoadErrorBanner message={loadError} onRetry={reload} />}
 
       <AnimatePresence>
         {flash && (
@@ -310,27 +340,32 @@ export default function BooksListPage() {
         <BulkActionBar
           count={selectedKeys.size}
           onClear={() => setSelectedKeys(new Set())}
-          actions={[
-            {
-              key: "publish",
-              label: "نشر",
-              icon: IconCheck,
-              onClick: () => setBooksStatus([...selectedKeys], "published"),
-            },
-            {
-              key: "archive",
-              label: "أرشفة",
-              icon: IconArchive,
-              onClick: () => setBooksStatus([...selectedKeys], "archived"),
-            },
-            {
-              key: "delete",
-              label: "حذف",
-              icon: IconTrash,
-              tone: "danger",
-              onClick: () => setBulkDeleteOpen(true),
-            },
-          ]}
+          actions={
+            // publish/archive/soft-delete are all plain updates -> books.edit
+            canEdit
+              ? ([
+                  {
+                    key: "publish",
+                    label: "نشر",
+                    icon: IconCheck,
+                    onClick: () => setBooksStatus([...selectedKeys], "published"),
+                  },
+                  {
+                    key: "archive",
+                    label: "أرشفة",
+                    icon: IconArchive,
+                    onClick: () => setBooksStatus([...selectedKeys], "archived"),
+                  },
+                  {
+                    key: "delete",
+                    label: "حذف",
+                    icon: IconTrash,
+                    tone: "danger",
+                    onClick: () => setBulkDeleteOpen(true),
+                  },
+                ] satisfies BulkAction[])
+              : []
+          }
         />
       )}
 
@@ -338,17 +373,21 @@ export default function BooksListPage() {
         <BulkActionBar
           count={selectedKeys.size}
           onClear={() => setSelectedKeys(new Set())}
-          actions={[
-            {
-              key: "restore",
-              label: "استعادة",
-              icon: IconRefresh,
-              onClick: () => {
-                restoreBooks([...selectedKeys]);
-                setSelectedKeys(new Set());
-              },
-            },
-          ]}
+          actions={
+            canEdit
+              ? ([
+                  {
+                    key: "restore",
+                    label: "استعادة",
+                    icon: IconRefresh,
+                    onClick: () => {
+                      restoreBooks([...selectedKeys]);
+                      setSelectedKeys(new Set());
+                    },
+                  },
+                ] satisfies BulkAction[])
+              : []
+          }
         />
       )}
 
@@ -358,7 +397,7 @@ export default function BooksListPage() {
           title={showTrash ? "لا توجد كتب محذوفة" : "لا توجد كتب بعد"}
           description={showTrash ? "الكتب المحذوفة ستظهر هنا." : "ابدئي ببناء كتالوج رقيم بإضافة أول كتاب."}
           action={
-            !showTrash && (
+            !showTrash && canCreate && (
               <Link
                 to="/admin/books/new"
                 className="mt-2 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-gold-deep"

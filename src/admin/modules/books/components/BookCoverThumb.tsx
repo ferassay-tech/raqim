@@ -27,7 +27,7 @@ export function BookCoverThumb({ id, cover, title, className = "" }: BookCoverTh
   if (cover) {
     return (
       <div className={`overflow-hidden rounded-md bg-beige ${className}`}>
-        <img src={cover} alt={title} className="h-full w-full object-cover" />
+        <img src={cover} alt={title} loading="lazy" className="h-full w-full object-cover" />
       </div>
     );
   }

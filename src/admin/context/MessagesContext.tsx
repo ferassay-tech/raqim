@@ -26,6 +26,8 @@ interface MessagesContextValue {
    * (an anonymous visitor never reads it), and rethrows on failure so
    * the caller can show its own error UI. */
   submitConversation: (input: SubmitConversationInput) => Promise<void>;
+  loadError: string | null;
+  reload: () => void;
 }
 
 const MessagesContext = createContext<MessagesContextValue | null>(null);
@@ -45,10 +47,14 @@ const now = () => new Intl.DateTimeFormat("ar", { hour: "numeric", minute: "nume
 export function MessagesProvider({ children }: { children: ReactNode }) {
   const [conversations, setConversations] = useState<AdminConversation[]>(INITIAL_CONVERSATIONS);
   const { isAuthenticated } = useAuth();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const reload = useCallback(() => setReloadToken((t) => t + 1), []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
+    setLoadError(null);
     messagesRepository
       .list()
       .then((rows) => {
@@ -56,12 +62,14 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         setConversations(rows.map(conversationFromSupabaseRow));
       })
       .catch((error) => {
+        if (cancelled) return;
         console.error("Failed to load conversations from Supabase:", error);
+        setLoadError("تعذر تحميل المحادثات من الخادم.");
       });
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, reloadToken]);
 
   const getConversation = useCallback((id: string) => conversations.find((c) => c.id === id), [conversations]);
 
@@ -189,8 +197,18 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ conversations, getConversation, markRead, sendReply, addNote, setStatus, submitConversation }),
-    [conversations, getConversation, markRead, sendReply, addNote, setStatus, submitConversation]
+    () => ({
+      conversations,
+      getConversation,
+      markRead,
+      sendReply,
+      addNote,
+      setStatus,
+      submitConversation,
+      loadError,
+      reload,
+    }),
+    [conversations, getConversation, markRead, sendReply, addNote, setStatus, submitConversation, loadError, reload]
   );
 
   return <MessagesContext.Provider value={value}>{children}</MessagesContext.Provider>;

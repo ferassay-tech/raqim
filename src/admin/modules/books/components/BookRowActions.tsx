@@ -10,6 +10,12 @@ interface BookRowActionsProps {
   onArchive: () => void;
   onDelete: () => void;
   archived: boolean;
+  /** books.edit — covers Edit and Archive/Unarchive (both plain updates). */
+  canEdit: boolean;
+  /** books.create — Duplicate inserts a new row. */
+  canDuplicate: boolean;
+  /** books.edit — moving a book to the trash is a soft update (sets deletedAt), not a hard delete. */
+  canDelete: boolean;
 }
 
 export function BookRowActions({
@@ -19,6 +25,9 @@ export function BookRowActions({
   onArchive,
   onDelete,
   archived,
+  canEdit,
+  canDuplicate,
+  canDelete,
 }: BookRowActionsProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -46,15 +55,21 @@ export function BookRowActions({
       {open && (
         <div className="absolute end-0 z-30 mt-1 w-44 overflow-hidden rounded-2xl border border-beige bg-ivory py-1 shadow-[0_20px_45px_-20px_rgba(44,36,32,0.4)]">
           <MenuItem icon={IconEye} label="معاينة" onClick={run(onPreview)} />
-          <MenuItem icon={IconPencil} label="تعديل" onClick={run(onEdit)} />
-          <MenuItem icon={IconCopy} label="نسخ" onClick={run(onDuplicate)} />
-          <MenuItem
-            icon={IconArchive}
-            label={archived ? "إلغاء الأرشفة" : "أرشفة"}
-            onClick={run(onArchive)}
-          />
-          <div className="my-1 border-t border-beige" />
-          <MenuItem icon={IconTrash} label="حذف" tone="danger" onClick={run(onDelete)} />
+          {canEdit && <MenuItem icon={IconPencil} label="تعديل" onClick={run(onEdit)} />}
+          {canDuplicate && <MenuItem icon={IconCopy} label="نسخ" onClick={run(onDuplicate)} />}
+          {canEdit && (
+            <MenuItem
+              icon={IconArchive}
+              label={archived ? "إلغاء الأرشفة" : "أرشفة"}
+              onClick={run(onArchive)}
+            />
+          )}
+          {canDelete && (
+            <>
+              <div className="my-1 border-t border-beige" />
+              <MenuItem icon={IconTrash} label="حذف" tone="danger" onClick={run(onDelete)} />
+            </>
+          )}
         </div>
       )}
     </div>

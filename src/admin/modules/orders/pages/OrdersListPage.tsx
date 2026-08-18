@@ -14,6 +14,8 @@ import { EmptyState } from "@/admin/components/ui/EmptyState";
 import { StatusBadge } from "@/admin/components/ui/StatusBadge";
 import { BulkActionBar } from "@/admin/components/ui/BulkActionBar";
 import { IconArchive, IconBag, IconCheck } from "@/admin/icons";
+import { useHasPermission } from "@/admin/lib/useHasPermission";
+import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
 
 const PAGE_SIZE = 8;
 
@@ -28,8 +30,12 @@ const SORT_ACCESSORS: Record<SortKey, (o: AdminOrder) => string | number> = {
 };
 
 export default function OrdersListPage() {
-  const { orders, setOrdersStatus } = useOrders();
+  const { orders, setOrdersStatus, loadError, reload } = useOrders();
   const navigate = useNavigate();
+  const hasPermission = useHasPermission();
+  // Order status changes are gated on orders.manage; orders.view (already
+  // required to reach this route) is enough to see every read-only column.
+  const canManage = hasPermission("orders.manage");
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -156,6 +162,8 @@ export default function OrdersListPage() {
         description={`${orders.length.toLocaleString("en-US")} طلبًا إجماليًا`}
       />
 
+      {loadError && <LoadErrorBanner message={loadError} onRetry={reload} />}
+
       <FilterBar>
         <SearchInput
           value={search}
@@ -174,11 +182,15 @@ export default function OrdersListPage() {
       <BulkActionBar
         count={selectedKeys.size}
         onClear={() => setSelectedKeys(new Set())}
-        actions={[
-          { key: "paid", label: "تحديد كمدفوع", icon: IconCheck, onClick: () => bulkStatus("paid") },
-          { key: "refunded", label: "تحديد كمسترجع", icon: IconArchive, onClick: () => bulkStatus("refunded") },
-          { key: "cancelled", label: "إلغاء الطلبات", tone: "danger", onClick: () => bulkStatus("cancelled") },
-        ]}
+        actions={
+          canManage
+            ? [
+                { key: "paid", label: "تحديد كمدفوع", icon: IconCheck, onClick: () => bulkStatus("paid") },
+                { key: "refunded", label: "تحديد كمسترجع", icon: IconArchive, onClick: () => bulkStatus("refunded") },
+                { key: "cancelled", label: "إلغاء الطلبات", tone: "danger", onClick: () => bulkStatus("cancelled") },
+              ]
+            : []
+        }
       />
 
       {isEmptyCatalog ? (

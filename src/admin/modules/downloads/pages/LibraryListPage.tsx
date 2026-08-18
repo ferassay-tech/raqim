@@ -11,9 +11,10 @@ import { EmptyState } from "@/admin/components/ui/EmptyState";
 import { LibraryUploadDropzone } from "../components/LibraryUploadDropzone";
 import { LibraryFileDrawer } from "../components/LibraryFileDrawer";
 import { IconArchive } from "@/admin/icons";
+import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
 
 export default function LibraryListPage() {
-  const { files, uploadFile } = useLibrary();
+  const { files, uploadFile, loadError, reload } = useLibrary();
   const { books } = useBooks();
 
   const [search, setSearch] = useState("");
@@ -87,6 +88,8 @@ export default function LibraryListPage() {
         description={`${files.length.toLocaleString("en-US")} ملفًا قابلًا للتحميل — PDF, EPUB, MOBI, ZIP`}
       />
 
+      {loadError && <LoadErrorBanner message={loadError} onRetry={reload} />}
+
       <LibraryUploadDropzone onFilesSelected={handleUpload} />
       {uploadError && <p className="text-sm text-danger">{uploadError}</p>}
 
@@ -104,6 +107,9 @@ export default function LibraryListPage() {
           rows={filtered}
           rowKey={(f) => f.id}
           onRowClick={(f) => setActiveFileId(f.id)}
+          emptyState={
+            <EmptyState icon={IconArchive} title="لا توجد نتائج" description="جربي تعديل كلمات البحث." />
+          }
         />
       )}
 

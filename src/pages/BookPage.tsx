@@ -29,13 +29,13 @@ export default function BookPage() {
   const { getBook } = useBooks();
   const { faqs: globalFaqs } = useSiteContent();
   const { t, language } = useLanguage();
+  const getDimensions = useAssetDimensions();
   const book = slug ? getBook(slug) : undefined;
 
   if (!book || book.deletedAt !== null) return <NotFoundPage />;
 
   const hasFullContent = book.placement !== "comingSoon";
   const faqItems = book.faq.length > 0 ? book.faq : globalFaqs;
-  const getDimensions = useAssetDimensions();
   const coverDims = getDimensions(book.cover);
 
   const bookJsonLd = buildGraph([

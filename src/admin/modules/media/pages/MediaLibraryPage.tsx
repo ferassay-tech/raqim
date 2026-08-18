@@ -19,11 +19,13 @@ import { findAssetUsage } from "@/admin/lib/findAssetUsage";
 import { useBooks } from "@/admin/context/BooksContext";
 import { useArticles } from "@/admin/context/ArticlesContext";
 import { useSettings } from "@/admin/context/SettingsContext";
+import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
 
 type ViewMode = "grid" | "list";
 
 export default function MediaLibraryPage() {
-  const { assets, folders, addAssets, renameAsset, moveAsset, deleteAsset, createFolder, deleteFolder } = useMedia();
+  const { assets, folders, addAssets, renameAsset, moveAsset, deleteAsset, createFolder, deleteFolder, loadError, reload } =
+    useMedia();
   const { books } = useBooks();
   const { articles } = useArticles();
   const { settings } = useSettings();
@@ -114,6 +116,8 @@ export default function MediaLibraryPage() {
   return (
     <div className="flex flex-col gap-6 py-2">
       <PageHeader title="مكتبة الوسائط" description={`${assets.length.toLocaleString("en-US")} ملفًا`} />
+
+      {loadError && <LoadErrorBanner message={loadError} onRetry={reload} />}
 
       <MediaUploadDropzone onFilesSelected={(files) => addAssets(files, folderFilter === "all" || folderFilter === "none" ? null : folderFilter)} />
 

@@ -23,6 +23,8 @@ interface OrdersContextValue {
   setOrderStatus: (id: string, status: OrderStatus) => void;
   setOrdersStatus: (ids: string[], status: OrderStatus) => void;
   addNote: (id: string, text: string) => void;
+  loadError: string | null;
+  reload: () => void;
 }
 
 const OrdersContext = createContext<OrdersContextValue | null>(null);
@@ -53,10 +55,14 @@ function customerIdFromEmail(email: string): string {
 export function OrdersProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<AdminOrder[]>(INITIAL_ORDERS);
   const { isAuthenticated } = useAuth();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const reload = useCallback(() => setReloadToken((t) => t + 1), []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
+    setLoadError(null);
     ordersRepository
       .list()
       .then((rows) => {
@@ -64,12 +70,14 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         setOrders(rows.map(orderFromSupabaseRow));
       })
       .catch((error) => {
+        if (cancelled) return;
         console.error("Failed to load orders from Supabase:", error);
+        setLoadError("تعذر تحميل الطلبات من الخادم.");
       });
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, reloadToken]);
 
   const getOrder = useCallback((id: string) => orders.find((o) => o.id === id), [orders]);
 
@@ -150,8 +158,8 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ orders, getOrder, createOrder, setOrderStatus, setOrdersStatus, addNote }),
-    [orders, getOrder, createOrder, setOrderStatus, setOrdersStatus, addNote]
+    () => ({ orders, getOrder, createOrder, setOrderStatus, setOrdersStatus, addNote, loadError, reload }),
+    [orders, getOrder, createOrder, setOrderStatus, setOrdersStatus, addNote, loadError, reload]
   );
 
   return <OrdersContext.Provider value={value}>{children}</OrdersContext.Provider>;

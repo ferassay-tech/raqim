@@ -17,6 +17,8 @@ interface LibraryContextValue {
   deleteFile: (id: string) => void;
   attachToBook: (id: string, bookId: string) => void;
   detachFromBook: (id: string) => void;
+  loadError: string | null;
+  reload: () => void;
 }
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -51,9 +53,13 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [files, setFiles] = useState<LibraryFile[]>(INITIAL_LIBRARY_FILES);
   const { settings } = useSettings();
   const activeProvider = settings.storage.activeProvider;
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const reload = useCallback(() => setReloadToken((t) => t + 1), []);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadError(null);
     libraryFilesRepository
       .list()
       .then((rows) => {
@@ -61,12 +67,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         setFiles(rows.map(fileFromSupabaseRow));
       })
       .catch((error) => {
+        if (cancelled) return;
         console.error("Failed to load library files from Supabase:", error);
+        setLoadError("تعذر تحميل ملفات المكتبة من الخادم.");
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken]);
 
   const getFile = useCallback((id: string) => files.find((f) => f.id === id), [files]);
 
@@ -215,8 +223,23 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       deleteFile,
       attachToBook,
       detachFromBook,
+      loadError,
+      reload,
     }),
-    [files, getFile, getFilesForBook, uploadFile, replaceFile, renameFile, setFileVersion, deleteFile, attachToBook, detachFromBook]
+    [
+      files,
+      getFile,
+      getFilesForBook,
+      uploadFile,
+      replaceFile,
+      renameFile,
+      setFileVersion,
+      deleteFile,
+      attachToBook,
+      detachFromBook,
+      loadError,
+      reload,
+    ]
   );
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;

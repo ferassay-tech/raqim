@@ -31,6 +31,8 @@ interface SettingsContextValue {
   updateContact: (values: Partial<ContactSettingsRaw>) => Promise<void>;
   updateStore: (values: Partial<StoreSettings>) => Promise<void>;
   updateStorage: (values: Partial<StorageSettings>) => Promise<void>;
+  loadError: string | null;
+  reload: () => void;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -83,21 +85,27 @@ function migrateLocalizedText(value: unknown, seedValue?: LocalizedText): Locali
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [storedSettings, setStoredSettings] = useState<AdminSettingsRaw>(INITIAL_SETTINGS);
   const { language } = useLanguage();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const reload = useCallback(() => setReloadToken((t) => t + 1), []);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadError(null);
     getSettings()
       .then((data) => {
         if (cancelled) return;
         setStoredSettings(data);
       })
       .catch((error) => {
+        if (cancelled) return;
         console.error("Failed to load settings from Supabase:", error);
+        setLoadError("تعذر تحميل الإعدادات من الخادم.");
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken]);
 
   // Defensive merge against defaults — a record that persisted `settings`
   // before a new section or nested field (e.g. `storage`, or `brand`'s
@@ -234,6 +242,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       updateContact,
       updateStore,
       updateStorage,
+      loadError,
+      reload,
     }),
     [
       settings,
@@ -245,6 +255,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       updateContact,
       updateStore,
       updateStorage,
+      loadError,
+      reload,
     ]
   );
 

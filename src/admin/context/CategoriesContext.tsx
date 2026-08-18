@@ -38,6 +38,8 @@ interface CategoriesContextValue {
   createCategory: (values: Omit<AdminCategoryRaw, "id">) => void;
   updateCategory: (id: string, values: Omit<AdminCategoryRaw, "id">) => void;
   deleteCategory: (id: string) => void;
+  loadError: string | null;
+  reload: () => void;
 }
 
 const CategoriesContext = createContext<CategoriesContextValue | null>(null);
@@ -127,9 +129,13 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
   // localStorage, no alternate backend is consulted).
   const [storedCategories, setStoredCategories] = useState<AdminCategoryRaw[]>(INITIAL_CATEGORIES);
   const { language, t } = useLanguage();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const reload = useCallback(() => setReloadToken((v) => v + 1), []);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadError(null);
     adapter
       .list()
       .then((rows) => {
@@ -138,12 +144,14 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
       .catch((error) => {
         // No fallback mechanism by design (Phase 5.5) — just avoid an
         // unhandled rejection; the placeholder above stays on screen.
+        if (cancelled) return;
         console.error("Failed to load categories from Supabase:", error);
+        setLoadError("تعذر تحميل التصنيفات من الخادم.");
       });
     return () => {
       cancelled = true;
     };
-  }, [adapter]);
+  }, [adapter, reloadToken]);
 
   const rawCategories = useMemo(() => storedCategories.map(migrateCategory), [storedCategories]);
   const categories = useMemo(() => rawCategories.map((c) => resolveCategory(c, language)), [rawCategories, language]);
@@ -205,8 +213,20 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
       createCategory,
       updateCategory,
       deleteCategory,
+      loadError,
+      reload,
     }),
-    [categories, rawCategories, getCategoryMatchName, getCategoryLabel, createCategory, updateCategory, deleteCategory]
+    [
+      categories,
+      rawCategories,
+      getCategoryMatchName,
+      getCategoryLabel,
+      createCategory,
+      updateCategory,
+      deleteCategory,
+      loadError,
+      reload,
+    ]
   );
 
   return <CategoriesContext.Provider value={value}>{children}</CategoriesContext.Provider>;

@@ -10,6 +10,7 @@ import {
   mediaAssetsRepository,
   mediaFoldersRepository,
 } from "./mediaRepository.ts";
+import { useAuth } from "./AuthContext";
 
 interface MediaContextValue {
   assets: AdminMediaAsset[];
@@ -20,6 +21,8 @@ interface MediaContextValue {
   deleteAsset: (id: string) => void;
   createFolder: (name: string) => void;
   deleteFolder: (id: string) => void;
+  loadError: string | null;
+  reload: () => void;
 }
 
 const MediaContext = createContext<MediaContextValue | null>(null);
@@ -54,9 +57,20 @@ function slugify(name: string) {
 export function MediaProvider({ children }: { children: ReactNode }) {
   const [assets, setAssets] = useState<AdminMediaAsset[]>(INITIAL_MEDIA_ASSETS);
   const [folders, setFolders] = useState<AdminMediaFolder[]>(INITIAL_MEDIA_FOLDERS);
+  const { isAuthenticated } = useAuth();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const reload = useCallback(() => setReloadToken((t) => t + 1), []);
 
+  // Every useMedia() call site is an admin-only component (media picker
+  // modals, the media library page) — no public page reads this context.
+  // Gating the fetch the same way Orders/Messages already do means an
+  // anonymous storefront visit no longer pulls media_assets/media_folders
+  // it will never use.
   useEffect(() => {
+    if (!isAuthenticated) return;
     let cancelled = false;
+    setLoadError(null);
     Promise.all([mediaFoldersRepository.list(), mediaAssetsRepository.list()])
       .then(([folderRows, assetRows]) => {
         if (cancelled) return;
@@ -64,12 +78,14 @@ export function MediaProvider({ children }: { children: ReactNode }) {
         setAssets(assetRows.map(assetFromSupabaseRow));
       })
       .catch((error) => {
+        if (cancelled) return;
         console.error("Failed to load media from Supabase:", error);
+        setLoadError("تعذر تحميل الوسائط من الخادم.");
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthenticated, reloadToken]);
 
   const addAssets = useCallback((files: File[], folderId: string | null) => {
     const newAssets: AdminMediaAsset[] = files
@@ -170,8 +186,19 @@ export function MediaProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ assets, folders, addAssets, renameAsset, moveAsset, deleteAsset, createFolder, deleteFolder }),
-    [assets, folders, addAssets, renameAsset, moveAsset, deleteAsset, createFolder, deleteFolder]
+    () => ({
+      assets,
+      folders,
+      addAssets,
+      renameAsset,
+      moveAsset,
+      deleteAsset,
+      createFolder,
+      deleteFolder,
+      loadError,
+      reload,
+    }),
+    [assets, folders, addAssets, renameAsset, moveAsset, deleteAsset, createFolder, deleteFolder, loadError, reload]
   );
 
   return <MediaContext.Provider value={value}>{children}</MediaContext.Provider>;

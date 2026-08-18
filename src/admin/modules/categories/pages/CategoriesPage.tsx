@@ -9,14 +9,23 @@ import { EmptyState } from "@/admin/components/ui/EmptyState";
 import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
 import { CategoryFormModal } from "../components/CategoryFormModal";
 import { IconPencil, IconPlus, IconTag, IconTrash } from "@/admin/icons";
+import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
 
 interface CategoryRow extends AdminCategory {
   bookCount: number;
 }
 
 export default function CategoriesPage() {
-  const { categories, rawCategories, getCategoryMatchName, createCategory, updateCategory, deleteCategory } =
-    useCategories();
+  const {
+    categories,
+    rawCategories,
+    getCategoryMatchName,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    loadError,
+    reload,
+  } = useCategories();
   const { books } = useBooks();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -106,6 +115,8 @@ export default function CategoriesPage() {
           </button>
         }
       />
+
+      {loadError && <LoadErrorBanner message={loadError} onRetry={reload} />}
 
       {rows.length === 0 ? (
         <EmptyState

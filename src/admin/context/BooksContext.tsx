@@ -26,6 +26,10 @@ interface BooksContextValue {
   permanentlyDeleteBook: (id: string) => void;
   duplicateBook: (id: string) => void;
   setBooksStatus: (ids: string[], status: BookStatus) => void;
+  /** Set when the initial Supabase fetch fails; null once it succeeds. */
+  loadError: string | null;
+  /** Re-runs the initial fetch — the retry action behind loadError's banner. */
+  reload: () => void;
 }
 
 const BooksContext = createContext<BooksContextValue | null>(null);
@@ -156,9 +160,13 @@ export function BooksProvider({ children }: { children: ReactNode }) {
   // re-deriving it.
   const rowsById = useRef<Map<string, ReturnType<typeof toSupabaseRow>>>(new Map());
   const { language } = useLanguage();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const reload = useCallback(() => setReloadToken((t) => t + 1), []);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadError(null);
     booksRepository
       .list()
       .then((rows) => {
@@ -167,12 +175,14 @@ export function BooksProvider({ children }: { children: ReactNode }) {
         setStoredBooks(rows.map(fromSupabaseRow));
       })
       .catch((error) => {
+        if (cancelled) return;
         console.error("Failed to load books from Supabase:", error);
+        setLoadError("تعذر تحميل الكتب من الخادم.");
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken]);
 
   const rawBooks = useMemo(() => storedBooks.map(migrateBook), [storedBooks]);
   const books = useMemo(() => rawBooks.map((b) => resolveBook(b, language)), [rawBooks, language]);
@@ -301,6 +311,8 @@ export function BooksProvider({ children }: { children: ReactNode }) {
       permanentlyDeleteBook,
       duplicateBook,
       setBooksStatus,
+      loadError,
+      reload,
     }),
     [
       books,
@@ -315,6 +327,8 @@ export function BooksProvider({ children }: { children: ReactNode }) {
       permanentlyDeleteBook,
       duplicateBook,
       setBooksStatus,
+      loadError,
+      reload,
     ]
   );
 

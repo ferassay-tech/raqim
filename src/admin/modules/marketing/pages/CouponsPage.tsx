@@ -12,9 +12,10 @@ import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
 import { CopyIconButton } from "@/admin/components/ui/CopyIconButton";
 import { CouponFormModal } from "../components/CouponFormModal";
 import { IconPencil, IconPlus, IconTicket, IconTrash } from "@/admin/icons";
+import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
 
 export default function CouponsPage() {
-  const { coupons, createCoupon, updateCoupon, deleteCoupon } = useCoupons();
+  const { coupons, createCoupon, updateCoupon, deleteCoupon, loadError, reload } = useCoupons();
 
   const [statusFilter, setStatusFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
@@ -126,6 +127,8 @@ export default function CouponsPage() {
           </button>
         }
       />
+
+      {loadError && <LoadErrorBanner message={loadError} onRetry={reload} />}
 
       {coupons.length > 0 && (
         <FilterBar>

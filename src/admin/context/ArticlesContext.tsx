@@ -21,6 +21,8 @@ interface ArticlesContextValue {
   deleteArticles: (ids: string[]) => void;
   duplicateArticle: (id: string) => void;
   setArticlesStatus: (ids: string[], status: ArticleStatus) => void;
+  loadError: string | null;
+  reload: () => void;
 }
 
 const ArticlesContext = createContext<ArticlesContextValue | null>(null);
@@ -100,9 +102,13 @@ function slugify(title: string) {
 export function ArticlesProvider({ children }: { children: ReactNode }) {
   const [storedArticles, setStoredArticles] = useState<AdminArticleRaw[]>(INITIAL_ARTICLES);
   const { language } = useLanguage();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const reload = useCallback(() => setReloadToken((t) => t + 1), []);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadError(null);
     articlesRepository
       .list()
       .then((rows) => {
@@ -110,12 +116,14 @@ export function ArticlesProvider({ children }: { children: ReactNode }) {
         setStoredArticles(rows.map(articleFromSupabaseRow));
       })
       .catch((error) => {
+        if (cancelled) return;
         console.error("Failed to load articles from Supabase:", error);
+        setLoadError("تعذر تحميل المقالات من الخادم.");
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken]);
 
   const rawArticles = useMemo(() => storedArticles.map(migrateArticle), [storedArticles]);
   const articles = useMemo(() => rawArticles.map((a) => resolveArticle(a, language)), [rawArticles, language]);
@@ -258,6 +266,8 @@ export function ArticlesProvider({ children }: { children: ReactNode }) {
       deleteArticles,
       duplicateArticle,
       setArticlesStatus,
+      loadError,
+      reload,
     }),
     [
       articles,
@@ -269,6 +279,8 @@ export function ArticlesProvider({ children }: { children: ReactNode }) {
       deleteArticles,
       duplicateArticle,
       setArticlesStatus,
+      loadError,
+      reload,
     ]
   );
 

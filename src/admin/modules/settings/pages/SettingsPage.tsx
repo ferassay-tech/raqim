@@ -11,6 +11,8 @@ import { ContactSection } from "../components/ContactSection";
 import { StoreSection } from "../components/StoreSection";
 import { StorageSection } from "../components/StorageSection";
 import { IconAlertTriangle, IconCheck } from "@/admin/icons";
+import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
+import { useSettings } from "@/admin/context/SettingsContext";
 
 const TABS = [
   { key: "general", label: "عام" },
@@ -29,6 +31,7 @@ export default function SettingsPage() {
   const activeSection = VALID_SECTIONS.has(section) ? section : "general";
   const navigate = useNavigate();
   const [flash, setFlash] = useState<{ message: string; variant: "success" | "error" } | null>(null);
+  const { loadError, reload } = useSettings();
 
   const handleSaved = (message: string) => {
     setFlash({ message, variant: "success" });
@@ -45,6 +48,8 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6 py-2">
       <PageHeader title="الإعدادات" description="إدارة الإعدادات العامة للموقع والمتجر." />
+
+      {loadError && <LoadErrorBanner message={loadError} onRetry={reload} />}
 
       <AnimatePresence>
         {flash && (

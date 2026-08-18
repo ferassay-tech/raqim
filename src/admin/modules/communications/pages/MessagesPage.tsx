@@ -9,14 +9,22 @@ import { MessageBubble } from "../components/MessageBubble";
 import { ReplyComposer } from "../components/ReplyComposer";
 import { ConversationCustomerPanel } from "../components/ConversationCustomerPanel";
 import { IconChevronStart, IconMail } from "@/admin/icons";
+import { useHasPermission } from "@/admin/lib/useHasPermission";
+import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
 
 const CONVERSATION_STATUS_LABEL = { open: "مفتوحة", closed: "مغلقة" } as const;
 
 export default function MessagesPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { conversations, markRead, sendReply, addNote, setStatus } = useMessages();
+  const { conversations, markRead, sendReply, addNote, setStatus, loadError, reload } = useMessages();
   const [search, setSearch] = useState("");
+  const hasPermission = useHasPermission();
+  // conversations_update_editor_or_owner (which backs markRead/sendReply/
+  // addNote/setStatus alike — they're all plain updates on the same row)
+  // now requires messages.reply; messages.view (already required to reach
+  // this route) only ever covers reads.
+  const canReply = hasPermission("messages.reply");
 
   const filtered = useMemo(() => {
     if (!search.trim()) return conversations;
@@ -31,9 +39,11 @@ export default function MessagesPage() {
   const active = id ? conversations.find((c) => c.id === id) : undefined;
 
   useEffect(() => {
-    if (active?.unread) markRead(active.id);
+    // Skip the call entirely without messages.reply — it would only fail
+    // against the same update policy sendReply/setStatus rely on.
+    if (active?.unread && canReply) markRead(active.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active?.id]);
+  }, [active?.id, canReply]);
 
   const unreadCount = conversations.filter((c) => c.unread).length;
 
@@ -43,6 +53,8 @@ export default function MessagesPage() {
         title="الرسائل"
         description={unreadCount > 0 ? `${unreadCount} محادثة غير مقروءة` : "لا توجد رسائل غير مقروءة"}
       />
+
+      {loadError && <LoadErrorBanner message={loadError} onRetry={reload} />}
 
       <div className="flex h-[70vh] min-h-[520px] overflow-hidden rounded-[10px] border border-beige bg-white/70 backdrop-blur">
         <div className={`${id ? "hidden sm:flex" : "flex"} w-full shrink-0 flex-col border-e border-beige sm:w-80`}>
@@ -92,13 +104,19 @@ export default function MessagesPage() {
                     </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setStatus(active.id, active.status === "open" ? "closed" : "open")}
-                  className="shrink-0 rounded-full border border-beige px-3.5 py-1.5 text-xs text-ink-soft transition-colors hover:border-gold hover:text-ink"
-                >
-                  {active.status === "open" ? "إغلاق المحادثة" : "إعادة فتح"} · {CONVERSATION_STATUS_LABEL[active.status]}
-                </button>
+                {canReply ? (
+                  <button
+                    type="button"
+                    onClick={() => setStatus(active.id, active.status === "open" ? "closed" : "open")}
+                    className="shrink-0 rounded-full border border-beige px-3.5 py-1.5 text-xs text-ink-soft transition-colors hover:border-gold hover:text-ink"
+                  >
+                    {active.status === "open" ? "إغلاق المحادثة" : "إعادة فتح"} · {CONVERSATION_STATUS_LABEL[active.status]}
+                  </button>
+                ) : (
+                  <span className="shrink-0 rounded-full border border-beige px-3.5 py-1.5 text-xs text-ink-faint">
+                    {CONVERSATION_STATUS_LABEL[active.status]}
+                  </span>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto p-4">
@@ -109,10 +127,12 @@ export default function MessagesPage() {
                 </div>
               </div>
 
-              <ReplyComposer
-                onSendReply={(body) => sendReply(active.id, body)}
-                onAddNote={(body) => addNote(active.id, body)}
-              />
+              {canReply && (
+                <ReplyComposer
+                  onSendReply={(body) => sendReply(active.id, body)}
+                  onAddNote={(body) => addNote(active.id, body)}
+                />
+              )}
             </>
           ) : (
             <div className="flex flex-1 items-center justify-center">

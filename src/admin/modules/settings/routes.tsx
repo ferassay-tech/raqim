@@ -1,9 +1,13 @@
+import { lazy, Suspense } from "react";
 import { Route } from "react-router-dom";
 import SettingsPage from "./pages/SettingsPage";
 import SiteContentPage from "./pages/SiteContentPage";
 import ProfilePage from "./pages/ProfilePage";
-import BrandStudioPage from "./pages/BrandStudioPage";
 import { RequirePermission } from "@/admin/components/ui/RequirePermission";
+
+// Brand Studio is a large, single-purpose typography/branding editor opened
+// far less often than the everyday Settings tabs — worth its own chunk.
+const BrandStudioPage = lazy(() => import("./pages/BrandStudioPage"));
 
 // profile is deliberately NOT wrapped in RequirePermission — it's the
 // self-service "manage my own account" page every authenticated admin must
@@ -40,7 +44,9 @@ export const settingsRoutes = (
       path="brand-studio"
       element={
         <RequirePermission permission="settings.manage">
-          <BrandStudioPage />
+          <Suspense fallback={null}>
+            <BrandStudioPage />
+          </Suspense>
         </RequirePermission>
       }
     />

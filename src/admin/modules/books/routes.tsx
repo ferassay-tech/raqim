@@ -1,8 +1,13 @@
+import { lazy, Suspense } from "react";
 import { Route } from "react-router-dom";
 import BooksListPage from "./pages/BooksListPage";
-import BookNewPage from "./pages/BookNewPage";
-import BookEditPage from "./pages/BookEditPage";
 import { RequirePermission } from "@/admin/components/ui/RequirePermission";
+
+// BookForm (the heavy shared editor both of these render) is only ever
+// needed once someone opens the create/edit screen — the list page (the
+// common landing view for this module) stays eagerly imported.
+const BookNewPage = lazy(() => import("./pages/BookNewPage"));
+const BookEditPage = lazy(() => import("./pages/BookEditPage"));
 
 export const booksRoutes = (
   <>
@@ -18,7 +23,9 @@ export const booksRoutes = (
       path="books/new"
       element={
         <RequirePermission permission="books.create">
-          <BookNewPage />
+          <Suspense fallback={null}>
+            <BookNewPage />
+          </Suspense>
         </RequirePermission>
       }
     />
@@ -26,7 +33,9 @@ export const booksRoutes = (
       path="books/edit/:id"
       element={
         <RequirePermission permission="books.edit">
-          <BookEditPage />
+          <Suspense fallback={null}>
+            <BookEditPage />
+          </Suspense>
         </RequirePermission>
       }
     />

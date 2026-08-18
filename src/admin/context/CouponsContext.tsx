@@ -9,6 +9,8 @@ interface CouponsContextValue {
   createCoupon: (values: Omit<AdminCoupon, "id" | "usageCount">) => void;
   updateCoupon: (id: string, values: Omit<AdminCoupon, "id" | "usageCount">) => void;
   deleteCoupon: (id: string) => void;
+  loadError: string | null;
+  reload: () => void;
 }
 
 const CouponsContext = createContext<CouponsContextValue | null>(null);
@@ -21,9 +23,13 @@ const CouponsContext = createContext<CouponsContextValue | null>(null);
  */
 export function CouponsProvider({ children }: { children: ReactNode }) {
   const [coupons, setCoupons] = useState<AdminCoupon[]>(INITIAL_COUPONS);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const reload = useCallback(() => setReloadToken((t) => t + 1), []);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadError(null);
     couponsRepository
       .list()
       .then((rows) => {
@@ -31,12 +37,14 @@ export function CouponsProvider({ children }: { children: ReactNode }) {
         setCoupons(rows.map(couponFromSupabaseRow));
       })
       .catch((error) => {
+        if (cancelled) return;
         console.error("Failed to load coupons from Supabase:", error);
+        setLoadError("تعذر تحميل أكواد الخصم من الخادم.");
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken]);
 
   const createCoupon = useCallback((values: Omit<AdminCoupon, "id" | "usageCount">) => {
     const coupon: AdminCoupon = { ...values, id: `cp-${Date.now()}`, usageCount: 0 };
@@ -83,8 +91,8 @@ export function CouponsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ coupons, createCoupon, updateCoupon, deleteCoupon }),
-    [coupons, createCoupon, updateCoupon, deleteCoupon]
+    () => ({ coupons, createCoupon, updateCoupon, deleteCoupon, loadError, reload }),
+    [coupons, createCoupon, updateCoupon, deleteCoupon, loadError, reload]
   );
 
   return <CouponsContext.Provider value={value}>{children}</CouponsContext.Provider>;

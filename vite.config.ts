@@ -14,5 +14,20 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Pure bundling-boundary change — no app code affected. Splits
+        // rarely-changing vendor code (loaded on every route, public and
+        // admin alike) into its own cacheable chunk instead of bundling it
+        // into the same file as application code that changes every deploy.
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-motion": ["motion", "framer-motion"],
+          "vendor-supabase": ["@supabase/supabase-js"],
+        },
+      },
+    },
+  },
 });
 

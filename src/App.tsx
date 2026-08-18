@@ -40,6 +40,7 @@ export default function App() {
     <AdminProviders>
     <CheckoutProvider>
     <ScrollToTop />
+    <ErrorBoundary variant="public">
 
     <Routes>
         <Route path="/" element={<HomePage />} />
@@ -96,6 +97,7 @@ export default function App() {
         />
         <Route path="*" element={<NotFoundPage />} />
      </Routes>
+     </ErrorBoundary>
   </CheckoutProvider>
   </AdminProviders>
   </LanguageProvider>
