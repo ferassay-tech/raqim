@@ -228,6 +228,9 @@
   "payment.afterCouponPrefix": " (بعد كود ",
   "payment.afterCouponSuffix": ")",
   "payment.completedButton": "لقد أتممت الدفع",
+  "payment.attachmentUploadFailed": "تم إنشاء طلبك بنجاح، لكن تعذّر رفع الملف المرفق. يمكنك إعادة المحاولة أو المتابعة بدون إرفاقه.",
+  "payment.attachmentRetry": "إعادة محاولة الرفع",
+  "payment.attachmentSkip": "المتابعة بدون إرفاق الملف",
   "payment.currency.egp": "جنيه مصري",
   "payment.currency.ils": "شيكل",
 
@@ -247,6 +250,8 @@
   "confirmationForm.transactionId": "رقم العملية (اختياري)",
   "confirmationForm.uploadReceipt": "رفع إيصال الدفع",
   "confirmationForm.attachedFilePrefix": "الملف المرفق: ",
+  "confirmationForm.fileTypeError": "نوع الملف غير مدعوم. الأنواع المسموحة: JPG, PNG, WEBP, PDF.",
+  "confirmationForm.fileSizeError": "حجم الملف كبير جدًا. الحد الأقصى 10 ميجابايت.",
   "confirmationForm.notes": "ملاحظات",
   "confirmationForm.submit": "إرسال بيانات الدفع",
 
@@ -255,6 +260,7 @@
   "orderReceived.thankYou": "شكرًا لك على شراءك",
   "orderReceived.body": "تم استلام طلب الدفع الخاص بك بنجاح. سنقوم بمراجعة الدفع وإرسال رابط التحميل إلى بريدك الإلكتروني في أقرب وقت ممكن.",
   "orderReceived.orderIdPrefix": "رقم الطلب: ",
+  "orderReceived.attachmentFailedNotice": "لم نتمكن من حفظ الملف الذي أرفقتِه. طلبك محفوظ بأمان — يمكنك التواصل معنا لإرسال الإيصال.",
   "orderReceived.backHome": "العودة للصفحة الرئيسية",
   "orderReceived.continueShopping": "متابعة التسوق",
 

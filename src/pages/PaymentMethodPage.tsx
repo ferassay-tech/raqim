@@ -13,6 +13,7 @@ import type { BookCurrency } from "../admin/types/book";
 import { computeDiscountedPrice } from "../context/couponMath";
 import { useOrders } from "../admin/context/OrdersContext";
 import { useLanguage } from "../context/LanguageContext";
+import { uploadOrderAttachment } from "../admin/context/orderAttachmentsRepository";
 
 // Matches the original site's exact wording for the "required amount" line
 // ("500 جنيه مصري", "30 شيكل") — full currency names, not ISO-style symbols.
@@ -33,6 +34,8 @@ const PaymentMethodPage: React.FC = () => {
   const { createOrder } = useOrders();
   const { t, dir, language, localizePath } = useLanguage();
   const [showConfirmationForm, setShowConfirmationForm] = useState(false);
+  const [attachmentUploadFailed, setAttachmentUploadFailed] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<{ orderId: string; file: File } | null>(null);
 
   const config = getPaymentMethod(method);
 
@@ -61,6 +64,23 @@ const PaymentMethodPage: React.FC = () => {
     ? formatAmount(computeDiscountedPrice(priceEntry.price, appliedCoupon), config.currency, t)
     : `${product.currency} ${product.newPrice}`;
 
+  // The order is already created and paid-for by the time an attachment
+  // upload could fail — a failed upload must never look like a failed
+  // order, must never trigger a second createOrder() call, and should be
+  // recoverable rather than silently dropping the file a second time (the
+  // whole reason this feature exists is that the previous "upload" quietly
+  // discarded the file already).
+  const attemptAttachmentUpload = async (orderId: string, file: File) => {
+    try {
+      await uploadOrderAttachment(orderId, file);
+      navigate(localizePath("/order-received"), { state: { orderId, attachmentFailed: false } });
+    } catch (error) {
+      console.error("Failed to upload order attachment:", error);
+      setPendingAttachment({ orderId, file });
+      setAttachmentUploadFailed(true);
+    }
+  };
+
   const handleConfirmationSubmit = async (values: ConfirmationFormValues) => {
     setConfirmation(values);
     const discountedPrice = appliedCoupon ? computeDiscountedPrice(product.newPrice, appliedCoupon) : product.newPrice;
@@ -81,7 +101,25 @@ const PaymentMethodPage: React.FC = () => {
       ],
       discount: product.newPrice - discountedPrice,
     });
-    navigate(localizePath("/order-received"), { state: { orderId: order.id } });
+
+    if (values.receiptFile) {
+      await attemptAttachmentUpload(order.id, values.receiptFile);
+    } else {
+      navigate(localizePath("/order-received"), { state: { orderId: order.id } });
+    }
+  };
+
+  const handleRetryAttachment = () => {
+    if (!pendingAttachment) return;
+    setAttachmentUploadFailed(false);
+    void attemptAttachmentUpload(pendingAttachment.orderId, pendingAttachment.file);
+  };
+
+  const handleSkipAttachment = () => {
+    if (!pendingAttachment) return;
+    navigate(localizePath("/order-received"), {
+      state: { orderId: pendingAttachment.orderId, attachmentFailed: true },
+    });
   };
 
   const actionTitle = requiresConfirmation ? t("payment.titlePay") : t("payment.titleBuy");
@@ -184,11 +222,37 @@ const PaymentMethodPage: React.FC = () => {
 
         {requiresConfirmation && (
           <AnimatePresence>
-            {showConfirmationForm && (
-              <PaymentConfirmationForm
-                methodTitle={config.title}
-                onSubmit={handleConfirmationSubmit}
-              />
+            {attachmentUploadFailed ? (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col gap-4 rounded-3xl border border-danger/30 bg-danger/5 p-6 text-center"
+              >
+                <p className="text-sm text-danger">{t("payment.attachmentUploadFailed")}</p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                  <button
+                    type="button"
+                    onClick={handleRetryAttachment}
+                    className="rounded-full bg-ink px-6 py-2.5 text-sm font-medium text-beige transition hover:bg-gold-deep"
+                  >
+                    {t("payment.attachmentRetry")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSkipAttachment}
+                    className="rounded-full border border-gold px-6 py-2.5 text-sm font-medium text-gold-deep transition hover:bg-beige"
+                  >
+                    {t("payment.attachmentSkip")}
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              showConfirmationForm && (
+                <PaymentConfirmationForm
+                  methodTitle={config.title}
+                  onSubmit={handleConfirmationSubmit}
+                />
+              )
             )}
           </AnimatePresence>
         )}

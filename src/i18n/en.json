@@ -228,6 +228,9 @@
   "payment.afterCouponPrefix": " (after code ",
   "payment.afterCouponSuffix": ")",
   "payment.completedButton": "I've Completed Payment",
+  "payment.attachmentUploadFailed": "Your order was created successfully, but the attached file couldn't be uploaded. You can retry or continue without it.",
+  "payment.attachmentRetry": "Retry Upload",
+  "payment.attachmentSkip": "Continue Without Attachment",
   "payment.currency.egp": "EGP",
   "payment.currency.ils": "ILS",
 
@@ -247,6 +250,8 @@
   "confirmationForm.transactionId": "Transaction ID (optional)",
   "confirmationForm.uploadReceipt": "Upload Payment Receipt",
   "confirmationForm.attachedFilePrefix": "Attached file: ",
+  "confirmationForm.fileTypeError": "Unsupported file type. Allowed: JPG, PNG, WEBP, PDF.",
+  "confirmationForm.fileSizeError": "File is too large. Maximum size is 10 MB.",
   "confirmationForm.notes": "Notes",
   "confirmationForm.submit": "Submit Payment Details",
 
@@ -255,6 +260,7 @@
   "orderReceived.thankYou": "Thank You for Your Purchase",
   "orderReceived.body": "Your payment request was received successfully. We'll review the payment and send your download link to your email as soon as possible.",
   "orderReceived.orderIdPrefix": "Order ID: ",
+  "orderReceived.attachmentFailedNotice": "We couldn't save the file you attached. Your order is safely saved — feel free to contact us to send the receipt.",
   "orderReceived.backHome": "Back to Home",
   "orderReceived.continueShopping": "Continue Shopping",
 

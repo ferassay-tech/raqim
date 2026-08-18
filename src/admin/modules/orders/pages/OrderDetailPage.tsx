@@ -9,6 +9,7 @@ import { OrderCustomerCard } from "../components/OrderCustomerCard";
 import { OrderPaymentCard } from "../components/OrderPaymentCard";
 import { OrderTimelineCard } from "../components/OrderTimelineCard";
 import { OrderDownloadsCard } from "../components/OrderDownloadsCard";
+import { OrderAttachmentsCard } from "../components/OrderAttachmentsCard";
 import { IconBag, IconChevronStart } from "@/admin/icons";
 
 export default function OrderDetailPage() {
@@ -80,6 +81,9 @@ export default function OrderDetailPage() {
           </Reveal>
           <Reveal delay={0.1}>
             <OrderPaymentCard order={order} onStatusChange={(status) => setOrderStatus(order.id, status)} />
+          </Reveal>
+          <Reveal delay={0.12}>
+            <OrderAttachmentsCard order={order} />
           </Reveal>
         </div>
       </div>

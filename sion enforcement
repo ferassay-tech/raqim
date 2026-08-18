@@ -1,0 +1,35 @@
+warning: in the working copy of 'src/admin/components/layout/AdminSidebar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/components/ui/Modal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/context/AdminUsersContext.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/adminUsers/components/ManageUserPermissionsModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/analytics/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/articles/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/books/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/categories/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/communications/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/customers/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/dashboard/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/downloads/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/marketing/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/media/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/orders/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/admin/modules/settings/routes.tsx', LF will be replaced by CRLF the next time Git touches it
+ src/admin/components/layout/AdminSidebar.tsx       |  27 [32m+[m[31m-[m
+ src/admin/components/ui/Modal.tsx                  |   3 [32m+[m[31m-[m
+ src/admin/context/AdminUsersContext.tsx            |  32 [32m++[m[31m-[m
+ .../components/ManageUserPermissionsModal.tsx      | 282 [32m+++++++++++++[m[31m--------[m
+ src/admin/modules/analytics/routes.tsx             |  12 [32m+[m[31m-[m
+ src/admin/modules/articles/routes.tsx              |  28 [32m+[m[31m-[m
+ src/admin/modules/books/routes.tsx                 |  28 [32m+[m[31m-[m
+ src/admin/modules/categories/routes.tsx            |  12 [32m+[m[31m-[m
+ src/admin/modules/communications/routes.tsx        | 106 [32m+++++++[m[31m-[m
+ src/admin/modules/customers/routes.tsx             |  19 [32m+[m[31m-[m
+ src/admin/modules/dashboard/routes.tsx             |  19 [32m+[m[31m-[m
+ src/admin/modules/downloads/routes.tsx             |  12 [32m+[m[31m-[m
+ src/admin/modules/marketing/routes.tsx             |  12 [32m+[m[31m-[m
+ src/admin/modules/media/routes.tsx                 |  12 [32m+[m[31m-[m
+ src/admin/modules/orders/routes.tsx                |  19 [32m+[m[31m-[m
+ src/admin/modules/settings/routes.tsx              |  41 [32m++[m[31m-[m
+ src/admin/nav.ts                                   |  55 [32m++[m[31m--[m
+ tsconfig.tsbuildinfo                               |   2 [32m+[m[31m-[m
+ 18 files changed, 567 insertions(+), 154 deletions(-)

@@ -7,7 +7,8 @@ import { useLanguage } from "../context/LanguageContext";
 
 const OrderSuccessPage: React.FC = () => {
   const location = useLocation();
-  const orderId = (location.state as { orderId?: string } | null)?.orderId;
+  const state = location.state as { orderId?: string; attachmentFailed?: boolean } | null;
+  const orderId = state?.orderId;
   const { t, dir, localizePath } = useLanguage();
 
   return (
@@ -44,6 +45,11 @@ const OrderSuccessPage: React.FC = () => {
         {orderId && (
           <p className="mt-3 text-xs text-ink-faint" dir="ltr">
             {t("orderReceived.orderIdPrefix")}{orderId}
+          </p>
+        )}
+        {state?.attachmentFailed && (
+          <p className="mt-4 text-xs leading-relaxed text-danger">
+            {t("orderReceived.attachmentFailedNotice")}
           </p>
         )}
       </motion.div>

@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useLanguage } from "../../context/LanguageContext";
+import {
+  ALLOWED_ATTACHMENT_MIME_TYPES,
+  MAX_ATTACHMENT_SIZE_BYTES,
+} from "../../admin/context/orderAttachmentsRepository";
 
 export interface ConfirmationFormValues {
   fullName: string;
@@ -9,7 +13,10 @@ export interface ConfirmationFormValues {
   paymentMethod: string;
   transactionId: string;
   notes: string;
-  receiptFileName?: string;
+  /** The real selected file, kept until upload after order creation — see
+   * PaymentMethodPage.handleConfirmationSubmit. Previously only file.name
+   * was captured here and the bytes were discarded entirely. */
+  receiptFile?: File;
 }
 
 interface PaymentConfirmationFormProps {
@@ -32,8 +39,9 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
     paymentMethod: methodTitle,
     transactionId: "",
     notes: "",
-    receiptFileName: undefined,
+    receiptFile: undefined,
   });
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -42,9 +50,30 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
     setValues((prev) => ({ ...prev, [name]: value }));
   };
 
+  // The accept attribute is a picker hint only — real enforcement happens
+  // here (and again server-side: the bucket's own allowed_mime_types/
+  // file_size_limit), never trusted from the client alone.
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    setValues((prev) => ({ ...prev, receiptFileName: file?.name }));
+    if (!file) {
+      setValues((prev) => ({ ...prev, receiptFile: undefined }));
+      setFileError(null);
+      return;
+    }
+    if (!(ALLOWED_ATTACHMENT_MIME_TYPES as readonly string[]).includes(file.type)) {
+      setFileError(t("confirmationForm.fileTypeError"));
+      setValues((prev) => ({ ...prev, receiptFile: undefined }));
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+      setFileError(t("confirmationForm.fileSizeError"));
+      setValues((prev) => ({ ...prev, receiptFile: undefined }));
+      e.target.value = "";
+      return;
+    }
+    setFileError(null);
+    setValues((prev) => ({ ...prev, receiptFile: file }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -149,15 +178,16 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
             id="receipt"
             name="receipt"
             type="file"
-            accept="image/*,application/pdf"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
             onChange={handleFile}
             className="w-full text-xs text-ink-soft file:ms-3 file:rounded-full file:border-0 file:bg-beige file:px-4 file:py-2 file:text-xs file:font-medium file:text-gold-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
           />
-          {values.receiptFileName && (
+          {values.receiptFile && (
             <p className="mt-1.5 text-xs text-ink-soft">
-              {t("confirmationForm.attachedFilePrefix")}{values.receiptFileName}
+              {t("confirmationForm.attachedFilePrefix")}{values.receiptFile.name}
             </p>
           )}
+          {fileError && <p className="mt-1.5 text-xs text-danger">{fileError}</p>}
         </div>
 
         <div className="sm:col-span-2">
