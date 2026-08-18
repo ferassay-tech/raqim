@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import type { AdminRole } from "./types/auth";
 import {
   IconGrid,
   IconChartLine,
@@ -22,6 +23,10 @@ export interface AdminNavItem {
   to: string;
   label: string;
   icon: FC<{ className?: string }>;
+  /** Phase 2C: when set, the item is hidden unless the current user's role
+   * is in this list. Undefined means visible to any authenticated admin —
+   * unchanged for every existing item. */
+  allowedRoles?: AdminRole[];
 }
 
 export interface AdminNavGroup {
@@ -76,6 +81,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { to: "/admin/settings", label: "الإعدادات", icon: IconGear },
       { to: "/admin/brand-studio", label: "استوديو الهوية", icon: IconPalette },
+      {
+        to: "/admin/users",
+        label: "المستخدمون الإداريون",
+        icon: IconUsers,
+        allowedRoles: ["owner", "super_admin"],
+      },
       { to: "/admin/profile", label: "الملف الشخصي", icon: IconUser },
     ],
   },
@@ -110,6 +121,7 @@ export const ADMIN_SEGMENT_LABELS: Record<string, string> = {
   history: "السجل",
   settings: "الإعدادات",
   "brand-studio": "استوديو الهوية",
+  users: "المستخدمون الإداريون",
   profile: "الملف الشخصي",
   general: "عام",
   brand: "الهوية البصرية",

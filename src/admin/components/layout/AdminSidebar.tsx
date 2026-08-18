@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { ADMIN_NAV } from "@/admin/nav";
 import { IconPanelCollapse } from "@/admin/icons";
+import { useAuth } from "@/admin/context/AuthContext";
 
 interface AdminSidebarProps {
   collapsed: boolean;
@@ -15,8 +16,18 @@ export function AdminSidebar({
   variant = "desktop",
 }: AdminSidebarProps) {
   const { pathname } = useLocation();
+  const { currentUser } = useAuth();
   const isDrawer = variant === "drawer";
   const showLabels = isDrawer || !collapsed;
+
+  // Phase 2C: items with allowedRoles are hidden from anyone whose role
+  // isn't listed — every other item (allowedRoles undefined) is unaffected.
+  const visibleNav = ADMIN_NAV.map((group) => ({
+    ...group,
+    items: group.items.filter(
+      (item) => !item.allowedRoles || (currentUser && item.allowedRoles.includes(currentUser.role))
+    ),
+  })).filter((group) => group.items.length > 0);
 
   return (
     <aside
@@ -43,7 +54,7 @@ export function AdminSidebar({
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-6">
-        {ADMIN_NAV.map((group) => (
+        {visibleNav.map((group) => (
           <div key={group.label} className="mb-6 last:mb-0">
             {showLabels && (
               <p className="mb-2 px-3 text-[11px] uppercase tracking-[0.2em] text-cream/40">

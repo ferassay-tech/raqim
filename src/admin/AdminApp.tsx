@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { ProtectedRoute } from "./components/ui/ProtectedRoute";
 import AdminLoginPage from "./pages/AdminLoginPage";
+import AdminAcceptInvitationPage from "./pages/AdminAcceptInvitationPage";
 import AdminNotFoundPage from "./pages/AdminNotFoundPage";
 
 import { dashboardRoutes } from "./modules/dashboard/routes";
@@ -16,6 +17,7 @@ import { mediaRoutes } from "./modules/media/routes";
 import { downloadsRoutes } from "./modules/downloads/routes";
 import { communicationsRoutes } from "./modules/communications/routes";
 import { settingsRoutes } from "./modules/settings/routes";
+import { adminUsersRoutes } from "./modules/adminUsers/routes";
 
 /**
  * Fully isolated from the public site's <Routes> in App.tsx — its own
@@ -34,6 +36,7 @@ export default function AdminApp() {
   return (
     <Routes>
       <Route path="login" element={<AdminLoginPage />} />
+      <Route path="accept-invitation" element={<AdminAcceptInvitationPage />} />
 
       <Route
         element={
@@ -54,6 +57,7 @@ export default function AdminApp() {
         {downloadsRoutes}
         {communicationsRoutes}
         {settingsRoutes}
+        {adminUsersRoutes}
 
         <Route path="*" element={<AdminNotFoundPage />} />
       </Route>

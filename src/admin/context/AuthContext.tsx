@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { AdminUser } from "../types/auth";
+import type { AdminUser, AdminRole } from "../types/auth";
 import { usePersistedState } from "../lib/usePersistedState";
 import { createLocalAuthAdapter } from "../services/auth/localAuthAdapter";
 import { supabaseAuthAdapter } from "../services/auth/supabaseAuthAdapter";
 import type { AuthSession } from "../services/auth/types";
+import { getSupabaseClient } from "../../lib/supabaseClient";
 
 // CMS Foundation Phase 2 — real Supabase Auth is now the primary sign-in
 // path (see login() below), with the original local check kept as an
@@ -89,11 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     SEED_CREDENTIALS
   );
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [remoteProfile, setRemoteProfile] = useState<AdminUser | null>(null);
+  const [profileReady, setProfileReady] = useState(true);
 
   useEffect(() => {
     setSession(readSession());
-    setIsReady(true);
+    setSessionReady(true);
   }, []);
 
   // Reads the exact same "auth_users"/"auth_credentials" localStorage keys
@@ -102,22 +105,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // independent credential store.
   const localAdapter = useMemo(() => createLocalAuthAdapter(users, credentials), [users, credentials]);
 
-  const currentUser = useMemo(() => {
+  // A session that matches a locally-seeded user (SEED_USER, or one created
+  // via the local fallback path) resolves synchronously exactly as before —
+  // no behavior change for that path.
+  const localMatch = useMemo(() => {
     if (!session) return null;
     const byId = users.find((u) => u.id === session.userId);
     if (byId) return byId;
-    const byEmail = session.email
-      ? users.find((u) => u.email.toLowerCase() === session.email.toLowerCase())
-      : undefined;
-    if (byEmail) return byEmail;
-    if (!session.email) return null;
-    // A Supabase-authenticated session with no matching local profile
-    // record — synthesized so currentUser is never unexpectedly null after
-    // a real sign-in. changePassword/updateProfile remain no-ops for this
-    // user until a future phase reconciles local profiles with real
-    // Supabase accounts.
-    return { id: session.userId, name: session.email, email: session.email, role: "owner" as const };
+    if (session.email) {
+      const byEmail = users.find((u) => u.email.toLowerCase() === session.email.toLowerCase());
+      if (byEmail) return byEmail;
+    }
+    return null;
   }, [session, users]);
+
+  // A session with no local match is a real Supabase-authenticated user.
+  // Phase 2C: no more synthesized "owner" fallback here — the caller's own
+  // admin_profiles row (readable under admin_profiles_select_self) is the
+  // only source of truth for their role. No row, or a non-active status,
+  // means no admin access.
+  useEffect(() => {
+    if (!session || localMatch) {
+      setRemoteProfile(null);
+      setProfileReady(true);
+      return;
+    }
+    let cancelled = false;
+    setProfileReady(false);
+    (async () => {
+      try {
+        const supabase = getSupabaseClient();
+        const { data, error } = await supabase
+          .from("admin_profiles")
+          .select("id, name, role, status")
+          .eq("id", session.userId)
+          .maybeSingle();
+        if (cancelled) return;
+        if (error || !data || data.status !== "active") {
+          setRemoteProfile(null);
+        } else {
+          setRemoteProfile({
+            id: data.id as string,
+            name: (data.name as string) ?? session.email,
+            email: session.email,
+            role: data.role as AdminRole,
+          });
+        }
+      } catch {
+        if (!cancelled) setRemoteProfile(null);
+      } finally {
+        if (!cancelled) setProfileReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session, localMatch]);
+
+  const currentUser = useMemo(() => {
+    if (!session) return null;
+    if (localMatch) return localMatch;
+    return remoteProfile;
+  }, [session, localMatch, remoteProfile]);
+
+  const isReady = sessionReady && profileReady;
 
   const login = useCallback(
     async (email: string, password: string, rememberMe: boolean) => {
