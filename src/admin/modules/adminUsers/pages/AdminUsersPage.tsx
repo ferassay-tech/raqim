@@ -22,11 +22,13 @@ import {
   IconRefresh,
   IconPencil,
   IconTrash,
+  IconGear,
 } from "@/admin/icons";
 import { useAdminUsers } from "@/admin/context/AdminUsersContext";
 import { InviteAdminModal } from "../components/InviteAdminModal";
 import { ChangeRoleModal } from "../components/ChangeRoleModal";
 import { EditInvitationModal } from "../components/EditInvitationModal";
+import { ManageUserPermissionsModal } from "../components/ManageUserPermissionsModal";
 import { logAndGetErrorMessage } from "@/admin/lib/errorMessage";
 import type {
   AdminInvitation,
@@ -81,10 +83,13 @@ export default function AdminUsersPage() {
     revokeInvitation,
     resendInvitation,
     editInvitationRole,
+    restoreInvitation,
+    deleteInvitationPermanently,
     suspendAdmin,
     reactivateAdmin,
     changeAdminRole,
     getUserPermissionOverrides,
+    setUserPermissionOverride,
   } = useAdminUsers();
 
   const [tab, setTab] = useState<string>("users");
@@ -106,6 +111,10 @@ export default function AdminUsersPage() {
   const [rejectTarget, setRejectTarget] = useState<AdminInvitation | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<AdminInvitation | null>(null);
   const [editTarget, setEditTarget] = useState<AdminInvitation | null>(null);
+  const [restoreTarget, setRestoreTarget] = useState<AdminInvitation | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminInvitation | null>(null);
+  const [permissionsTarget, setPermissionsTarget] = useState<AdminProfileWithEmail | null>(null);
+  const [invitationView, setInvitationView] = useState<"active" | "trash">("active");
   const [toast, setToast] = useState<ToastState | null>(null);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
 
@@ -198,6 +207,20 @@ export default function AdminUsersPage() {
     [resendInvitation, sendInvitationEmail]
   );
 
+  // "Trash" is a view split, not a new status — revoked (and expired, if
+  // that status is ever actually produced; nothing in the current system
+  // sets it today) invitations move out of the active list here, never
+  // deleted from the database. pending/accepted/approved/rejected are
+  // unaffected and stay in the active view exactly as before.
+  const activeInvitations = useMemo(
+    () => invitations.filter((i) => i.status !== "revoked" && i.status !== "expired"),
+    [invitations]
+  );
+  const trashedInvitations = useMemo(
+    () => invitations.filter((i) => i.status === "revoked" || i.status === "expired"),
+    [invitations]
+  );
+
   const permissionsByRole = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const row of rolePermissions) {
@@ -276,6 +299,15 @@ export default function AdminUsersPage() {
         if (p.role === "owner" || !isOwner) return null;
         return (
           <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setPermissionsTarget(p)}
+              title="إدارة الصلاحيات"
+              aria-label="إدارة الصلاحيات"
+              className="grid h-8 w-8 place-items-center rounded-full text-ink-faint transition-colors hover:bg-cream hover:text-ink"
+            >
+              <IconGear className="h-4 w-4" />
+            </button>
             <button
               type="button"
               onClick={() => setRoleChangeTarget(p)}
@@ -417,6 +449,74 @@ export default function AdminUsersPage() {
     },
   ];
 
+  const trashColumns: DataTableColumn<AdminInvitation>[] = [
+    {
+      key: "email",
+      header: "البريد الإلكتروني",
+      className: "min-w-[220px]",
+      render: (i) => (
+        <span dir="ltr" className="text-ink">
+          {i.email}
+        </span>
+      ),
+    },
+    {
+      key: "role",
+      header: "الصلاحية المطلوبة",
+      render: (i) => <span className="text-ink-soft">{ROLE_LABELS[i.role] ?? i.role}</span>,
+    },
+    {
+      key: "status",
+      header: "الحالة",
+      render: (i) => {
+        const meta = INVITATION_STATUS_META[i.status];
+        return <StatusBadge variant={meta.variant}>{meta.label}</StatusBadge>;
+      },
+    },
+    {
+      key: "reviewedAt",
+      header: "تاريخ الإلغاء",
+      render: (i) => (
+        <span dir="ltr" className="text-ink-faint">
+          {i.reviewedAt ? formatDate(i.reviewedAt) : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "end",
+      render: (i) => {
+        if (!isOwner) return null;
+        const busy = pendingActionId === i.id;
+        return (
+          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setRestoreTarget(i)}
+              title="استعادة الدعوة"
+              aria-label="استعادة الدعوة"
+              className="grid h-8 w-8 place-items-center rounded-full text-ink-faint transition-colors hover:bg-cream hover:text-ink disabled:pointer-events-none disabled:opacity-50"
+            >
+              <IconRefresh className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setDeleteTarget(i)}
+              title="حذف نهائي"
+              aria-label="حذف نهائي"
+              className="grid h-8 w-8 place-items-center rounded-full text-danger/80 transition-colors hover:bg-danger/10 hover:text-danger disabled:pointer-events-none disabled:opacity-50"
+            >
+              <IconTrash className="h-4 w-4" />
+            </button>
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -467,26 +567,54 @@ export default function AdminUsersPage() {
 
       {tab === "invitations" && (
         <div className="flex flex-col gap-4">
-          {invitations.length === 0 ? (
-            <EmptyState
-              icon={IconUsers}
-              title="لا توجد دعوات بعد"
-              description={isOwner ? "ابدئي بدعوة أول عضو في فريق الإدارة." : undefined}
-              action={
-                isOwner ? (
-                  <button
-                    type="button"
-                    onClick={() => setInviteOpen(true)}
-                    className="mt-2 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-gold-deep"
-                  >
-                    <IconPlus className="h-4 w-4" />
-                    دعوة مستخدم
-                  </button>
-                ) : undefined
-              }
-            />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setInvitationView("active")}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+                invitationView === "active" ? "bg-ink text-ivory" : "text-ink-soft hover:bg-cream"
+              }`}
+            >
+              الدعوات النشطة
+            </button>
+            <button
+              type="button"
+              onClick={() => setInvitationView("trash")}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+                invitationView === "trash" ? "bg-ink text-ivory" : "text-ink-soft hover:bg-cream"
+              }`}
+            >
+              سلة المحذوفات
+              {trashedInvitations.length > 0 && ` (${trashedInvitations.length.toLocaleString("en-US")})`}
+            </button>
+          </div>
+
+          {invitationView === "active" ? (
+            activeInvitations.length === 0 ? (
+              <EmptyState
+                icon={IconUsers}
+                title="لا توجد دعوات نشطة"
+                description={isOwner ? "ابدئي بدعوة أول عضو في فريق الإدارة." : undefined}
+                action={
+                  isOwner ? (
+                    <button
+                      type="button"
+                      onClick={() => setInviteOpen(true)}
+                      className="mt-2 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-gold-deep"
+                    >
+                      <IconPlus className="h-4 w-4" />
+                      دعوة مستخدم
+                    </button>
+                  ) : undefined
+                }
+              />
+            ) : (
+              <DataTable columns={invitationColumns} rows={activeInvitations} rowKey={(i) => i.id} />
+            )
+          ) : trashedInvitations.length === 0 ? (
+            <EmptyState icon={IconTrash} title="سلة المحذوفات فارغة" />
           ) : (
-            <DataTable columns={invitationColumns} rows={invitations} rowKey={(i) => i.id} />
+            <DataTable columns={trashColumns} rows={trashedInvitations} rowKey={(i) => i.id} />
           )}
         </div>
       )}
@@ -718,6 +846,14 @@ export default function AdminUsersPage() {
         }}
       />
 
+      <ManageUserPermissionsModal
+        target={permissionsTarget}
+        rolePermissions={rolePermissions}
+        onClose={() => setPermissionsTarget(null)}
+        getOverrides={getUserPermissionOverrides}
+        setOverride={setUserPermissionOverride}
+      />
+
       <ConfirmDialog
         open={Boolean(suspendTarget)}
         title="تعليق الوصول"
@@ -773,6 +909,35 @@ export default function AdminUsersPage() {
           setRevokeTarget(null);
         }}
         onCancel={() => setRevokeTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(restoreTarget)}
+        title="استعادة الدعوة"
+        description={`هل تريدين استعادة دعوة ${restoreTarget?.email ?? ""}؟ ستعود إلى قائمة الدعوات النشطة بحالة "بانتظار قبول المدعو" ورابط دعوة صالح لمدة ٧ أيام جديدة.`}
+        confirmLabel="استعادة"
+        tone="neutral"
+        onConfirm={() => {
+          if (restoreTarget) {
+            runAction(restoreTarget.id, () => restoreInvitation(restoreTarget.id), `تمت استعادة دعوة ${restoreTarget.email}.`);
+          }
+          setRestoreTarget(null);
+        }}
+        onCancel={() => setRestoreTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="حذف نهائي"
+        description={`هل تريدين حذف دعوة ${deleteTarget?.email ?? ""} نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.`}
+        confirmLabel="حذف نهائي"
+        onConfirm={() => {
+          if (deleteTarget) {
+            runAction(deleteTarget.id, () => deleteInvitationPermanently(deleteTarget.id), `تم حذف دعوة ${deleteTarget.email} نهائيًا.`);
+          }
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
       />
 
       <Toast toast={toast} onDismiss={() => setToast(null)} />

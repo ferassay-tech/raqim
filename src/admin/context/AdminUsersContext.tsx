@@ -138,10 +138,24 @@ interface AdminUsersContextValue {
     email: string,
     newRole: AssignableAdminRole
   ) => Promise<{ email: string; role: AssignableAdminRole; rawToken: string; expiresAt: string }>;
+  /** revoked/expired -> pending, same token_hash (the original invitation
+   * email's link becomes valid again), fresh 7-day expiry. See migration
+   * 20260818180001 — reapplies create_admin_invitation's own duplicate and
+   * active-admin guards, so this can't create a second live pending
+   * invitation for the email. */
+  restoreInvitation: (invitationId: string) => Promise<void>;
+  /** Permanently deletes a revoked/expired invitation row. Never possible
+   * for pending/accepted/approved/rejected — enforced server-side. Does
+   * not touch admin_audit_log (no FK relationship) or admin_profiles. */
+  deleteInvitationPermanently: (invitationId: string) => Promise<void>;
   suspendAdmin: (userId: string) => Promise<void>;
   reactivateAdmin: (userId: string) => Promise<void>;
   changeAdminRole: (userId: string, newRole: AssignableAdminRole) => Promise<void>;
   getUserPermissionOverrides: (userId: string) => Promise<UserPermissionOverrideRow[]>;
+  /** granted: true/false sets an explicit override; null resets to the
+   * user's role default (deletes the override row). The only write path
+   * for user_permission_overrides — see migration 20260818180001. */
+  setUserPermissionOverride: (userId: string, permission: string, granted: boolean | null) => Promise<void>;
 }
 
 const AdminUsersContext = createContext<AdminUsersContextValue | null>(null);
@@ -288,6 +302,39 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
     [load]
   );
 
+  const restoreInvitation = useCallback(
+    async (invitationId: string) => {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.rpc("restore_admin_invitation", { p_invitation_id: invitationId });
+      if (error) throw error;
+      await load();
+    },
+    [load]
+  );
+
+  const deleteInvitationPermanently = useCallback(
+    async (invitationId: string) => {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.rpc("delete_admin_invitation", { p_invitation_id: invitationId });
+      if (error) throw error;
+      await load();
+    },
+    [load]
+  );
+
+  const setUserPermissionOverride = useCallback(
+    async (userId: string, permission: string, granted: boolean | null) => {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.rpc("set_user_permission_override", {
+        p_user_id: userId,
+        p_permission: permission,
+        p_granted: granted,
+      });
+      if (error) throw error;
+    },
+    []
+  );
+
   const suspendAdmin = useCallback(
     async (userId: string) => {
       const supabase = getSupabaseClient();
@@ -344,10 +391,13 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
       revokeInvitation,
       resendInvitation,
       editInvitationRole,
+      restoreInvitation,
+      deleteInvitationPermanently,
       suspendAdmin,
       reactivateAdmin,
       changeAdminRole,
       getUserPermissionOverrides,
+      setUserPermissionOverride,
     }),
     [
       profiles,
@@ -363,10 +413,13 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
       revokeInvitation,
       resendInvitation,
       editInvitationRole,
+      restoreInvitation,
+      deleteInvitationPermanently,
       suspendAdmin,
       reactivateAdmin,
       changeAdminRole,
       getUserPermissionOverrides,
+      setUserPermissionOverride,
     ]
   );
 
