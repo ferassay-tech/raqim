@@ -148,6 +148,17 @@ export default function AdminUsersPage() {
     };
   }, [selectedUserId, getUserPermissionOverrides]);
 
+  // ManageUserPermissionsModal already refreshes its own internal list after
+  // a successful save — this just keeps the Permissions tab's separate
+  // read-only "استثناءات خاصة" summary (for whichever user is selected
+  // there) in sync too, since it's driven by its own independent fetch.
+  const reloadSelectedOverrides = useCallback(() => {
+    if (!selectedUserId) return;
+    getUserPermissionOverrides(selectedUserId)
+      .then(setOverrides)
+      .catch(() => {});
+  }, [selectedUserId, getUserPermissionOverrides]);
+
   // Fires the invitation email independently of the invite-creation call
   // above so InviteAdminModal can close immediately once the invitation
   // itself exists — the invitation is already valid in the database at
@@ -648,20 +659,33 @@ export default function AdminUsersPage() {
           <div className="border-t border-beige pt-6">
             <h2 className="font-display text-lg text-ink">الصلاحيات الفعلية لمستخدم</h2>
             <p className="mt-1 text-xs text-ink-faint">
-              تُحسب من دور المستخدم مضافًا إليها أي استثناءات خاصة به. إدارة الاستثناءات (إضافة/إزالة) تتطلب دالة
-              قاعدة بيانات إضافية لم تُبنَ بعد — هذا العرض للقراءة فقط حاليًا.
+              الصلاحية الفعلية = صلاحيات الدور، مضافًا إليها أي استثناءات خاصة بهذا المستخدم تحديدًا. "صلاحيات الدور"
+              أدناه للقراءة فقط دائمًا؛ "استثناءات خاصة" هي ما يمكن تعديله لهذا المستخدم وحده دون التأثير على بقية من
+              يحملون نفس الدور.
             </p>
             {profiles.length === 0 ? (
               <p className="mt-4 text-sm text-ink-faint">لا يوجد مستخدمون لعرض صلاحياتهم.</p>
             ) : (
               <div className="mt-4 flex flex-col gap-4">
-                <div className="max-w-xs">
-                  <Select
-                    label="المستخدم"
-                    value={selectedUserId}
-                    onChange={setSelectedUserId}
-                    options={profiles.map((p) => ({ value: p.id, label: `${p.name} (${ROLE_LABELS[p.role] ?? p.role})` }))}
-                  />
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div className="max-w-xs grow">
+                    <Select
+                      label="المستخدم"
+                      value={selectedUserId}
+                      onChange={setSelectedUserId}
+                      options={profiles.map((p) => ({ value: p.id, label: `${p.name} (${ROLE_LABELS[p.role] ?? p.role})` }))}
+                    />
+                  </div>
+                  {isOwner && selectedProfile && selectedProfile.role !== "owner" && (
+                    <button
+                      type="button"
+                      onClick={() => setPermissionsTarget(selectedProfile)}
+                      className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-xs font-medium text-ivory transition-colors hover:bg-gold-deep"
+                    >
+                      <IconGear className="h-3.5 w-3.5" />
+                      إدارة الاستثناءات
+                    </button>
+                  )}
                 </div>
                 {overridesLoading ? (
                   <p className="text-sm text-ink-faint">جارٍ التحميل...</p>
@@ -692,7 +716,9 @@ export default function AdminUsersPage() {
                           </li>
                         ))}
                         {overrides.length === 0 && (
-                          <li className="text-xs text-ink-faint">لا توجد استثناءات لهذا المستخدم.</li>
+                          <li className="text-xs text-ink-faint">
+                            لا توجد استثناءات لهذا المستخدم — صلاحياته الفعلية مطابقة تمامًا لصلاحيات دوره.
+                          </li>
                         )}
                       </ul>
                     </div>
@@ -852,6 +878,7 @@ export default function AdminUsersPage() {
         onClose={() => setPermissionsTarget(null)}
         getOverrides={getUserPermissionOverrides}
         setOverride={setUserPermissionOverride}
+        onSaved={reloadSelectedOverrides}
       />
 
       <ConfirmDialog

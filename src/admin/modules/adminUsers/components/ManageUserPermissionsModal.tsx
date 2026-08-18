@@ -60,6 +60,10 @@ interface ManageUserPermissionsModalProps {
   onClose: () => void;
   getOverrides: (userId: string) => Promise<UserPermissionOverrideRow[]>;
   setOverride: (userId: string, permission: string, granted: boolean | null) => Promise<void>;
+  /** Called after a successful save so a caller showing its own separate
+   * read-only summary of this user's overrides (the Permissions tab) can
+   * refresh — this modal's own internal list already refreshes itself. */
+  onSaved?: () => void;
 }
 
 /** Owner-only per-user permission management: role permissions + explicit
@@ -75,6 +79,7 @@ export function ManageUserPermissionsModal({
   onClose,
   getOverrides,
   setOverride,
+  onSaved,
 }: ManageUserPermissionsModalProps) {
   const [overrides, setOverrides] = useState<UserPermissionOverrideRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -164,6 +169,7 @@ export function ManageUserPermissionsModal({
       setOverrides(fresh);
       setPending(new Map());
       setSavedJustNow(true);
+      onSaved?.();
     } catch (err) {
       setError(getErrorMessage(err, "تعذّر حفظ التغييرات."));
     } finally {
