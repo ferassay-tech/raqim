@@ -14,6 +14,7 @@ import { SettingsProvider } from "./SettingsContext";
 import { SiteContentProvider } from "./SiteContentContext";
 import { LibraryProvider } from "./LibraryContext";
 import { DownloadsProvider } from "./DownloadsContext";
+import { AdminUsersProvider } from "./AdminUsersContext";
 import { ThemeSync } from "./ThemeContext";
 
 const PROVIDERS: FC<{ children: ReactNode }>[] = [
@@ -34,6 +35,9 @@ const PROVIDERS: FC<{ children: ReactNode }>[] = [
   // active storage provider; keeping them last is simplest, not required).
   LibraryProvider,
   DownloadsProvider,
+  // Reads useAuth() (gates its fetch on isAuthenticated exactly like
+  // OrdersProvider does) — must stay below AuthProvider in this list.
+  AdminUsersProvider,
 ];
 
 /**
