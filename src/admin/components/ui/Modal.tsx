@@ -8,13 +8,14 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
 const SIZE_CLASS: Record<NonNullable<ModalProps["size"]>, string> = {
   sm: "max-w-sm",
   md: "max-w-lg",
   lg: "max-w-3xl",
+  xl: "max-w-[1100px]",
 };
 
 export function Modal({ open, onClose, title, children, footer, size = "sm" }: ModalProps) {

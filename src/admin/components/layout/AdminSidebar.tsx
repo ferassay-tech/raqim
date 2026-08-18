@@ -2,6 +2,8 @@ import { Link, useLocation } from "react-router-dom";
 import { ADMIN_NAV } from "@/admin/nav";
 import { IconPanelCollapse } from "@/admin/icons";
 import { useAuth } from "@/admin/context/AuthContext";
+import { useAdminUsers } from "@/admin/context/AdminUsersContext";
+import { hasEffectivePermission } from "@/admin/lib/effectivePermissions";
 
 interface AdminSidebarProps {
   collapsed: boolean;
@@ -17,16 +19,31 @@ export function AdminSidebar({
 }: AdminSidebarProps) {
   const { pathname } = useLocation();
   const { currentUser } = useAuth();
+  const { rolePermissions, myOverrides } = useAdminUsers();
   const isDrawer = variant === "drawer";
   const showLabels = isDrawer || !collapsed;
 
-  // Phase 2C: items with allowedRoles are hidden from anyone whose role
-  // isn't listed — every other item (allowedRoles undefined) is unaffected.
+  // Supplemental visibility only — the real gate is each route's own
+  // RequirePermission/RequireRole wrapper. Items with allowedRoles are
+  // hidden from anyone whose role isn't listed; items with
+  // requiredPermission are hidden unless the effective permission
+  // computation (role_permissions + user_permission_overrides, same
+  // helper the route guard uses) allows it. Both undefined = always
+  // visible, unchanged for every item that has neither.
   const visibleNav = ADMIN_NAV.map((group) => ({
     ...group,
-    items: group.items.filter(
-      (item) => !item.allowedRoles || (currentUser && item.allowedRoles.includes(currentUser.role))
-    ),
+    items: group.items.filter((item) => {
+      if (item.allowedRoles && (!currentUser || !item.allowedRoles.includes(currentUser.role))) {
+        return false;
+      }
+      if (
+        item.requiredPermission &&
+        !hasEffectivePermission(currentUser?.role, item.requiredPermission, rolePermissions, myOverrides)
+      ) {
+        return false;
+      }
+      return true;
+    }),
   })).filter((group) => group.items.length > 0);
 
   return (

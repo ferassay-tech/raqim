@@ -1,6 +1,16 @@
 import { Route } from "react-router-dom";
 import LibraryListPage from "./pages/LibraryListPage";
+import { RequirePermission } from "@/admin/components/ui/RequirePermission";
 
 // Route path stays "library" — only the internal module name changed (to
 // "downloads", the long-term product surface). URL is unchanged.
-export const downloadsRoutes = <Route path="library" element={<LibraryListPage />} />;
+export const downloadsRoutes = (
+  <Route
+    path="library"
+    element={
+      <RequirePermission permission="library.manage">
+        <LibraryListPage />
+      </RequirePermission>
+    }
+  />
+);

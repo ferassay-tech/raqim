@@ -27,6 +27,14 @@ export interface AdminNavItem {
    * is in this list. Undefined means visible to any authenticated admin —
    * unchanged for every existing item. */
   allowedRoles?: AdminRole[];
+  /** Route-enforcement phase: when set, the item is hidden unless the
+   * current user's *effective* permission (role_permissions +
+   * user_permission_overrides, via hasEffectivePermission) is granted.
+   * Supplemental only — the real gate is each route's own RequirePermission
+   * wrapper; hiding a nav item never substitutes for that. Undefined means
+   * no permission requirement (e.g. /admin/profile, and /admin/users which
+   * uses allowedRoles instead). */
+  requiredPermission?: string;
 }
 
 export interface AdminNavGroup {
@@ -38,49 +46,66 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   {
     label: "نظرة عامة",
     items: [
-      { to: "/admin/dashboard", label: "لوحة التحكم", icon: IconGrid },
-      { to: "/admin/analytics", label: "التحليلات", icon: IconChartLine },
+      { to: "/admin/dashboard", label: "لوحة التحكم", icon: IconGrid, requiredPermission: "dashboard.view" },
+      { to: "/admin/analytics", label: "التحليلات", icon: IconChartLine, requiredPermission: "analytics.view" },
     ],
   },
   {
     label: "الكتالوج",
     items: [
-      { to: "/admin/books", label: "الكتب", icon: IconBook },
-      { to: "/admin/categories", label: "التصنيفات", icon: IconTag },
+      { to: "/admin/books", label: "الكتب", icon: IconBook, requiredPermission: "books.view" },
+      { to: "/admin/categories", label: "التصنيفات", icon: IconTag, requiredPermission: "categories.manage" },
     ],
   },
   {
     label: "المبيعات",
     items: [
-      { to: "/admin/orders", label: "الطلبات", icon: IconBag },
-      { to: "/admin/coupons", label: "أكواد الخصم", icon: IconTicket },
-      { to: "/admin/customers", label: "العملاء", icon: IconUsers },
+      { to: "/admin/orders", label: "الطلبات", icon: IconBag, requiredPermission: "orders.view" },
+      { to: "/admin/coupons", label: "أكواد الخصم", icon: IconTicket, requiredPermission: "coupons.manage" },
+      { to: "/admin/customers", label: "العملاء", icon: IconUsers, requiredPermission: "customers.view" },
     ],
   },
   {
     label: "المحتوى",
     items: [
-      { to: "/admin/articles", label: "المقالات", icon: IconDocument },
-      { to: "/admin/media", label: "مكتبة الوسائط", icon: IconImage },
-      { to: "/admin/content", label: "محتوى الموقع", icon: IconPencil },
+      { to: "/admin/articles", label: "المقالات", icon: IconDocument, requiredPermission: "articles.view" },
+      { to: "/admin/media", label: "مكتبة الوسائط", icon: IconImage, requiredPermission: "media.manage" },
+      { to: "/admin/content", label: "محتوى الموقع", icon: IconPencil, requiredPermission: "content.manage" },
     ],
   },
   {
     label: "المكتبة الرقمية",
-    items: [{ to: "/admin/library", label: "الملفات القابلة للتحميل", icon: IconArchive }],
+    items: [
+      {
+        to: "/admin/library",
+        label: "الملفات القابلة للتحميل",
+        icon: IconArchive,
+        requiredPermission: "library.manage",
+      },
+    ],
   },
   {
     label: "التواصل",
     items: [
-      { to: "/admin/messages", label: "الرسائل", icon: IconMail },
-      { to: "/admin/communications", label: "نظام التواصل", icon: IconBroadcast },
+      { to: "/admin/messages", label: "الرسائل", icon: IconMail, requiredPermission: "messages.view" },
+      {
+        to: "/admin/communications",
+        label: "نظام التواصل",
+        icon: IconBroadcast,
+        requiredPermission: "communications.manage",
+      },
     ],
   },
   {
     label: "النظام",
     items: [
-      { to: "/admin/settings", label: "الإعدادات", icon: IconGear },
-      { to: "/admin/brand-studio", label: "استوديو الهوية", icon: IconPalette },
+      { to: "/admin/settings", label: "الإعدادات", icon: IconGear, requiredPermission: "settings.manage" },
+      {
+        to: "/admin/brand-studio",
+        label: "استوديو الهوية",
+        icon: IconPalette,
+        requiredPermission: "settings.manage",
+      },
       {
         to: "/admin/users",
         label: "المستخدمون الإداريون",

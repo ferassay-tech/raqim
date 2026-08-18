@@ -110,6 +110,13 @@ interface AdminUsersContextValue {
    * report). This check is independently correct regardless of that gap. */
   isOwner: boolean;
   isLoading: boolean;
+  /** The current session's own user_permission_overrides — loaded once
+   * alongside everything else in load(), so RequirePermission (route
+   * guard) never needs a fresh network fetch on every navigation. Empty
+   * for a session with no id yet; distinct from "loaded and genuinely has
+   * no overrides," which is also an empty array — isLoading is what
+   * distinguishes "not resolved yet" from "resolved, empty." */
+  myOverrides: UserPermissionOverrideRow[];
   refresh: () => Promise<void>;
   inviteAdmin: (email: string, role: AssignableAdminRole) => Promise<{ rawToken: string; expiresAt: string }>;
   approveInvitation: (invitationId: string) => Promise<void>;
@@ -166,6 +173,7 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
   const [profilesError, setProfilesError] = useState<string | null>(null);
   const [invitations, setInvitations] = useState<AdminInvitation[]>([]);
   const [rolePermissions, setRolePermissions] = useState<RolePermissionRow[]>([]);
+  const [myOverrides, setMyOverrides] = useState<UserPermissionOverrideRow[]>([]);
   const [ownerProfileId, setOwnerProfileId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -191,6 +199,26 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
         );
       }
 
+      if (currentUser?.id) {
+        const myOverridesRes = await supabase
+          .from("user_permission_overrides")
+          .select("*")
+          .eq("user_id", currentUser.id);
+        if (!myOverridesRes.error && myOverridesRes.data) {
+          setMyOverrides(
+            (myOverridesRes.data as UserPermissionOverrideDbRow[]).map((r) => ({
+              userId: r.user_id,
+              permission: r.permission,
+              granted: r.granted,
+            }))
+          );
+        } else {
+          setMyOverrides([]);
+        }
+      } else {
+        setMyOverrides([]);
+      }
+
       const profilesRes = await supabase.rpc("list_admin_profiles");
       if (profilesRes.error) {
         setProfilesError(profilesRes.error.message);
@@ -202,7 +230,7 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -382,6 +410,7 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
       profilesError,
       invitations,
       rolePermissions,
+      myOverrides,
       isOwner,
       isLoading,
       refresh: load,
@@ -404,6 +433,7 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
       profilesError,
       invitations,
       rolePermissions,
+      myOverrides,
       isOwner,
       isLoading,
       load,
