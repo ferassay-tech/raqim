@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Modal } from "@/admin/components/ui/Modal";
 import { getErrorMessage } from "@/admin/lib/errorMessage";
-import { permissionSourceFor } from "@/admin/lib/effectivePermissions";
+import { isCorePermission, permissionSourceFor } from "@/admin/lib/effectivePermissions";
 import type { PermissionSource } from "@/admin/lib/effectivePermissions";
 import { IconCheck, IconClose, IconRefresh } from "@/admin/icons";
 import type { AdminProfileWithEmail, RolePermissionRow, UserPermissionOverrideRow } from "@/admin/types/adminUser";
@@ -159,6 +159,10 @@ export function ManageUserPermissionsModal({
   }, [target, overrides, pending]);
 
   const setDraft = (permission: string, value: boolean | null) => {
+    // Core permissions (dashboard.view) have no controls in this UI, but
+    // guard the setter too — belt and suspenders against any future path
+    // that might call it directly.
+    if (isCorePermission(permission)) return;
     setSavedJustNow(false);
     setPending((prev) => {
       const next = new Map(prev);
@@ -173,10 +177,12 @@ export function ManageUserPermissionsModal({
   };
 
   const setDraftForGroup = (perms: string[], value: boolean | null) => {
+    const actionable = perms.filter((p) => !isCorePermission(p));
+    if (actionable.length === 0) return;
     setSavedJustNow(false);
     setPending((prev) => {
       const next = new Map(prev);
-      for (const permission of perms) {
+      for (const permission of actionable) {
         const saved = savedOverrideFor(permission);
         if (value === saved) next.delete(permission);
         else next.set(permission, value);
@@ -292,99 +298,121 @@ export function ManageUserPermissionsModal({
           <p className="text-sm text-ink-faint">جارٍ التحميل...</p>
         ) : (
           <div className="flex max-h-[55vh] flex-col gap-6 overflow-y-auto pe-1">
-            {grouped.map(([group, perms]) => (
-              <div key={group} className="rounded-[10px] border border-beige bg-white/70">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-beige px-4 py-3">
-                  <p className="text-sm font-medium text-ink">{GROUP_LABELS[group] ?? group}</p>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setDraftForGroup(perms, true)}
-                      className="rounded-full border border-success/40 px-2.5 py-1 text-[11px] text-success transition-colors hover:bg-success/10"
-                    >
-                      تفعيل الكل
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDraftForGroup(perms, false)}
-                      className="rounded-full border border-danger/40 px-2.5 py-1 text-[11px] text-danger transition-colors hover:bg-danger/10"
-                    >
-                      تعطيل الكل
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDraftForGroup(perms, null)}
-                      title="إعادة كل صلاحيات هذه المجموعة إلى افتراضي الدور"
-                      className="inline-flex items-center gap-1 rounded-full border border-beige px-2.5 py-1 text-[11px] text-ink-soft transition-colors hover:border-gold hover:text-ink"
-                    >
-                      <IconRefresh className="h-3 w-3" />
-                      إعادة للوضع الافتراضي
-                    </button>
+            {grouped.map(([group, perms]) => {
+              const hasActionable = perms.some((p) => !isCorePermission(p));
+              return (
+                <div key={group} className="rounded-[10px] border border-beige bg-white/70">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-beige px-4 py-3">
+                    <p className="text-sm font-medium text-ink">{GROUP_LABELS[group] ?? group}</p>
+                    {hasActionable && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setDraftForGroup(perms, true)}
+                          className="rounded-full border border-success/40 px-2.5 py-1 text-[11px] text-success transition-colors hover:bg-success/10"
+                        >
+                          تفعيل الكل
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDraftForGroup(perms, false)}
+                          className="rounded-full border border-danger/40 px-2.5 py-1 text-[11px] text-danger transition-colors hover:bg-danger/10"
+                        >
+                          تعطيل الكل
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDraftForGroup(perms, null)}
+                          title="إعادة كل صلاحيات هذه المجموعة إلى افتراضي الدور"
+                          className="inline-flex items-center gap-1 rounded-full border border-beige px-2.5 py-1 text-[11px] text-ink-soft transition-colors hover:border-gold hover:text-ink"
+                        >
+                          <IconRefresh className="h-3 w-3" />
+                          إعادة للوضع الافتراضي
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col divide-y divide-beige/70">
+                    {perms.map((perm) => {
+                      if (isCorePermission(perm)) {
+                        return (
+                          <div key={perm} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                            <div className="flex min-w-[160px] flex-col">
+                              <span className="text-sm text-ink">{permissionActionLabel(perm)}</span>
+                              <span dir="ltr" className="text-[11px] text-ink-faint">
+                                {perm}
+                              </span>
+                            </div>
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/15 px-3 py-1 text-[11px] font-medium text-gold-deep">
+                              <IconCheck className="h-3 w-3" />
+                              صلاحية أساسية — متاحة دائمًا لكل مستخدم إداري
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      const source = permissionSourceFor(target?.role, perm, rolePermissions, draftOverrides);
+                      const value = draftValueFor(perm);
+                      const isDirty = pending.has(perm);
+                      const meta = STATUS_META[source];
+                      return (
+                        <div
+                          key={perm}
+                          className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 ${
+                            isDirty ? "bg-gold/5" : ""
+                          }`}
+                        >
+                          <div className="flex min-w-[160px] flex-col">
+                            <span className="text-sm text-ink">{permissionActionLabel(perm)}</span>
+                            <span dir="ltr" className="text-[11px] text-ink-faint">
+                              {perm}
+                            </span>
+                          </div>
+
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium ${meta.className}`}
+                          >
+                            {source === "granted" && <IconCheck className="h-3 w-3" />}
+                            {source === "revoked" && <IconClose className="h-3 w-3" />}
+                            {meta.label}
+                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setDraft(perm, true)}
+                              disabled={value === true}
+                              title="منح لهذا المستخدم"
+                              className="rounded-full border border-success/40 px-3 py-1.5 text-[11px] text-success transition-colors hover:bg-success/10 disabled:pointer-events-none disabled:opacity-40"
+                            >
+                              منح
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDraft(perm, false)}
+                              disabled={value === false}
+                              title="إلغاء لهذا المستخدم"
+                              className="rounded-full border border-danger/40 px-3 py-1.5 text-[11px] text-danger transition-colors hover:bg-danger/10 disabled:pointer-events-none disabled:opacity-40"
+                            >
+                              إلغاء
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDraft(perm, null)}
+                              disabled={value === null}
+                              title="إعادة إلى افتراضي الدور"
+                              className="rounded-full border border-beige px-3 py-1.5 text-[11px] text-ink-soft transition-colors hover:border-gold hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+                            >
+                              افتراضي
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-                <div className="flex flex-col divide-y divide-beige/70">
-                  {perms.map((perm) => {
-                    const source = permissionSourceFor(target?.role, perm, rolePermissions, draftOverrides);
-                    const value = draftValueFor(perm);
-                    const isDirty = pending.has(perm);
-                    const meta = STATUS_META[source];
-                    return (
-                      <div
-                        key={perm}
-                        className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 ${
-                          isDirty ? "bg-gold/5" : ""
-                        }`}
-                      >
-                        <div className="flex min-w-[160px] flex-col">
-                          <span className="text-sm text-ink">{permissionActionLabel(perm)}</span>
-                          <span dir="ltr" className="text-[11px] text-ink-faint">
-                            {perm}
-                          </span>
-                        </div>
-
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium ${meta.className}`}
-                        >
-                          {source === "granted" && <IconCheck className="h-3 w-3" />}
-                          {source === "revoked" && <IconClose className="h-3 w-3" />}
-                          {meta.label}
-                        </span>
-
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setDraft(perm, true)}
-                            disabled={value === true}
-                            title="منح لهذا المستخدم"
-                            className="rounded-full border border-success/40 px-3 py-1.5 text-[11px] text-success transition-colors hover:bg-success/10 disabled:pointer-events-none disabled:opacity-40"
-                          >
-                            منح
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDraft(perm, false)}
-                            disabled={value === false}
-                            title="إلغاء لهذا المستخدم"
-                            className="rounded-full border border-danger/40 px-3 py-1.5 text-[11px] text-danger transition-colors hover:bg-danger/10 disabled:pointer-events-none disabled:opacity-40"
-                          >
-                            إلغاء
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDraft(perm, null)}
-                            disabled={value === null}
-                            title="إعادة إلى افتراضي الدور"
-                            className="rounded-full border border-beige px-3 py-1.5 text-[11px] text-ink-soft transition-colors hover:border-gold hover:text-ink disabled:pointer-events-none disabled:opacity-40"
-                          >
-                            افتراضي
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
