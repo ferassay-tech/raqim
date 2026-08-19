@@ -71,6 +71,14 @@ export default async function handler(req: any, res: any) {
 
   const url = process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // TEMPORARY diagnostic — booleans only, never the actual values, never
+  // returned to the browser. Remove once the runtime env-var mismatch is
+  // confirmed and resolved.
+  console.log({
+    hasSupabaseUrl: Boolean(url),
+    hasServiceRoleKey: Boolean(serviceRoleKey),
+    nodeEnv: process.env.NODE_ENV,
+  });
   if (!url || !serviceRoleKey) {
     res.status(500).json({ error: "Attachment storage is not configured on the server." });
     return;
