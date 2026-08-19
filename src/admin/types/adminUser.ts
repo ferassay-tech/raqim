@@ -9,9 +9,25 @@ export type AssignableAdminRole = Exclude<AdminRole, "owner">;
 
 export const ASSIGNABLE_ADMIN_ROLES: AssignableAdminRole[] = ["super_admin", "admin", "editor", "analyst"];
 
+/** Extensible by design — a new notification type is a new key here, never
+ * a new column/migration. Absent key means "off"; nobody is opted in just
+ * because a new key starts being read. Keys are deliberately snake_case,
+ * matching the raw admin_profiles.notification_preferences JSONB exactly
+ * (round-trips as-is, no translation layer for what's an intentionally
+ * flexible flag bag) — a local exception to this project's usual camelCase
+ * convention, not an oversight. */
+export interface AdminNotificationPreferences {
+  payment_confirmed?: boolean;
+  [key: string]: boolean | undefined;
+}
+
+/** The one notification key this phase actually implements — shared so the
+ * write call (setNotificationPreference) and every read never risk typo
+ * drift against each other. */
+export const PAYMENT_CONFIRMED_NOTIFICATION_KEY = "payment_confirmed";
+
 /** One admin_profiles row, with email resolved server-side (admin_profiles
- * itself has no email column — see list_admin_profiles(), the one
- * genuinely-new function this phase proposes; not yet applied). */
+ * itself has no email column — see list_admin_profiles()). */
 export interface AdminProfileWithEmail {
   id: string;
   email: string;
@@ -20,6 +36,7 @@ export interface AdminProfileWithEmail {
   status: AdminProfileStatus;
   createdAt: string;
   invitedBy: string | null;
+  notificationPreferences: AdminNotificationPreferences;
 }
 
 export type AdminInvitationStatus = "pending" | "accepted" | "approved" | "rejected" | "revoked" | "expired";

@@ -1,4 +1,5 @@
-import type { AdminOrder, OrderItem, OrderStatus, OrderTimelineEvent } from "../types/order";
+import type { AdminOrder, OrderItem, OrderStatus, PaymentStatus, OrderTimelineEvent } from "../types/order";
+import type { PaymentMethodId } from "@/config/paymentMethods";
 import { createCollectionAdapter } from "../services/data/index.ts";
 import type { CollectionAdapter } from "../services/data/index.ts";
 import { getSupabaseClient } from "../../lib/supabaseClient.ts";
@@ -23,6 +24,8 @@ export interface OrderRow {
   customer_email: string;
   status: OrderStatus;
   payment_method: string;
+  payment_method_id: PaymentMethodId | null;
+  payment_status: PaymentStatus | null;
   transaction_id: string | null;
   customer_notes: string | null;
   items: OrderItem[];
@@ -40,6 +43,8 @@ export function orderToSupabaseRow(order: AdminOrder): OrderRow {
     customer_email: order.customerEmail,
     status: order.status,
     payment_method: order.paymentMethod,
+    payment_method_id: order.paymentMethodId,
+    payment_status: order.paymentStatus,
     transaction_id: order.transactionId,
     customer_notes: order.customerNotes,
     items: order.items,
@@ -56,6 +61,8 @@ export function orderFromSupabaseRow(row: OrderRow): AdminOrder {
     customerEmail: row.customer_email,
     status: row.status,
     paymentMethod: row.payment_method,
+    paymentMethodId: row.payment_method_id,
+    paymentStatus: row.payment_status,
     transactionId: row.transaction_id,
     customerNotes: row.customer_notes,
     items: row.items,

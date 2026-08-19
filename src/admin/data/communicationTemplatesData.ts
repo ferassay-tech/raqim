@@ -4,6 +4,15 @@ import type { CommunicationTemplateRaw, DownloadEmailDesignSettings } from "../m
  * resolver, just this one known id (see OrderDownloadsCard.tsx). */
 export const DOWNLOAD_EMAIL_TEMPLATE_ID = "tpl-download-link";
 
+/** The admin-facing "payment confirmed" notification (Phase 7) — a
+ * separate template/audience from the customer download-link email above,
+ * never merged with it. Only the envelope message lives here; the actual
+ * order facts (id/customer/product/amount/payment method/status) are
+ * rendered by api/send-admin-payment-notification.ts itself from
+ * server-verified order data, the same separation of concerns
+ * send-download-email.ts already uses for its own order-info table. */
+export const ADMIN_PAYMENT_NOTIFICATION_TEMPLATE_ID = "tpl-admin-payment-confirmed";
+
 /** Matches the current hardcoded premium email exactly — every chrome
  * element shown, current hex values — so a template that has never had its
  * design settings touched (a fresh seed, or an older persisted record
@@ -90,5 +99,55 @@ export const INITIAL_COMMUNICATION_TEMPLATES: CommunicationTemplateRaw[] = [
     publishedVersionId: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: ADMIN_PAYMENT_NOTIFICATION_TEMPLATE_ID,
+    channelId: "email",
+    categoryId: "transactional",
+    type: "admin_payment_confirmed",
+    name: "إشعار تأكيد الدفع للإدارة",
+    description: "تُرسل للإدارة بعد تأكيد دفع طلب — إشعار داخلي منفصل عن بريد التحميل الخاص بالعميلة.",
+    status: "published",
+    draft: [
+      {
+        id: "sec-header",
+        type: "header",
+        order: 0,
+        fields: {
+          title: { ar: "تم تأكيد دفع طلب جديد", en: "A new order's payment was confirmed" },
+          subtitle: { ar: "", en: "" },
+        },
+      },
+      {
+        id: "sec-body",
+        type: "body",
+        order: 1,
+        fields: {
+          richText: {
+            ar: "تم تأكيد دفع طلب جديد بنجاح. تفاصيل الطلب الكاملة أدناه.",
+            en: "A new order's payment has been successfully confirmed. Full order details below.",
+          },
+        },
+      },
+      {
+        id: "sec-button",
+        type: "button",
+        order: 2,
+        fields: {
+          label: { ar: "فتح الطلب في لوحة التحكم", en: "Open order in the dashboard" },
+          url: "https://r-aqim.com/admin/orders",
+        },
+      },
+      {
+        id: "sec-footer",
+        type: "footer",
+        order: 3,
+        fields: { text: { ar: "رقيم — إشعار إداري تلقائي", en: "Raqim — automated admin notification" } },
+      },
+    ],
+    designSettings: null,
+    publishedVersionId: null,
+    createdAt: "2026-08-19T00:00:00.000Z",
+    updatedAt: "2026-08-19T00:00:00.000Z",
   },
 ];

@@ -37,6 +37,7 @@ import type {
   AssignableAdminRole,
   UserPermissionOverrideRow,
 } from "@/admin/types/adminUser";
+import { PAYMENT_CONFIRMED_NOTIFICATION_KEY } from "@/admin/types/adminUser";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "المالك",
@@ -90,6 +91,7 @@ export default function AdminUsersPage() {
     changeAdminRole,
     getUserPermissionOverrides,
     setUserPermissionOverride,
+    setNotificationPreference,
   } = useAdminUsers();
 
   const [tab, setTab] = useState<string>("users");
@@ -301,6 +303,46 @@ export default function AdminUsersPage() {
       key: "createdAt",
       header: "تاريخ الإنضمام",
       render: (p) => <span dir="ltr" className="text-ink-faint">{formatDate(p.createdAt)}</span>,
+    },
+    {
+      key: "notifications",
+      header: "إشعار تأكيد الدفع",
+      render: (p) => {
+        // Extensible by design (AdminNotificationPreferences) — this is the
+        // one notification type Phase 7 actually implements; a future type
+        // is a new key + a new column/toggle here, not a schema change.
+        if (p.role === "owner") return null;
+        const enabled = p.notificationPreferences[PAYMENT_CONFIRMED_NOTIFICATION_KEY] === true;
+        if (!isOwner) {
+          return (
+            <StatusBadge variant={enabled ? "success" : "neutral"} icon={null}>
+              {enabled ? "مفعّل" : "متوقف"}
+            </StatusBadge>
+          );
+        }
+        return (
+          <label
+            className="flex items-center gap-1.5 text-xs text-ink-soft"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) =>
+                runAction(
+                  p.id,
+                  () => setNotificationPreference(p.id, PAYMENT_CONFIRMED_NOTIFICATION_KEY, e.target.checked),
+                  e.target.checked
+                    ? `تم تفعيل إشعارات تأكيد الدفع لـ${p.name}.`
+                    : `تم إيقاف إشعارات تأكيد الدفع لـ${p.name}.`
+                )
+              }
+              className="h-4 w-4 rounded border-beige accent-gold-deep"
+            />
+            تنبيه بالبريد
+          </label>
+        );
+      },
     },
     {
       key: "actions",

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { AdminOrder, OrderItem, OrderStatus, OrderTimelineEvent, TimelineTone } from "../types/order";
+import type { AdminOrder, OrderItem, OrderStatus, OrderTimelineEvent, PaymentStatus, TimelineTone } from "../types/order";
+import type { PaymentMethodId } from "@/config/paymentMethods";
 import { ORDER_STATUS_META } from "../lib/orderStatus";
 import { INITIAL_ORDERS } from "../data/ordersData";
 import { insertOrder, orderFromSupabaseRow, orderToSupabaseRow, ordersRepository } from "./ordersRepository.ts";
@@ -10,10 +11,32 @@ export interface CreateOrderInput {
   customerName: string;
   customerEmail: string;
   paymentMethod: string;
+  paymentMethodId: PaymentMethodId;
   transactionId?: string | null;
   customerNotes?: string | null;
   items: OrderItem[];
   discount?: number;
+}
+
+/** Fixed, matched exactly by the idempotency check in OrderDetailPage
+ * before ever attempting to auto-send the download email a second time. */
+export const EMAIL_SENT_TIMELINE_LABEL = "تم إرسال بريد رابط التحميل للعميلة";
+
+/** Separate from EMAIL_SENT_TIMELINE_LABEL on purpose — a different
+ * audience/event (admin notification, not the customer download email).
+ * This is a human-readable, client-side fast-path check only; the
+ * authoritative duplicate-send guard is the DB-level claim in
+ * order_notification_claims (see api/send-admin-payment-notification.ts,
+ * migration 20260819130001), which is what actually closes the concurrent
+ * race this check alone cannot. */
+export const ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL = "تم إرسال إشعار تأكيد الدفع للإدارة";
+
+export interface ConfirmPaymentOutcome {
+  ok: boolean;
+  /** True when payment_status was already "confirmed" before this call —
+   * the update was skipped entirely, nothing was written twice. */
+  alreadyConfirmed: boolean;
+  error?: string;
 }
 
 interface OrdersContextValue {
@@ -23,6 +46,23 @@ interface OrdersContextValue {
   setOrderStatus: (id: string, status: OrderStatus) => void;
   setOrdersStatus: (ids: string[], status: OrderStatus) => void;
   addNote: (id: string, text: string) => void;
+  /** Sets payment_status="confirmed" and status="paid" as one update, plus
+   * one timeline entry — guarded against double-confirmation. Does not
+   * touch download tokens or email; that orchestration lives in
+   * OrderDetailPage, which has access to the Downloads/Library/
+   * CommunicationTemplates contexts this context deliberately does not
+   * depend on (OrdersProvider is mounted above them in AdminProviders). */
+  confirmPayment: (id: string) => Promise<ConfirmPaymentOutcome>;
+  /** Records the one, fixed-label "download email sent" timeline event —
+   * called only after a real send succeeds (see OrderDetailPage). */
+  recordEmailSent: (id: string) => void;
+  /** Records the one, fixed-label "admin notification sent" timeline event
+   * — a distinct entry from recordEmailSent, called only after the new
+   * admin-notification endpoint confirms a real send (not an
+   * already-claimed no-op). Purely the human-readable record; see
+   * ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL for why this alone isn't the
+   * duplicate-send guard. */
+  recordAdminNotificationSent: (id: string) => void;
   loadError: string | null;
   reload: () => void;
 }
@@ -90,6 +130,8 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       customerEmail: input.customerEmail,
       status: "pending",
       paymentMethod: input.paymentMethod,
+      paymentMethodId: input.paymentMethodId,
+      paymentStatus: "pending_review",
       transactionId: input.transactionId ?? null,
       customerNotes: input.customerNotes ?? null,
       items: input.items,
@@ -130,6 +172,85 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     [orders]
   );
 
+  const confirmPayment = useCallback(
+    async (id: string): Promise<ConfirmPaymentOutcome> => {
+      const current = orders.find((o) => o.id === id);
+      if (!current) return { ok: false, alreadyConfirmed: false, error: "الطلب غير موجود." };
+      if (current.paymentStatus === "confirmed") {
+        return { ok: true, alreadyConfirmed: true };
+      }
+
+      const timeline: OrderTimelineEvent[] = [
+        ...current.timeline,
+        {
+          id: `${id}-t${current.timeline.length}`,
+          label: "تم تأكيد الدفع من قِبل الإدارة",
+          time: `اليوم، ${now()}`,
+          tone: "success",
+        },
+      ];
+      const paymentStatus: PaymentStatus = "confirmed";
+      const status: OrderStatus = "paid";
+
+      try {
+        // One update call for payment_status + status + timeline — the
+        // "one logical confirmation operation" the flow requires.
+        await ordersRepository.update(id, { payment_status: paymentStatus, status, timeline });
+        setOrders((prev) => (prev.map((o) => (o.id === id ? { ...o, paymentStatus, status, timeline } : o))));
+        return { ok: true, alreadyConfirmed: false };
+      } catch (error) {
+        console.error("Failed to confirm payment:", error);
+        return { ok: false, alreadyConfirmed: false, error: "تعذر تأكيد الدفع." };
+      }
+    },
+    [orders]
+  );
+
+  const recordEmailSent = useCallback(
+    (id: string) => {
+      const current = orders.find((o) => o.id === id);
+      if (!current) return;
+      const timeline: OrderTimelineEvent[] = [
+        ...current.timeline,
+        { id: `${id}-t${current.timeline.length}`, label: EMAIL_SENT_TIMELINE_LABEL, time: `اليوم، ${now()}`, tone: "success" },
+      ];
+      void ordersRepository
+        .update(id, { timeline })
+        .then(() => {
+          setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, timeline } : o)));
+        })
+        .catch((error) => {
+          console.error("Failed to record download-email timeline event:", error);
+        });
+    },
+    [orders]
+  );
+
+  const recordAdminNotificationSent = useCallback(
+    (id: string) => {
+      const current = orders.find((o) => o.id === id);
+      if (!current) return;
+      const timeline: OrderTimelineEvent[] = [
+        ...current.timeline,
+        {
+          id: `${id}-t${current.timeline.length}`,
+          label: ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL,
+          time: `اليوم، ${now()}`,
+          tone: "success",
+        },
+      ];
+      void ordersRepository
+        .update(id, { timeline })
+        .then(() => {
+          setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, timeline } : o)));
+        })
+        .catch((error) => {
+          console.error("Failed to record admin-notification timeline event:", error);
+        });
+    },
+    [orders]
+  );
+
   const setOrdersStatus = useCallback(
     (ids: string[], status: OrderStatus) => {
       for (const id of ids) setOrderStatus(id, status);
@@ -158,8 +279,32 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ orders, getOrder, createOrder, setOrderStatus, setOrdersStatus, addNote, loadError, reload }),
-    [orders, getOrder, createOrder, setOrderStatus, setOrdersStatus, addNote, loadError, reload]
+    () => ({
+      orders,
+      getOrder,
+      createOrder,
+      setOrderStatus,
+      setOrdersStatus,
+      addNote,
+      confirmPayment,
+      recordEmailSent,
+      recordAdminNotificationSent,
+      loadError,
+      reload,
+    }),
+    [
+      orders,
+      getOrder,
+      createOrder,
+      setOrderStatus,
+      setOrdersStatus,
+      addNote,
+      confirmPayment,
+      recordEmailSent,
+      recordAdminNotificationSent,
+      loadError,
+      reload,
+    ]
   );
 
   return <OrdersContext.Provider value={value}>{children}</OrdersContext.Provider>;

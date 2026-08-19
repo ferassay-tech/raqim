@@ -1,23 +1,97 @@
 import { useState } from "react";
 import type { AdminOrder, OrderStatus } from "@/admin/types/order";
-import { ORDER_STATUS_OPTIONS } from "@/admin/lib/orderStatus";
+import { ORDER_STATUS_OPTIONS, resolvePaymentStatusMeta } from "@/admin/lib/orderStatus";
 import { SegmentedControl } from "@/admin/components/forms/SegmentedControl";
 import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
 import { CopyIconButton } from "@/admin/components/ui/CopyIconButton";
+import { StatusBadge } from "@/admin/components/ui/StatusBadge";
 import { useAuth } from "@/admin/context/AuthContext";
 import { can } from "@/admin/lib/permissions";
+import { PaymentMethodBadge } from "./PaymentMethodBadge";
+
+/** The outcome of the separate admin-payment-notification step — reported
+ * alongside (never merged into) the customer-email outcome below. "failed"
+ * is the only case surfaced to the admin (a quiet warning suffix); "sent"/
+ * "already-sent"/"skipped" need no admin action so they're silent. */
+export type AdminNotificationOutcome =
+  | { status: "sent" }
+  | { status: "already-sent" }
+  | { status: "skipped" }
+  | { status: "failed"; reason: string };
+
+/** The full outcome of one Confirm Payment click, including the
+ * token/email orchestration OrderDetailPage performs after the payment
+ * itself is confirmed — communicated back here purely for feedback
+ * display, never re-derived or duplicated. adminNotification is absent
+ * for "already-confirmed"/"error" — those paths never attempt a
+ * notification (no real confirmation just happened). */
+export type ConfirmPaymentFlowResult =
+  | { status: "already-confirmed" }
+  | { status: "confirmed-email-sent"; adminNotification: AdminNotificationOutcome }
+  | { status: "confirmed-no-email"; reason: string; adminNotification: AdminNotificationOutcome }
+  | { status: "confirmed-email-failed"; reason: string; adminNotification: AdminNotificationOutcome }
+  | { status: "error"; message: string };
 
 interface OrderPaymentCardProps {
   order: AdminOrder;
   onStatusChange: (status: OrderStatus) => void;
+  onConfirmPayment: () => Promise<ConfirmPaymentFlowResult>;
 }
 
 const SENSITIVE: OrderStatus[] = ["refunded", "cancelled"];
 
-export function OrderPaymentCard({ order, onStatusChange }: OrderPaymentCardProps) {
+export function OrderPaymentCard({ order, onStatusChange, onConfirmPayment }: OrderPaymentCardProps) {
   const [pendingStatus, setPendingStatus] = useState<OrderStatus | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [confirmFeedback, setConfirmFeedback] = useState<{ tone: "success" | "warning" | "error"; message: string } | null>(
+    null
+  );
   const { currentUser } = useAuth();
+  // Same capability that already gates the pending→paid transition in the
+  // status control below — Confirm Payment is the same class of action,
+  // no new permission concept introduced.
   const canChangeStatus = can(currentUser?.role, "changeOrderStatus");
+  const paymentStatusMeta = resolvePaymentStatusMeta(order);
+
+  const handleConfirmPayment = async () => {
+    if (isConfirming) return;
+    setIsConfirming(true);
+    setConfirmFeedback(null);
+    const result = await onConfirmPayment();
+    setIsConfirming(false);
+    // Only "failed" ever needs surfacing — "sent"/"already-sent"/"skipped"
+    // require no admin action, so they stay silent rather than adding noise
+    // to a message that's already communicating the (separate) email result.
+    const notificationFailed =
+      "adminNotification" in result && result.adminNotification.status === "failed";
+    const notificationSuffix = notificationFailed ? " لكن تعذّر إرسال إشعار الإدارة." : "";
+    switch (result.status) {
+      case "already-confirmed":
+        setConfirmFeedback({ tone: "success", message: "تم تأكيد الدفع مسبقًا لهذا الطلب." });
+        break;
+      case "confirmed-email-sent":
+        setConfirmFeedback({
+          tone: notificationFailed ? "warning" : "success",
+          message: `تم تأكيد الدفع وإرسال بريد التحميل إلى العميلة بنجاح.${notificationSuffix}`,
+        });
+        break;
+      case "confirmed-no-email":
+        setConfirmFeedback({
+          tone: notificationFailed ? "warning" : "success",
+          message: `تم تأكيد الدفع. ${result.reason}${notificationSuffix}`,
+        });
+        break;
+      case "confirmed-email-failed":
+        setConfirmFeedback({
+          tone: "warning",
+          message: `تم تأكيد الدفع، لكن تعذّر إرسال بريد التحميل. ${result.reason}${notificationSuffix}`,
+        });
+        break;
+      case "error":
+        setConfirmFeedback({ tone: "error", message: result.message });
+        break;
+    }
+  };
 
   const requestChange = (status: string) => {
     const next = status as OrderStatus;
@@ -53,7 +127,9 @@ export function OrderPaymentCard({ order, onStatusChange }: OrderPaymentCardProp
         </div>
         <div className="flex items-center justify-between">
           <dt className="text-ink-faint">طريقة الدفع</dt>
-          <dd className="text-ink">{order.paymentMethod}</dd>
+          <dd>
+            <PaymentMethodBadge order={order} />
+          </dd>
         </div>
         <div className="flex items-center justify-between">
           <dt className="text-ink-faint">رقم العملية</dt>
@@ -62,6 +138,38 @@ export function OrderPaymentCard({ order, onStatusChange }: OrderPaymentCardProp
           </dd>
         </div>
       </dl>
+
+      <div className="mt-5 border-t border-beige pt-5">
+        <p className="text-xs uppercase tracking-[0.15em] text-ink-faint">حالة الدفع</p>
+        <div className="mt-2">
+          <StatusBadge variant={paymentStatusMeta.variant}>{paymentStatusMeta.label}</StatusBadge>
+        </div>
+
+        {order.paymentStatus !== "confirmed" && canChangeStatus && (
+          <button
+            type="button"
+            onClick={handleConfirmPayment}
+            disabled={isConfirming}
+            className="mt-4 w-full rounded-full bg-ink py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep disabled:cursor-wait disabled:opacity-60"
+          >
+            {isConfirming ? "جارٍ التأكيد..." : "تأكيد الدفع"}
+          </button>
+        )}
+
+        {confirmFeedback && (
+          <p
+            className={`mt-3 text-xs leading-relaxed ${
+              confirmFeedback.tone === "success"
+                ? "text-success"
+                : confirmFeedback.tone === "warning"
+                  ? "text-warning"
+                  : "text-danger"
+            }`}
+          >
+            {confirmFeedback.message}
+          </p>
+        )}
+      </div>
 
       <div className="mt-5 border-t border-beige pt-5">
         <SegmentedControl

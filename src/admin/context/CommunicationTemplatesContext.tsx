@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
 import type {
   CommunicationTemplate,
@@ -192,6 +192,25 @@ export function CommunicationTemplatesProvider({ children }: { children: ReactNo
     INITIAL_COMMUNICATION_TEMPLATES
   );
   const { language } = useLanguage();
+
+  // A template id introduced after an admin's browser already persisted
+  // `communicationTemplates` would otherwise never appear: usePersistedState
+  // returns the stored value verbatim once one exists — it doesn't merge in
+  // newly-added seed entries the way a fresh install would get them for
+  // free. This appends any seed template whose id is genuinely missing —
+  // once, actually persisted via setTemplates (not just merged into a
+  // derived view), so it becomes a real, editable record from then on, the
+  // same as every other template. Never touches/overwrites an existing
+  // (possibly admin-edited) record with the same id.
+  useEffect(() => {
+    const missing = INITIAL_COMMUNICATION_TEMPLATES.filter(
+      (seed) => !storedTemplates.some((t) => t.id === seed.id)
+    );
+    if (missing.length > 0) {
+      setTemplates((prev) => [...prev, ...missing]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storedTemplates]);
 
   const rawTemplates = useMemo(() => storedTemplates.map(migrateTemplate), [storedTemplates]);
   const templates = useMemo(() => rawTemplates.map((t) => resolveTemplate(t, language)), [rawTemplates, language]);

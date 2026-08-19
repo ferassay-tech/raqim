@@ -16,6 +16,9 @@ import { BulkActionBar } from "@/admin/components/ui/BulkActionBar";
 import { IconArchive, IconBag, IconCheck } from "@/admin/icons";
 import { useHasPermission } from "@/admin/lib/useHasPermission";
 import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
+import { PaymentMethodBadge } from "../components/PaymentMethodBadge";
+import { paymentMethodList } from "@/config/paymentMethods";
+import type { PaymentMethodId } from "@/config/paymentMethods";
 
 const PAGE_SIZE = 8;
 
@@ -39,22 +42,38 @@ export default function OrdersListPage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<"all" | PaymentMethodId>("all");
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
 
+  const hasActiveFilters = Boolean(search.trim()) || statusFilter !== "all" || paymentMethodFilter !== "all";
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setPaymentMethodFilter("all");
+  };
+
   const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
     return orders.filter((o) => {
       const matchesSearch =
-        !search.trim() ||
-        o.customerName.includes(search) ||
-        o.id.toLowerCase().includes(search.toLowerCase()) ||
-        o.customerEmail.toLowerCase().includes(search.toLowerCase());
+        !query ||
+        o.id.toLowerCase().includes(query) ||
+        o.customerName.toLowerCase().includes(query) ||
+        o.customerEmail.toLowerCase().includes(query);
       const matchesStatus = statusFilter === "all" || o.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      // paymentMethodId is the canonical identity (never the display
+      // label) — a legacy order (paymentMethodId === null) only ever
+      // matches "all", never a specific method, matching the existing
+      // resolveOrderPaymentMethodLabel() fallback's own spirit of never
+      // pretending a null id is something it isn't.
+      const matchesPaymentMethod = paymentMethodFilter === "all" || o.paymentMethodId === paymentMethodFilter;
+      return matchesSearch && matchesStatus && matchesPaymentMethod;
     });
-  }, [orders, search, statusFilter]);
+  }, [orders, search, statusFilter, paymentMethodFilter]);
 
   const sorted = useMemo(() => {
     const accessor = SORT_ACCESSORS[sortKey];
@@ -62,7 +81,14 @@ export default function OrdersListPage() {
     copy.sort((a, b) => {
       const av = accessor(a);
       const bv = accessor(b);
-      const cmp = typeof av === "number" && typeof bv === "number" ? av - bv : String(av).localeCompare(String(bv), "ar");
+      let cmp = typeof av === "number" && typeof bv === "number" ? av - bv : String(av).localeCompare(String(bv), "ar");
+      // createdAt is a date-only string (no time component) — same-day
+      // orders would otherwise tie and sort non-deterministically; id
+      // embeds the real creation timestamp (ORD-<base36 Date.now()>), so
+      // it's a stable, order-preserving secondary key.
+      if (cmp === 0 && sortKey === "createdAt") {
+        cmp = a.id.localeCompare(b.id);
+      }
       return sortDirection === "asc" ? cmp : -cmp;
     });
     return copy;
@@ -74,7 +100,7 @@ export default function OrdersListPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter]);
+  }, [search, statusFilter, paymentMethodFilter]);
 
   const handleSortChange = (key: string) => {
     if (key === sortKey) {
@@ -127,7 +153,7 @@ export default function OrdersListPage() {
     {
       key: "paymentMethod",
       header: "طريقة الدفع",
-      render: (o) => <span className="text-ink-soft">{o.paymentMethod}</span>,
+      render: (o) => <PaymentMethodBadge order={o} />,
     },
     {
       key: "total",
@@ -172,12 +198,48 @@ export default function OrdersListPage() {
           className="w-full sm:w-72"
         />
         <FilterSelect
+          ariaLabel="الترتيب"
+          value={sortKey === "createdAt" && sortDirection === "asc" ? "oldest" : "newest"}
+          onChange={(value) => {
+            setSortKey("createdAt");
+            setSortDirection(value === "oldest" ? "asc" : "desc");
+          }}
+          options={[
+            { value: "newest", label: "الأحدث أولاً" },
+            { value: "oldest", label: "الأقدم أولاً" },
+          ]}
+        />
+        <FilterSelect
+          ariaLabel="طريقة الدفع"
+          value={paymentMethodFilter}
+          onChange={(value) => setPaymentMethodFilter(value as "all" | PaymentMethodId)}
+          options={[
+            { value: "all", label: "كل طرق الدفع" },
+            ...paymentMethodList.map((method) => ({ value: method.id, label: method.title })),
+          ]}
+        />
+        <FilterSelect
           ariaLabel="الحالة"
           value={statusFilter}
           onChange={setStatusFilter}
           options={[{ value: "all", label: "كل الحالات" }, ...ORDER_STATUS_OPTIONS]}
         />
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="rounded-full border border-beige px-4 py-2.5 text-sm text-ink-soft transition-colors hover:border-gold hover:text-ink"
+          >
+            مسح الفلاتر
+          </button>
+        )}
       </FilterBar>
+
+      {hasActiveFilters && !isEmptyCatalog && (
+        <p className="text-xs text-ink-faint">
+          عرض {sorted.length.toLocaleString("en-US")} من {orders.length.toLocaleString("en-US")} طلبًا
+        </p>
+      )}
 
       <BulkActionBar
         count={selectedKeys.size}
@@ -210,7 +272,20 @@ export default function OrdersListPage() {
             onSortChange={handleSortChange}
             emptyState={
               isEmptyResults ? (
-                <EmptyState icon={IconBag} title="لا توجد نتائج" description="جربي تعديل كلمات البحث أو الفلتر المستخدم." />
+                <EmptyState
+                  icon={IconBag}
+                  title="لا توجد نتائج"
+                  description="لا توجد طلبات مطابقة للبحث أو الفلاتر الحالية."
+                  action={
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="mt-2 rounded-full border border-beige px-5 py-2.5 text-sm text-ink-soft transition-colors hover:border-gold hover:text-ink"
+                    >
+                      مسح الفلاتر
+                    </button>
+                  }
+                />
               ) : undefined
             }
           />

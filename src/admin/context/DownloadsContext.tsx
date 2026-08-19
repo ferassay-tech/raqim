@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { DownloadToken, MintedDownloadToken } from "../types/download";
 import {
@@ -112,7 +112,28 @@ export function DownloadsProvider({ children }: { children: ReactNode }) {
     [downloadLinkExpiryDays, downloadLinkMaxDownloads]
   );
 
-  const generateToken = useCallback((orderId: string, fileIds: string[]) => mint(orderId, fileIds), [mint]);
+  // Two independent call sites can now race to mint a token for the same
+  // order the moment it becomes "paid" — OrderDownloadsCard's own existing
+  // effect, and OrderDetailPage's Confirm Payment orchestration. Both
+  // check `!activeToken` in shared `tokens` state before minting, but that
+  // check alone can't close the window while a mint is still in flight.
+  // This in-flight map does: a second generateToken() call for the same
+  // orderId while one is already pending returns the *same* promise
+  // instead of starting a duplicate insert.
+  const mintingByOrder = useRef<Map<string, Promise<MintedDownloadToken>>>(new Map());
+
+  const generateToken = useCallback(
+    (orderId: string, fileIds: string[]) => {
+      const inFlight = mintingByOrder.current.get(orderId);
+      if (inFlight) return inFlight;
+      const promise = mint(orderId, fileIds).finally(() => {
+        mintingByOrder.current.delete(orderId);
+      });
+      mintingByOrder.current.set(orderId, promise);
+      return promise;
+    },
+    [mint]
+  );
 
   const regenerateToken = useCallback(
     async (orderId: string): Promise<MintedDownloadToken | null> => {

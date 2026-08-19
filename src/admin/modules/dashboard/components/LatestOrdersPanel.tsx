@@ -13,14 +13,14 @@ interface LatestOrdersPanelProps {
 export function LatestOrdersPanel({ orders }: LatestOrdersPanelProps) {
   if (orders.length === 0) {
     return (
-      <Panel title="أحدث الطلبات" viewAllTo="/admin/orders" weight="flat">
+      <Panel title="أحدث الطلبات" viewAllTo="/admin/orders" viewAllLabel="عرض كل الطلبات" weight="flat">
         <EmptyState icon={IconBag} title="لا توجد طلبات بعد" description="ستظهر أحدث الطلبات هنا فور ورودها." />
       </Panel>
     );
   }
 
   return (
-    <Panel title="أحدث الطلبات" viewAllTo="/admin/orders" weight="flat">
+    <Panel title="أحدث الطلبات" viewAllTo="/admin/orders" viewAllLabel="عرض كل الطلبات" weight="flat">
       <ul className="flex flex-col divide-y divide-beige">
         {orders.map((order) => {
           const meta = ORDER_STATUS_META[order.status];

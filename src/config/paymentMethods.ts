@@ -130,5 +130,25 @@ export const getPaymentMethod = (
 ): PaymentMethodConfig | undefined =>
   id ? paymentMethods[id as PaymentMethodId] : undefined;
 
+/**
+ * Not yet called anywhere — orders currently always render their own
+ * `paymentMethod` snapshot string directly, which stays correct for every
+ * order regardless of this field's presence. This exists so that whatever
+ * later reads `payment_method_id` (e.g. a method icon/badge) has a single,
+ * correct fallback path from day one: prefer the stable id's live config
+ * title when present, otherwise fall back to the order's own stored
+ * snapshot string — never assume every order has an id.
+ */
+export function resolveOrderPaymentMethodLabel(order: {
+  paymentMethodId: PaymentMethodId | null;
+  paymentMethod: string;
+}): string {
+  if (order.paymentMethodId) {
+    const config = paymentMethods[order.paymentMethodId];
+    if (config) return config.title;
+  }
+  return order.paymentMethod;
+}
+
 export const paymentMethodList: PaymentMethodConfig[] =
   Object.values(paymentMethods);

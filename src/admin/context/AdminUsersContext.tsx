@@ -4,6 +4,7 @@ import { useAuth } from "./AuthContext";
 import { getSupabaseClient } from "../../lib/supabaseClient";
 import type {
   AdminInvitation,
+  AdminNotificationPreferences,
   AdminProfileWithEmail,
   AssignableAdminRole,
   RolePermissionRow,
@@ -64,6 +65,7 @@ interface AdminProfileRpcRow {
   status: string;
   created_at: string;
   invited_by: string | null;
+  notification_preferences: AdminNotificationPreferences | null;
 }
 
 function invitationFromRow(row: AdminInvitationRow): AdminInvitation {
@@ -91,6 +93,7 @@ function profileFromRpcRow(row: AdminProfileRpcRow): AdminProfileWithEmail {
     status: row.status as AdminProfileWithEmail["status"],
     createdAt: row.created_at,
     invitedBy: row.invited_by,
+    notificationPreferences: row.notification_preferences ?? {},
   };
 }
 
@@ -163,6 +166,9 @@ interface AdminUsersContextValue {
    * user's role default (deletes the override row). The only write path
    * for user_permission_overrides — see migration 20260818180001. */
   setUserPermissionOverride: (userId: string, permission: string, granted: boolean | null) => Promise<void>;
+  /** Owner-only, same as every other admin_profiles mutation — see
+   * set_admin_notification_preference() (migration 20260819130001). */
+  setNotificationPreference: (userId: string, key: string, enabled: boolean) => Promise<void>;
 }
 
 const AdminUsersContext = createContext<AdminUsersContextValue | null>(null);
@@ -393,6 +399,20 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
     [load]
   );
 
+  const setNotificationPreference = useCallback(
+    async (userId: string, key: string, enabled: boolean) => {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.rpc("set_admin_notification_preference", {
+        p_user_id: userId,
+        p_key: key,
+        p_enabled: enabled,
+      });
+      if (error) throw error;
+      await load();
+    },
+    [load]
+  );
+
   const getUserPermissionOverrides = useCallback(async (userId: string): Promise<UserPermissionOverrideRow[]> => {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase.from("user_permission_overrides").select("*").eq("user_id", userId);
@@ -427,6 +447,7 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
       changeAdminRole,
       getUserPermissionOverrides,
       setUserPermissionOverride,
+      setNotificationPreference,
     }),
     [
       profiles,
@@ -450,6 +471,7 @@ export function AdminUsersProvider({ children }: { children: ReactNode }) {
       changeAdminRole,
       getUserPermissionOverrides,
       setUserPermissionOverride,
+      setNotificationPreference,
     ]
   );
 
