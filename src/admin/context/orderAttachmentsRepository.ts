@@ -54,46 +54,64 @@ function fromRow(row: OrderAttachmentRow): OrderAttachment {
   };
 }
 
-function extensionFor(filename: string): string {
-  const match = /\.([a-zA-Z0-9]+)$/.exec(filename);
-  return match ? match[1].toLowerCase() : "";
-}
-
 export function isAllowedAttachmentFile(file: File): boolean {
   return (ALLOWED_ATTACHMENT_MIME_TYPES as readonly string[]).includes(file.type) && file.size <= MAX_ATTACHMENT_SIZE_BYTES;
 }
 
+async function readJsonError(response: Response, fallback: string): Promise<string> {
+  const body = await response.json().catch(() => null);
+  return (body && typeof body.error === "string" && body.error) || fallback;
+}
+
 /**
  * Checkout's one-shot upload — called only after createOrder() has already
- * resolved, so orderId is always a real, existing order. Uploads under
- * {orderId}/{uuid}.{ext}, never the customer-supplied filename as the
- * storage path (order_attachments_bucket_insert_anon's path-prefix check
- * requires the first segment to equal a real order id; a uuid-based leaf
- * name also avoids any collision/overwrite risk). Deliberately no
- * `.select()` on the table insert — order_attachments has no anon SELECT
- * policy, so a read-back would fail RLS even though the row was written
- * successfully (the exact trap ordersRepository.insertOrder() already
- * documents and avoids the same way).
+ * resolved, so orderId is always a real, existing order.
+ *
+ * Goes through two small server endpoints (api/order-attachment-init.ts,
+ * api/order-attachment-confirm.ts) instead of calling
+ * supabase.storage.from(BUCKET).upload() directly, as a plain anon upload
+ * did before. Root cause (confirmed live, not assumed): Supabase Storage's
+ * normal anon-role INSERT path implicitly reads the new row back
+ * (RETURNING-shaped) to build its response, which requires a SELECT policy
+ * anon deliberately does not have — "new row violates row-level security
+ * policy" even though the INSERT's own WITH CHECK passed. A server-minted,
+ * single-use signed upload URL sidesteps that entirely (the token itself
+ * is the authorization, independent of the anon role's own RLS) while
+ * still needing zero anon SELECT grant anywhere. The public contract here
+ * (signature, throw-on-any-failure) is unchanged, so no caller
+ * (PaymentMethodPage.tsx) needed to change.
  */
 export async function uploadOrderAttachment(orderId: string, file: File): Promise<void> {
-  const supabase = getSupabaseClient();
-  const ext = extensionFor(file.name);
-  const key = `${orderId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
-
-  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(key, file, {
-    upsert: false,
-    contentType: file.type,
+  const initResponse = await fetch("/api/order-attachment-init", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId, filename: file.name, mimeType: file.type, sizeBytes: file.size }),
   });
+  if (!initResponse.ok) {
+    throw new Error(await readJsonError(initResponse, "Failed to prepare attachment upload."));
+  }
+  const { storagePath, token } = (await initResponse.json()) as { storagePath: string; token: string };
+
+  const supabase = getSupabaseClient();
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .uploadToSignedUrl(storagePath, token, file, { contentType: file.type });
   if (uploadError) throw uploadError;
 
-  const { error: insertError } = await supabase.from("order_attachments").insert({
-    order_id: orderId,
-    storage_path: key,
-    original_filename: file.name,
-    mime_type: file.type,
-    size_bytes: file.size,
+  const confirmResponse = await fetch("/api/order-attachment-confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      orderId,
+      storagePath,
+      originalFilename: file.name,
+      mimeType: file.type,
+      sizeBytes: file.size,
+    }),
   });
-  if (insertError) throw insertError;
+  if (!confirmResponse.ok) {
+    throw new Error(await readJsonError(confirmResponse, "Failed to save attachment record."));
+  }
 }
 
 /** Admin-only read — order_attachments_select_admin requires orders.view. */
