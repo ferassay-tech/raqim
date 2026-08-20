@@ -150,5 +150,26 @@ export function resolveOrderPaymentMethodLabel(order: {
   return order.paymentMethod;
 }
 
+/**
+ * Whether an order counts as the given payment method for filtering
+ * purposes — mirrors resolveOrderPaymentMethodLabel()'s exact precedence.
+ * paymentMethodId is the canonical, primary match: every order created
+ * through the real checkout flow (PaymentMethodPage.tsx -> createOrder())
+ * always has it set (CreateOrderInput.paymentMethodId is a required,
+ * non-nullable type, enforced at compile time), so this is the only path
+ * a new order ever needs. The `paymentMethod` text comparison is a
+ * backward-compatible fallback ONLY for legacy orders created before this
+ * column existed (paymentMethodId === null) — it is never consulted when
+ * a canonical id is present, and must never become the primary mechanism.
+ */
+export function orderMatchesPaymentMethod(
+  order: { paymentMethodId: PaymentMethodId | null; paymentMethod: string },
+  filterId: PaymentMethodId
+): boolean {
+  if (order.paymentMethodId) return order.paymentMethodId === filterId;
+  const config = paymentMethods[filterId];
+  return config ? order.paymentMethod === config.title : false;
+}
+
 export const paymentMethodList: PaymentMethodConfig[] =
   Object.values(paymentMethods);

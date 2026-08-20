@@ -19,7 +19,7 @@ import { IconArchive, IconBag, IconCheck, IconRefresh, IconTrash } from "@/admin
 import { useHasPermission } from "@/admin/lib/useHasPermission";
 import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
 import { PaymentMethodBadge } from "../components/PaymentMethodBadge";
-import { paymentMethodList } from "@/config/paymentMethods";
+import { paymentMethodList, orderMatchesPaymentMethod } from "@/config/paymentMethods";
 import type { PaymentMethodId } from "@/config/paymentMethods";
 
 const PAGE_SIZE = 8;
@@ -92,12 +92,10 @@ export default function OrdersListPage() {
         o.customerName.toLowerCase().includes(query) ||
         o.customerEmail.toLowerCase().includes(query);
       const matchesStatus = statusFilter === "all" || o.status === statusFilter;
-      // paymentMethodId is the canonical identity (never the display
-      // label) — a legacy order (paymentMethodId === null) only ever
-      // matches "all", never a specific method, matching the existing
-      // resolveOrderPaymentMethodLabel() fallback's own spirit of never
-      // pretending a null id is something it isn't.
-      const matchesPaymentMethod = paymentMethodFilter === "all" || o.paymentMethodId === paymentMethodFilter;
+      // paymentMethodId is the canonical, primary match; orderMatchesPaymentMethod
+      // falls back to the legacy payment_method text snapshot only for
+      // orders created before that column existed — see its own comment.
+      const matchesPaymentMethod = paymentMethodFilter === "all" || orderMatchesPaymentMethod(o, paymentMethodFilter);
       return matchesSearch && matchesStatus && matchesPaymentMethod;
     });
   }, [scopedOrders, search, statusFilter, paymentMethodFilter]);
