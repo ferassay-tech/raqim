@@ -1,53 +1,64 @@
 /**
- * Vercel serverless function — Phase 7: notifies opted-in admin users by
- * email when an order's payment has just been confirmed. Triggered only
- * from OrderDetailPage's handleConfirmPayment() after
- * OrdersContext.confirmPayment() has actually succeeded — never merely
- * from order.status === "paid".
+ * Vercel serverless function — ADMIN PURCHASE NOTIFICATION. Notifies
+ * opted-in admin users by email as soon as a customer successfully submits
+ * their payment information at checkout — triggered from
+ * OrdersContext.createOrder(), immediately after the order is durably
+ * persisted (INSERT into public.orders succeeds). Deliberately NOT tied to
+ * payment confirmation: this fires whether or not an admin has reviewed
+ * anything yet, and the email content must never claim the payment was
+ * confirmed (see buildEmailDocument's wording below).
  *
  * Entirely separate from send-download-email.ts (the customer's own
- * download-link email) and from send-admin-notification.ts (the
- * unrelated "an invitation needs your review" owner email) — distinct
- * audience, distinct trigger, distinct template, never merged.
+ * download-link email, sent later, only after an admin confirms payment)
+ * and from send-admin-notification.ts (the unrelated "an invitation needs
+ * your review" owner email) — distinct audience, distinct trigger,
+ * distinct content, never merged.
  *
  * DUPLICATE-SEND PROTECTION (two layers, only the first is authoritative):
  * 1. order_notification_claims (order_id, notification_key) primary key —
  *    the real guard. This function's first write is an INSERT into that
  *    table; Postgres enforces the composite primary key atomically, so if
- *    two requests for the same order race each other, exactly one INSERT
- *    can ever succeed and the other fails deterministically with SQLSTATE
- *    23505 (unique_violation), observed here as
- *    error.code === "23505". That failing request returns immediately
- *    without ever calling Resend — no read-then-write window exists for
- *    it to slip through, unlike a "check timeline, then later record
- *    timeline" approach, which two concurrent requests can both pass the
- *    check on before either has recorded anything.
- * 2. OrderDetailPage's own timeline check (ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL,
- *    see OrdersContext.tsx) is a fast, human-readable UI-level guard for
- *    the common refresh/reopen case — it is not what closes the real race,
- *    the claim row above is.
+ *    two requests for the same order race each other (browser retry,
+ *    network retry, duplicate fetch), exactly one INSERT can ever succeed
+ *    and the other fails deterministically with SQLSTATE 23505
+ *    (unique_violation), observed here as error.code === "23505". That
+ *    failing request returns immediately without ever calling Resend.
+ * 2. OrdersContext.createOrder()'s own timeline record
+ *    (ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL) is a human-readable record
+ *    of a real send, written only after this endpoint confirms one — it is
+ *    not itself a duplicate-send guard, the claim row above is.
  * If the Resend send itself fails after a successful claim, the claim row
- * is deleted before returning an error, so a genuine retry (not a race,
- * an actual subsequent attempt after a real failure) is not permanently
+ * is deleted before returning an error, so a genuine subsequent attempt
+ * (not a race, an actual retry after a real failure) is not permanently
  * blocked by a claim for a notification that was never actually sent.
  *
- * Recipient resolution: admin_profiles rows with
- * notification_preferences->>'payment_confirmed' = 'true'. admin_profiles
- * has no email column (see list_admin_profiles()) — email is resolved
- * per-recipient via supabase.auth.admin.getUserById(), a service-role-only
- * capability distinct from list_admin_profiles()'s own RLS-gated RPC
- * (which requires a real auth.uid() this service-role session doesn't
- * have). No admin email is ever exposed to customer-facing code — this
- * function only ever emails opted-in admins, never returns their
- * addresses in its response.
+ * notification_key here ("purchase_submitted") is intentionally distinct
+ * from the admin_profiles.notification_preferences JSONB key
+ * ("payment_confirmed", read below) — order_notification_claims and
+ * notification_preferences are two independent namespaces. The preference
+ * key's literal string value is kept as "payment_confirmed" on purpose
+ * (not renamed to match) so an admin who already opted in keeps working
+ * immediately after this change ships, with no need to re-toggle anything.
  *
- * `contentHtml` is the admin-editable envelope (header/body/button/footer)
- * rendered client-side from the tpl-admin-payment-confirmed Communication
- * Template via renderTemplateToHtml() — this function has no browser
- * access to render templates itself. The order-facts table below is
- * built here from order data re-fetched server-side (never trusted from
- * the client), mirroring send-download-email.ts's own separation between
- * admin-editable content and server-built order info.
+ * Recipient resolution: admin_profiles rows with
+ * notification_preferences->>'payment_confirmed' = 'true' — this now
+ * includes the owner (the frontend's owner-hiding guard was removed; this
+ * query itself never excluded the owner). admin_profiles has no email
+ * column (see list_admin_profiles()) — email is resolved per-recipient via
+ * supabase.auth.admin.getUserById(), a service-role-only capability
+ * distinct from list_admin_profiles()'s own RLS-gated RPC (which requires
+ * a real auth.uid() this service-role session doesn't have). No admin
+ * email is ever exposed to customer-facing code — this function only ever
+ * emails opted-in admins, never returns their addresses in its response.
+ *
+ * The entire email (envelope + order-facts table) is built server-side in
+ * buildEmailDocument() below — unlike the earlier payment-confirmation
+ * version of this endpoint, there is no client-rendered Communication
+ * Template envelope. That's a deliberate simplification: the caller
+ * (OrdersContext.createOrder()) runs on the public checkout page, which
+ * has no access to the admin-only CommunicationTemplatesContext, and the
+ * content here is a small, fixed, prescribed field list rather than
+ * admin-customizable copy.
  *
  * Deliberately self-contained (no imports from src/): cross-directory
  * imports out of api/ previously broke a deployed function at runtime
@@ -58,14 +69,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 const SITE_URL = "https://r-aqim.com";
-const NOTIFICATION_KEY = "payment_confirmed";
-
-const ORDER_STATUS_LABELS: Record<string, string> = {
-  paid: "مدفوع",
-  pending: "قيد الانتظار",
-  refunded: "مسترجع",
-  cancelled: "ملغي",
-};
+const NOTIFICATION_KEY = "purchase_submitted";
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   confirmed: "مؤكد",
@@ -81,30 +85,43 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function formatSubmittedAt(iso: string | null): string {
+  if (!iso) return "غير متوفر";
+  try {
+    return new Date(iso).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return "غير متوفر";
+  }
+}
+
 function buildEmailDocument(params: {
-  contentRows: string;
   orderId: string;
   customerName: string;
   customerEmail: string;
   productName: string;
+  purchaseType: string;
   amount: string;
   paymentMethod: string;
+  transactionReference: string;
+  submittedAt: string;
   paymentStatusLabel: string;
-  orderStatusLabel: string;
-  downloadEmailSent: boolean;
+  hasReceiptFile: boolean;
+  customerNotes: string;
   orderUrl: string;
 }): string {
   const {
-    contentRows,
     orderId,
     customerName,
     customerEmail,
     productName,
+    purchaseType,
     amount,
     paymentMethod,
+    transactionReference,
+    submittedAt,
     paymentStatusLabel,
-    orderStatusLabel,
-    downloadEmailSent,
+    hasReceiptFile,
+    customerNotes,
     orderUrl,
   } = params;
 
@@ -124,7 +141,7 @@ function buildEmailDocument(params: {
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="color-scheme" content="light" />
-<title>تم تأكيد دفع طلب — رقيم</title>
+<title>عملية شراء جديدة — رقيم</title>
 </head>
 <body style="margin:0;padding:0;background-color:#fbf6ed;" dir="rtl">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fbf6ed;">
@@ -139,20 +156,27 @@ function buildEmailDocument(params: {
             </td>
           </tr>
 
-          ${contentRows}
+          <tr>
+            <td style="padding:28px 40px 8px;font-family:Tahoma,Arial,sans-serif;">
+              <p style="margin:0;color:#2c2420;font-size:16px;font-weight:700;">تم استلام بيانات عملية شراء جديدة من أحد العملاء.</p>
+            </td>
+          </tr>
 
           <tr>
             <td style="padding:8px 40px 20px;font-family:Tahoma,Arial,sans-serif;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f1e9da;border-radius:10px;">
-                ${row("رقم الطلب", orderId)}
-                ${row("العميلة", customerName)}
+                ${row("اسم العميل", customerName)}
                 ${row("البريد الإلكتروني", customerEmail)}
-                ${row("المنتج", productName)}
-                ${row("المبلغ", amount)}
+                ${row("رقم الطلب", orderId)}
+                ${row("اسم الكتاب / المنتج", productName)}
+                ${row("نوع الشراء", purchaseType)}
+                ${row("مبلغ الطلب", amount)}
                 ${row("طريقة الدفع", paymentMethod)}
-                ${row("حالة الدفع", paymentStatusLabel)}
-                ${row("حالة الطلب", orderStatusLabel)}
-                ${row("بريد رابط التحميل للعميلة", downloadEmailSent ? "تم الإرسال بنجاح" : "لم يُرسل")}
+                ${row("رقم العملية / المرجع", transactionReference)}
+                ${row("تاريخ ووقت إرسال بيانات الدفع", submittedAt)}
+                ${row("حالة الدفع الحالية", paymentStatusLabel)}
+                ${row("هل يوجد إيصال مرفوع", hasReceiptFile ? "نعم" : "لا")}
+                ${row("ملاحظات العميل", customerNotes)}
               </table>
             </td>
           </tr>
@@ -160,7 +184,7 @@ function buildEmailDocument(params: {
           <tr>
             <td align="center" style="padding:0 40px 36px;font-family:Tahoma,Arial,sans-serif;">
               <a href="${orderUrl}" style="display:inline-block;background-color:#b99451;color:#ffffff;text-decoration:none;font-size:13.5px;font-weight:700;padding:12px 28px;border-radius:999px;">
-                فتح الطلب في لوحة التحكم
+                عرض الطلب في لوحة التحكم
               </a>
             </td>
           </tr>
@@ -185,14 +209,13 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const { orderId, contentHtml, downloadEmailSent } = (req.body ?? {}) as {
+  const { orderId, hasReceiptFile } = (req.body ?? {}) as {
     orderId?: string;
-    contentHtml?: string;
-    downloadEmailSent?: boolean;
+    hasReceiptFile?: boolean;
   };
 
-  if (!orderId || !contentHtml) {
-    res.status(400).json({ error: "Missing required fields: orderId, contentHtml" });
+  if (!orderId) {
+    res.status(400).json({ error: "Missing required field: orderId" });
     return;
   }
 
@@ -214,11 +237,13 @@ export default async function handler(req: any, res: any) {
   // Authoritative order facts — never trusted from the client.
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("id, customer_name, customer_email, status, payment_status, payment_method, items, discount")
+    .select(
+      "id, created_at, customer_name, customer_email, payment_status, payment_method, transaction_id, customer_notes, items, discount"
+    )
     .eq("id", orderId)
     .maybeSingle();
   if (orderError) {
-    console.error("Failed to load order for admin payment notification:", orderError);
+    console.error("Failed to load order for admin purchase notification:", orderError);
     res.status(500).json({ error: "Could not load the order." });
     return;
   }
@@ -238,7 +263,7 @@ export default async function handler(req: any, res: any) {
       res.status(200).json({ ok: true, alreadySent: true });
       return;
     }
-    console.error("Failed to claim admin payment notification:", claimError);
+    console.error("Failed to claim admin purchase notification:", claimError);
     res.status(500).json({ error: "Could not claim the notification." });
     return;
   }
@@ -249,10 +274,11 @@ export default async function handler(req: any, res: any) {
       .delete()
       .eq("order_id", orderId)
       .eq("notification_key", NOTIFICATION_KEY);
-    if (error) console.error("Failed to release admin payment notification claim after send failure:", error);
+    if (error) console.error("Failed to release admin purchase notification claim after send failure:", error);
   };
 
   try {
+    // Deliberately still keyed "payment_confirmed" — see file header.
     const { data: recipients, error: recipientsError } = await supabase
       .from("admin_profiles")
       .select("id")
@@ -290,16 +316,18 @@ export default async function handler(req: any, res: any) {
 
     const orderUrl = `${SITE_URL}/admin/orders/${order.id}`;
     const html = buildEmailDocument({
-      contentRows: contentHtml,
       orderId: order.id,
       customerName: order.customer_name ?? "غير متوفر",
       customerEmail: order.customer_email ?? "غير متوفر",
       productName,
+      purchaseType: "كتاب رقمي",
       amount: `$${amount.toFixed(2)}`,
       paymentMethod: order.payment_method ?? "غير متوفر",
+      transactionReference: order.transaction_id ?? "غير متوفر",
+      submittedAt: formatSubmittedAt(order.created_at),
       paymentStatusLabel: (order.payment_status && PAYMENT_STATUS_LABELS[order.payment_status]) ?? "غير متوفر",
-      orderStatusLabel: ORDER_STATUS_LABELS[order.status] ?? order.status,
-      downloadEmailSent: Boolean(downloadEmailSent),
+      hasReceiptFile: Boolean(hasReceiptFile),
+      customerNotes: order.customer_notes ?? "لا توجد ملاحظات",
       orderUrl,
     });
 
@@ -312,7 +340,7 @@ export default async function handler(req: any, res: any) {
       body: JSON.stringify({
         from: fromEmail,
         to: emails,
-        subject: `تم تأكيد دفع الطلب #${order.id} — رقيم`,
+        subject: "🔔 عملية شراء جديدة — رقيم",
         html,
       }),
     });
@@ -327,7 +355,7 @@ export default async function handler(req: any, res: any) {
 
     res.status(200).json({ ok: true });
   } catch (err) {
-    console.error("Failed to send admin payment notification:", err);
+    console.error("Failed to send admin purchase notification:", err);
     await releaseClaim();
     res.status(502).json({ error: "Could not reach the email provider." });
   }

@@ -101,6 +101,7 @@ const PaymentMethodPage: React.FC = () => {
         },
       ],
       discount: product.newPrice - discountedPrice,
+      hasReceiptFile: Boolean(values.receiptFile),
     });
 
     if (values.receiptFile) {

@@ -21,9 +21,15 @@ export interface AdminNotificationPreferences {
   [key: string]: boolean | undefined;
 }
 
-/** The one notification key this phase actually implements — shared so the
- * write call (setNotificationPreference) and every read never risk typo
- * drift against each other. */
+/** The one notification key currently implemented — controls whether an
+ * admin receives the "purchase submitted" email (api/send-admin-payment-
+ * notification.ts), fired when a customer's order is first created, not
+ * when payment is later confirmed. The literal string value is
+ * deliberately kept as "payment_confirmed" (not renamed to match the
+ * corrected meaning) so an administrator who already opted in keeps
+ * working immediately, with no need to re-toggle anything — this constant
+ * is shared so the write call (setNotificationPreference) and every read
+ * never risk typo drift against each other. */
 export const PAYMENT_CONFIRMED_NOTIFICATION_KEY = "payment_confirmed";
 
 /** One admin_profiles row, with email resolved server-side (admin_profiles

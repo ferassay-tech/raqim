@@ -306,12 +306,15 @@ export default function AdminUsersPage() {
     },
     {
       key: "notifications",
-      header: "إشعار تأكيد الدفع",
+      header: "إشعارات عمليات الشراء",
       render: (p) => {
         // Extensible by design (AdminNotificationPreferences) — this is the
-        // one notification type Phase 7 actually implements; a future type
-        // is a new key + a new column/toggle here, not a schema change.
-        if (p.role === "owner") return null;
+        // one notification type currently implemented; a future type is a
+        // new key + a new column/toggle here, not a schema change. The
+        // owner is deliberately NOT hidden from this column — the RPC
+        // itself never excluded the owner as a target, only this
+        // component's earlier rendering did; the owner must be selectable
+        // like any other administrator.
         const enabled = p.notificationPreferences[PAYMENT_CONFIRMED_NOTIFICATION_KEY] === true;
         if (!isOwner) {
           return (
@@ -333,13 +336,13 @@ export default function AdminUsersPage() {
                   p.id,
                   () => setNotificationPreference(p.id, PAYMENT_CONFIRMED_NOTIFICATION_KEY, e.target.checked),
                   e.target.checked
-                    ? `تم تفعيل إشعارات تأكيد الدفع لـ${p.name}.`
-                    : `تم إيقاف إشعارات تأكيد الدفع لـ${p.name}.`
+                    ? `تم تفعيل إشعارات عمليات الشراء لـ${p.name}.`
+                    : `تم إيقاف إشعارات عمليات الشراء لـ${p.name}.`
                 )
               }
               className="h-4 w-4 rounded border-beige accent-gold-deep"
             />
-            تنبيه بالبريد
+            تلقي إشعارات عمليات الشراء
           </label>
         );
       },

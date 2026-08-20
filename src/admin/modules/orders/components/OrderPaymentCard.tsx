@@ -9,27 +9,18 @@ import { useAuth } from "@/admin/context/AuthContext";
 import { can } from "@/admin/lib/permissions";
 import { PaymentMethodBadge } from "./PaymentMethodBadge";
 
-/** The outcome of the separate admin-payment-notification step — reported
- * alongside (never merged into) the customer-email outcome below. "failed"
- * is the only case surfaced to the admin (a quiet warning suffix); "sent"/
- * "already-sent"/"skipped" need no admin action so they're silent. */
-export type AdminNotificationOutcome =
-  | { status: "sent" }
-  | { status: "already-sent" }
-  | { status: "skipped" }
-  | { status: "failed"; reason: string };
-
 /** The full outcome of one Confirm Payment click, including the
  * token/email orchestration OrderDetailPage performs after the payment
  * itself is confirmed — communicated back here purely for feedback
- * display, never re-derived or duplicated. adminNotification is absent
- * for "already-confirmed"/"error" — those paths never attempt a
- * notification (no real confirmation just happened). */
+ * display, never re-derived or duplicated. No longer carries any admin-
+ * notification outcome: that notification now fires earlier, from
+ * OrdersContext.createOrder() when the customer's order is first
+ * submitted, entirely independent of this confirm-payment flow. */
 export type ConfirmPaymentFlowResult =
   | { status: "already-confirmed" }
-  | { status: "confirmed-email-sent"; adminNotification: AdminNotificationOutcome }
-  | { status: "confirmed-no-email"; reason: string; adminNotification: AdminNotificationOutcome }
-  | { status: "confirmed-email-failed"; reason: string; adminNotification: AdminNotificationOutcome }
+  | { status: "confirmed-email-sent" }
+  | { status: "confirmed-no-email"; reason: string }
+  | { status: "confirmed-email-failed"; reason: string }
   | { status: "error"; message: string };
 
 interface OrderPaymentCardProps {
@@ -59,33 +50,18 @@ export function OrderPaymentCard({ order, onStatusChange, onConfirmPayment }: Or
     setConfirmFeedback(null);
     const result = await onConfirmPayment();
     setIsConfirming(false);
-    // Only "failed" ever needs surfacing — "sent"/"already-sent"/"skipped"
-    // require no admin action, so they stay silent rather than adding noise
-    // to a message that's already communicating the (separate) email result.
-    const notificationFailed =
-      "adminNotification" in result && result.adminNotification.status === "failed";
-    const notificationSuffix = notificationFailed ? " لكن تعذّر إرسال إشعار الإدارة." : "";
     switch (result.status) {
       case "already-confirmed":
         setConfirmFeedback({ tone: "success", message: "تم تأكيد الدفع مسبقًا لهذا الطلب." });
         break;
       case "confirmed-email-sent":
-        setConfirmFeedback({
-          tone: notificationFailed ? "warning" : "success",
-          message: `تم تأكيد الدفع وإرسال بريد التحميل إلى العميلة بنجاح.${notificationSuffix}`,
-        });
+        setConfirmFeedback({ tone: "success", message: "تم تأكيد الدفع وإرسال بريد التحميل إلى العميلة بنجاح." });
         break;
       case "confirmed-no-email":
-        setConfirmFeedback({
-          tone: notificationFailed ? "warning" : "success",
-          message: `تم تأكيد الدفع. ${result.reason}${notificationSuffix}`,
-        });
+        setConfirmFeedback({ tone: "success", message: `تم تأكيد الدفع. ${result.reason}` });
         break;
       case "confirmed-email-failed":
-        setConfirmFeedback({
-          tone: "warning",
-          message: `تم تأكيد الدفع، لكن تعذّر إرسال بريد التحميل. ${result.reason}${notificationSuffix}`,
-        });
+        setConfirmFeedback({ tone: "warning", message: `تم تأكيد الدفع، لكن تعذّر إرسال بريد التحميل. ${result.reason}` });
         break;
       case "error":
         setConfirmFeedback({ tone: "error", message: result.message });

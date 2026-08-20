@@ -1,14 +1,10 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Reveal } from "@/components/motion-primitives";
-import {
-  useOrders,
-  EMAIL_SENT_TIMELINE_LABEL,
-  ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL,
-} from "@/admin/context/OrdersContext";
+import { useOrders, EMAIL_SENT_TIMELINE_LABEL } from "@/admin/context/OrdersContext";
 import { useDownloads } from "@/admin/context/DownloadsContext";
 import { useLibrary } from "@/admin/context/LibraryContext";
 import { useCommunicationTemplates } from "@/admin/context/CommunicationTemplatesContext";
-import { DOWNLOAD_EMAIL_TEMPLATE_ID, ADMIN_PAYMENT_NOTIFICATION_TEMPLATE_ID } from "@/admin/data/communicationTemplatesData";
+import { DOWNLOAD_EMAIL_TEMPLATE_ID } from "@/admin/data/communicationTemplatesData";
 import { renderTemplateToHtml } from "@/admin/modules/communications/utils/renderTemplateToHtml";
 import { getEmailProvider } from "@/admin/services/email";
 import { ORDER_STATUS_META } from "@/admin/lib/orderStatus";
@@ -17,7 +13,7 @@ import { StatusBadge } from "@/admin/components/ui/StatusBadge";
 import { OrderItemsCard } from "../components/OrderItemsCard";
 import { OrderCustomerCard } from "../components/OrderCustomerCard";
 import { OrderPaymentCard } from "../components/OrderPaymentCard";
-import type { ConfirmPaymentFlowResult, AdminNotificationOutcome } from "../components/OrderPaymentCard";
+import type { ConfirmPaymentFlowResult } from "../components/OrderPaymentCard";
 import { OrderTimelineCard } from "../components/OrderTimelineCard";
 import { OrderDownloadsCard } from "../components/OrderDownloadsCard";
 import { OrderAttachmentsCard } from "../components/OrderAttachmentsCard";
@@ -26,77 +22,31 @@ import { IconBag, IconChevronStart } from "@/admin/icons";
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getOrder, setOrderStatus, addNote, confirmPayment, recordEmailSent, recordAdminNotificationSent } =
-    useOrders();
+  const { getOrder, setOrderStatus, addNote, confirmPayment, recordEmailSent } = useOrders();
   const { getTokensForOrder, generateToken } = useDownloads();
   const { getFilesForBook } = useLibrary();
   const { resolveTemplateForSending } = useCommunicationTemplates();
   const order = id ? getOrder(id) : undefined;
 
   /**
-   * Attempts the admin payment-confirmation notification — a completely
-   * separate email operation from the customer download email above,
-   * never merged with it. Always attempted once a real confirmation just
-   * happened, regardless of how the customer-email step went (sent,
-   * skipped, or failed) — the payment event itself is what's being
-   * reported, not the email outcome. Failure here never affects the
-   * customer-email result already computed by the caller; it's reported
-   * back independently so OrderPaymentCard can show "...لكن تعذّر إرسال
-   * إشعار الإدارة." without touching the customer-email message.
-   * The real duplicate-send guard is the DB-level claim in
-   * api/send-admin-payment-notification.ts (order_notification_claims);
-   * the timeline check below is only a fast, human-readable UI-level
-   * skip for the common refresh/reopen case.
-   */
-  const attemptAdminNotification = async (downloadEmailSent: boolean): Promise<AdminNotificationOutcome> => {
-    if (!order) return { status: "failed", reason: "الطلب غير موجود." };
-    if (order.timeline.some((event) => event.label === ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL)) {
-      return { status: "already-sent" };
-    }
-
-    const template = resolveTemplateForSending(ADMIN_PAYMENT_NOTIFICATION_TEMPLATE_ID);
-    if (!template) {
-      return { status: "failed", reason: "قالب إشعار الإدارة غير موجود." };
-    }
-
-    const orderUrl = `${window.location.origin}/admin/orders/${order.id}`;
-    const sectionsWithRealLink = template.draft.map((section) =>
-      section.type === "button" ? { ...section, fields: { ...section.fields, url: orderUrl } } : section
-    );
-    const contentHtml = renderTemplateToHtml(sectionsWithRealLink);
-
-    try {
-      const response = await fetch("/api/send-admin-payment-notification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.id, contentHtml, downloadEmailSent }),
-      });
-      const body = await response.json().catch(() => null);
-      if (!response.ok) {
-        return { status: "failed", reason: body?.error ?? "تعذّر إرسال إشعار الإدارة." };
-      }
-      if (body?.alreadySent) return { status: "already-sent" };
-      if (body?.skippedNoRecipients) return { status: "skipped" };
-      recordAdminNotificationSent(order.id);
-      return { status: "sent" };
-    } catch (error) {
-      console.error("Failed to send admin payment notification:", error);
-      return { status: "failed", reason: "تعذّر إرسال إشعار الإدارة." };
-    }
-  };
-
-  /**
    * Orchestrates Confirm Payment end-to-end: confirm → (reuse existing
    * active token, or mint one via the exact same generateToken() call
    * OrderDownloadsCard's own effect uses) → send the exact same download
-   * email OrderDownloadsCard's own button sends → attempt the separate
-   * admin notification. Lives here, not in OrdersContext, because it needs
-   * Downloads/Library/CommunicationTemplates — contexts OrdersProvider is
-   * mounted above in AdminProviders and so cannot itself depend on.
-   * OrderDownloadsCard is intentionally never modified: its own effect
-   * already checks `!activeToken` before minting, so once this handler
-   * mints a token the shared DownloadsContext state updates and that
-   * effect naturally skips minting a second one — no duplicate-token race.
+   * email OrderDownloadsCard's own button sends. Lives here, not in
+   * OrdersContext, because it needs Downloads/Library/CommunicationTemplates
+   * — contexts OrdersProvider is mounted above in AdminProviders and so
+   * cannot itself depend on. OrderDownloadsCard is intentionally never
+   * modified: its own effect already checks `!activeToken` before minting,
+   * so once this handler mints a token the shared DownloadsContext state
+   * updates and that effect naturally skips minting a second one — no
+   * duplicate-token race.
+   *
+   * Deliberately does NOT trigger any admin notification — the admin
+   * purchase notification now fires once, earlier, from
+   * OrdersContext.createOrder() at the moment the customer's order is
+   * first persisted. Confirming payment here only ever affects the
+   * customer's own download email, exactly as it did before that
+   * notification existed.
    */
   const handleConfirmPayment = async (): Promise<ConfirmPaymentFlowResult> => {
     if (!order) return { status: "error", message: "الطلب غير موجود." };
@@ -115,8 +65,7 @@ export default function OrderDetailPage() {
     // is ever searched for, and that couldn't have been added by the
     // confirm step itself.
     if (order.timeline.some((event) => event.label === EMAIL_SENT_TIMELINE_LABEL)) {
-      const adminNotification = await attemptAdminNotification(false);
-      return { status: "confirmed-no-email", reason: "تم إرسال بريد التحميل مسبقًا لهذا الطلب.", adminNotification };
+      return { status: "confirmed-no-email", reason: "تم إرسال بريد التحميل مسبقًا لهذا الطلب." };
     }
 
     const seen = new Set<string>();
@@ -129,12 +78,7 @@ export default function OrderDetailPage() {
     );
 
     if (linkedFiles.length === 0) {
-      const adminNotification = await attemptAdminNotification(false);
-      return {
-        status: "confirmed-no-email",
-        reason: "لا توجد ملفات رقمية مرتبطة بهذا الطلب لإرسالها.",
-        adminNotification,
-      };
+      return { status: "confirmed-no-email", reason: "لا توجد ملفات رقمية مرتبطة بهذا الطلب لإرسالها." };
     }
 
     const existingActiveToken = getTokensForOrder(order.id).find((token) => !token.disabled) ?? null;
@@ -143,11 +87,9 @@ export default function OrderDetailPage() {
       // minting (see downloadTokensRepository.ts) — an already-existing
       // token from an earlier session has no recoverable link here, so
       // this deliberately does not fabricate a broken email.
-      const adminNotification = await attemptAdminNotification(false);
       return {
         status: "confirmed-no-email",
         reason: "يوجد رابط تحميل نشط بالفعل — استخدمي قسم «التحميلات» أدناه لإرساله.",
-        adminNotification,
       };
     }
 
@@ -160,14 +102,12 @@ export default function OrderDetailPage() {
       rawToken = minted.rawToken;
     } catch (error) {
       console.error("Failed to generate download token during payment confirmation:", error);
-      const adminNotification = await attemptAdminNotification(false);
-      return { status: "confirmed-email-failed", reason: "تعذّر توليد رابط التحميل.", adminNotification };
+      return { status: "confirmed-email-failed", reason: "تعذّر توليد رابط التحميل." };
     }
 
     const template = resolveTemplateForSending(DOWNLOAD_EMAIL_TEMPLATE_ID);
     if (!template) {
-      const adminNotification = await attemptAdminNotification(false);
-      return { status: "confirmed-email-failed", reason: "قالب رابط التحميل غير موجود.", adminNotification };
+      return { status: "confirmed-email-failed", reason: "قالب رابط التحميل غير موجود." };
     }
 
     const downloadUrl = `${window.location.origin}/download/${rawToken}`;
@@ -177,7 +117,6 @@ export default function OrderDetailPage() {
     const contentHtml = renderTemplateToHtml(sectionsWithRealLink);
     const book = order.items[0];
 
-    let downloadEmailSent = false;
     try {
       await getEmailProvider("resend").sendDownloadEmail({
         to: order.customerEmail,
@@ -189,22 +128,16 @@ export default function OrderDetailPage() {
         maxDownloads: null,
         expiresAt: null,
       });
-      downloadEmailSent = true;
     } catch (error) {
       // Payment confirmation itself already succeeded and is not rolled
       // back — only the email step failed.
       console.error("Failed to send download email during payment confirmation:", error);
+      return { status: "confirmed-email-failed", reason: "حدث خطأ أثناء إرسال البريد الإلكتروني." };
     }
 
-    if (downloadEmailSent) {
-      // Recorded only after the send actually succeeded.
-      recordEmailSent(order.id);
-      const adminNotification = await attemptAdminNotification(true);
-      return { status: "confirmed-email-sent", adminNotification };
-    }
-
-    const adminNotification = await attemptAdminNotification(false);
-    return { status: "confirmed-email-failed", reason: "حدث خطأ أثناء إرسال البريد الإلكتروني.", adminNotification };
+    // Recorded only after the send actually succeeded.
+    recordEmailSent(order.id);
+    return { status: "confirmed-email-sent" };
   };
 
   if (!order) {

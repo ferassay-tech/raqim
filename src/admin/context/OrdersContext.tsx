@@ -16,20 +16,31 @@ export interface CreateOrderInput {
   customerNotes?: string | null;
   items: OrderItem[];
   discount?: number;
+  /** Whether the customer selected a receipt file at checkout — purely
+   * informational, passed straight into the admin purchase-notification
+   * email (see createOrder below). Reflects intent to attach, not confirmed
+   * upload success: the actual upload is a separate async step
+   * (PaymentMethodPage.attemptAttachmentUpload) that must never delay or
+   * gate this notification. */
+  hasReceiptFile?: boolean;
 }
 
 /** Fixed, matched exactly by the idempotency check in OrderDetailPage
  * before ever attempting to auto-send the download email a second time. */
 export const EMAIL_SENT_TIMELINE_LABEL = "تم إرسال بريد رابط التحميل للعميلة";
 
-/** Separate from EMAIL_SENT_TIMELINE_LABEL on purpose — a different
- * audience/event (admin notification, not the customer download email).
- * This is a human-readable, client-side fast-path check only; the
- * authoritative duplicate-send guard is the DB-level claim in
- * order_notification_claims (see api/send-admin-payment-notification.ts,
- * migration 20260819130001), which is what actually closes the concurrent
- * race this check alone cannot. */
-export const ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL = "تم إرسال إشعار تأكيد الدفع للإدارة";
+/** The admin "purchase notification" timeline event — fired once
+ * createOrder()'s fire-and-forget call to /api/send-admin-payment-notification
+ * resolves with a genuine send (not an already-claimed/no-recipients
+ * no-op). This label previously represented a "payment confirmed"
+ * notification; it now represents the corrected event — a customer
+ * submitting their payment information — repurposed rather than
+ * duplicated per the corrected business requirement. This is a
+ * human-readable, client-side record only; the authoritative duplicate-
+ * send guard is the DB-level claim in order_notification_claims (see
+ * api/send-admin-payment-notification.ts), which is what actually closes
+ * the concurrent race this label alone cannot. */
+export const ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL = "تم إرسال إشعار عملية الشراء للإدارة";
 
 export interface ConfirmPaymentOutcome {
   ok: boolean;
@@ -56,13 +67,6 @@ interface OrdersContextValue {
   /** Records the one, fixed-label "download email sent" timeline event —
    * called only after a real send succeeds (see OrderDetailPage). */
   recordEmailSent: (id: string) => void;
-  /** Records the one, fixed-label "admin notification sent" timeline event
-   * — a distinct entry from recordEmailSent, called only after the new
-   * admin-notification endpoint confirms a real send (not an
-   * already-claimed no-op). Purely the human-readable record; see
-   * ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL for why this alone isn't the
-   * duplicate-send guard. */
-  recordAdminNotificationSent: (id: string) => void;
   loadError: string | null;
   reload: () => void;
 }
@@ -143,6 +147,47 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     };
     await insertOrder(orderToSupabaseRow(order));
     setOrders((prev) => [order, ...prev]);
+
+    // Fire-and-forget admin purchase notification — triggered because the
+    // order was just successfully persisted, not because payment was
+    // confirmed (that's a separate, later, independent event handled
+    // entirely by confirmPayment/OrderDetailPage). Never awaited, never
+    // allowed to affect createOrder()'s own resolution: a checkout must
+    // succeed for the customer regardless of whether this notification
+    // succeeds, fails, or is a legitimate no-op (already claimed/no
+    // recipients). Deliberately inlined here rather than reusing a shared
+    // "recordX" callback: those close over the live `orders` state via
+    // useCallback deps, and createOrder's own `[]` deps would capture a
+    // stale (seed-data) version of such a callback — building the
+    // timeline update from the `order`/`id` already in this scope avoids
+    // that trap entirely.
+    void fetch("/api/send-admin-payment-notification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: id, hasReceiptFile: input.hasReceiptFile ?? false }),
+    })
+      .then(async (response) => {
+        const body = await response.json().catch(() => null);
+        // Only a genuine send gets the timeline record — an already-
+        // claimed or no-recipients response is a legitimate no-op, not an
+        // event that happened.
+        if (!response.ok || body?.alreadySent || body?.skippedNoRecipients) return;
+        const timeline: OrderTimelineEvent[] = [
+          ...order.timeline,
+          {
+            id: `${id}-t${order.timeline.length}`,
+            label: ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL,
+            time: `اليوم، ${now()}`,
+            tone: "success",
+          },
+        ];
+        await ordersRepository.update(id, { timeline });
+        setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, timeline } : o)));
+      })
+      .catch((error) => {
+        console.error("Failed to send admin purchase notification:", error);
+      });
+
     return order;
   }, []);
 
@@ -226,31 +271,6 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     [orders]
   );
 
-  const recordAdminNotificationSent = useCallback(
-    (id: string) => {
-      const current = orders.find((o) => o.id === id);
-      if (!current) return;
-      const timeline: OrderTimelineEvent[] = [
-        ...current.timeline,
-        {
-          id: `${id}-t${current.timeline.length}`,
-          label: ADMIN_NOTIFICATION_SENT_TIMELINE_LABEL,
-          time: `اليوم، ${now()}`,
-          tone: "success",
-        },
-      ];
-      void ordersRepository
-        .update(id, { timeline })
-        .then(() => {
-          setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, timeline } : o)));
-        })
-        .catch((error) => {
-          console.error("Failed to record admin-notification timeline event:", error);
-        });
-    },
-    [orders]
-  );
-
   const setOrdersStatus = useCallback(
     (ids: string[], status: OrderStatus) => {
       for (const id of ids) setOrderStatus(id, status);
@@ -288,7 +308,6 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       addNote,
       confirmPayment,
       recordEmailSent,
-      recordAdminNotificationSent,
       loadError,
       reload,
     }),
@@ -301,7 +320,6 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       addNote,
       confirmPayment,
       recordEmailSent,
-      recordAdminNotificationSent,
       loadError,
       reload,
     ]
