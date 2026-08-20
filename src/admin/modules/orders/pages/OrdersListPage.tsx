@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOrders } from "@/admin/context/OrdersContext";
+import { useAdminUsers } from "@/admin/context/AdminUsersContext";
 import type { AdminOrder, OrderStatus } from "@/admin/types/order";
-import { ORDER_TOTAL } from "@/admin/types/order";
+import { ORDER_TOTAL, isActiveOrder, isTrashedOrder } from "@/admin/types/order";
 import { ORDER_STATUS_META, ORDER_STATUS_OPTIONS } from "@/admin/lib/orderStatus";
 import { PageHeader } from "@/admin/components/ui/PageHeader";
 import { SearchInput } from "@/admin/components/ui/SearchInput";
@@ -13,7 +14,8 @@ import { Pagination } from "@/admin/components/ui/Pagination";
 import { EmptyState } from "@/admin/components/ui/EmptyState";
 import { StatusBadge } from "@/admin/components/ui/StatusBadge";
 import { BulkActionBar } from "@/admin/components/ui/BulkActionBar";
-import { IconArchive, IconBag, IconCheck } from "@/admin/icons";
+import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
+import { IconArchive, IconBag, IconCheck, IconRefresh, IconTrash } from "@/admin/icons";
 import { useHasPermission } from "@/admin/lib/useHasPermission";
 import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
 import { PaymentMethodBadge } from "../components/PaymentMethodBadge";
@@ -21,6 +23,14 @@ import { paymentMethodList } from "@/config/paymentMethods";
 import type { PaymentMethodId } from "@/config/paymentMethods";
 
 const PAGE_SIZE = 8;
+
+function formatDeletedAt(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
+  } catch {
+    return iso;
+  }
+}
 
 type SortKey = "id" | "customerName" | "total" | "status" | "createdAt";
 
@@ -33,13 +43,23 @@ const SORT_ACCESSORS: Record<SortKey, (o: AdminOrder) => string | number> = {
 };
 
 export default function OrdersListPage() {
-  const { orders, setOrdersStatus, loadError, reload } = useOrders();
+  const { orders, setOrdersStatus, moveOrderToTrash, restoreOrder, permanentlyDeleteOrder, loadError, reload } =
+    useOrders();
+  // The officially-correct owner check — currentUser.role from useAuth()
+  // is documented as unreliable for this specific question (it still
+  // synthesizes "owner" for any authenticated user with no local fallback
+  // match). isOwner here is derived from platform_ownership, matching the
+  // orders_delete_owner RLS predicate exactly.
+  const { isOwner } = useAdminUsers();
   const navigate = useNavigate();
   const hasPermission = useHasPermission();
-  // Order status changes are gated on orders.manage; orders.view (already
-  // required to reach this route) is enough to see every read-only column.
+  // Order status changes and trash/restore are gated on orders.manage;
+  // orders.view (already required to reach this route) is enough to see
+  // every read-only column. Permanent delete is gated separately, on
+  // isOwner, matching orders_delete_owner's own hardcoded owner-only check.
   const canManage = hasPermission("orders.manage");
 
+  const [showTrash, setShowTrash] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<"all" | PaymentMethodId>("all");
@@ -47,6 +67,13 @@ export default function OrdersListPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [trashTarget, setTrashTarget] = useState<AdminOrder | null>(null);
+  const [permanentTarget, setPermanentTarget] = useState<AdminOrder | null>(null);
+  const [storageWarning, setStorageWarning] = useState<string | null>(null);
+
+  const activeOrders = useMemo(() => orders.filter(isActiveOrder), [orders]);
+  const trashedOrders = useMemo(() => orders.filter(isTrashedOrder), [orders]);
+  const scopedOrders = showTrash ? trashedOrders : activeOrders;
 
   const hasActiveFilters = Boolean(search.trim()) || statusFilter !== "all" || paymentMethodFilter !== "all";
 
@@ -58,7 +85,7 @@ export default function OrdersListPage() {
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return orders.filter((o) => {
+    return scopedOrders.filter((o) => {
       const matchesSearch =
         !query ||
         o.id.toLowerCase().includes(query) ||
@@ -73,7 +100,7 @@ export default function OrdersListPage() {
       const matchesPaymentMethod = paymentMethodFilter === "all" || o.paymentMethodId === paymentMethodFilter;
       return matchesSearch && matchesStatus && matchesPaymentMethod;
     });
-  }, [orders, search, statusFilter, paymentMethodFilter]);
+  }, [scopedOrders, search, statusFilter, paymentMethodFilter]);
 
   const sorted = useMemo(() => {
     const accessor = SORT_ACCESSORS[sortKey];
@@ -100,7 +127,7 @@ export default function OrdersListPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, paymentMethodFilter]);
+  }, [search, statusFilter, paymentMethodFilter, showTrash]);
 
   const handleSortChange = (key: string) => {
     if (key === sortKey) {
@@ -122,7 +149,9 @@ export default function OrdersListPage() {
           <p className="text-ink" dir="ltr">
             #{o.id}
           </p>
-          <p className="mt-0.5 text-xs text-ink-faint">{o.createdAt}</p>
+          <p className="mt-0.5 text-xs text-ink-faint">
+            {o.deletedAt ? `حُذف: ${formatDeletedAt(o.deletedAt)}` : o.createdAt}
+          </p>
         </div>
       ),
     },
@@ -171,9 +200,55 @@ export default function OrdersListPage() {
         return <StatusBadge variant={meta.variant}>{meta.label}</StatusBadge>;
       },
     },
+    {
+      key: "actions",
+      header: "",
+      align: "end",
+      render: (o) =>
+        showTrash ? (
+          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => restoreOrder(o.id)}
+                aria-label="استعادة"
+                title="استعادة"
+                className="grid h-8 w-8 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-cream hover:text-ink"
+              >
+                <IconRefresh className="h-4 w-4" />
+              </button>
+            )}
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => setPermanentTarget(o)}
+                aria-label="حذف نهائي"
+                title="حذف نهائي"
+                className="grid h-8 w-8 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-danger/10 hover:text-danger"
+              >
+                <IconTrash className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        ) : (
+          canManage && (
+            <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => setTrashTarget(o)}
+                aria-label="نقل إلى المحذوفات"
+                title="نقل إلى المحذوفات"
+                className="grid h-8 w-8 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-danger/10 hover:text-danger"
+              >
+                <IconTrash className="h-4 w-4" />
+              </button>
+            </div>
+          )
+        ),
+    },
   ];
 
-  const isEmptyCatalog = orders.length === 0;
+  const isEmptyCatalog = scopedOrders.length === 0;
   const isEmptyResults = !isEmptyCatalog && sorted.length === 0;
 
   const bulkStatus = (status: OrderStatus) => {
@@ -181,14 +256,59 @@ export default function OrdersListPage() {
     setSelectedKeys(new Set());
   };
 
+  const handlePermanentDelete = async () => {
+    if (!permanentTarget) return;
+    const target = permanentTarget;
+    setPermanentTarget(null);
+    try {
+      const result = await permanentlyDeleteOrder(target.id);
+      if (result.storageCleanupFailed) {
+        setStorageWarning(
+          `تم حذف الطلب #${target.id} نهائيًا، لكن تعذّر حذف بعض ملفات المرفقات المرتبطة به من التخزين.`
+        );
+      }
+    } catch (error) {
+      console.error("Failed to permanently delete order:", error);
+      setStorageWarning(error instanceof Error ? error.message : `تعذر حذف الطلب #${target.id} نهائيًا.`);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 py-2">
       <PageHeader
         title="الطلبات"
-        description={`${orders.length.toLocaleString("en-US")} طلبًا إجماليًا`}
+        description={`${activeOrders.length.toLocaleString("en-US")} طلبًا إجماليًا`}
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              setShowTrash((v) => !v);
+              setSelectedKeys(new Set());
+            }}
+            className={`rounded-full border px-4 py-2.5 text-sm transition-colors ${
+              showTrash ? "border-ink bg-ink text-ivory" : "border-beige text-ink-soft hover:border-gold hover:text-ink"
+            }`}
+          >
+            المحذوفة ({trashedOrders.length.toLocaleString("en-US")})
+          </button>
+        }
       />
 
       {loadError && <LoadErrorBanner message={loadError} onRetry={reload} />}
+
+      {storageWarning && (
+        <div className="flex items-start justify-between gap-3 rounded-[10px] border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          <p>{storageWarning}</p>
+          <button
+            type="button"
+            onClick={() => setStorageWarning(null)}
+            aria-label="إغلاق"
+            className="shrink-0 text-warning/70 transition-colors hover:text-warning"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <FilterBar>
         <SearchInput
@@ -237,26 +357,32 @@ export default function OrdersListPage() {
 
       {hasActiveFilters && !isEmptyCatalog && (
         <p className="text-xs text-ink-faint">
-          عرض {sorted.length.toLocaleString("en-US")} من {orders.length.toLocaleString("en-US")} طلبًا
+          عرض {sorted.length.toLocaleString("en-US")} من {scopedOrders.length.toLocaleString("en-US")} طلبًا
         </p>
       )}
 
-      <BulkActionBar
-        count={selectedKeys.size}
-        onClear={() => setSelectedKeys(new Set())}
-        actions={
-          canManage
-            ? [
-                { key: "paid", label: "تحديد كمدفوع", icon: IconCheck, onClick: () => bulkStatus("paid") },
-                { key: "refunded", label: "تحديد كمسترجع", icon: IconArchive, onClick: () => bulkStatus("refunded") },
-                { key: "cancelled", label: "إلغاء الطلبات", tone: "danger", onClick: () => bulkStatus("cancelled") },
-              ]
-            : []
-        }
-      />
+      {!showTrash && (
+        <BulkActionBar
+          count={selectedKeys.size}
+          onClear={() => setSelectedKeys(new Set())}
+          actions={
+            canManage
+              ? [
+                  { key: "paid", label: "تحديد كمدفوع", icon: IconCheck, onClick: () => bulkStatus("paid") },
+                  { key: "refunded", label: "تحديد كمسترجع", icon: IconArchive, onClick: () => bulkStatus("refunded") },
+                  { key: "cancelled", label: "إلغاء الطلبات", tone: "danger", onClick: () => bulkStatus("cancelled") },
+                ]
+              : []
+          }
+        />
+      )}
 
       {isEmptyCatalog ? (
-        <EmptyState icon={IconBag} title="لا توجد طلبات بعد" description="ستظهر طلبات العميلات هنا فور ورودها." />
+        <EmptyState
+          icon={IconBag}
+          title={showTrash ? "لا توجد طلبات محذوفة" : "لا توجد طلبات بعد"}
+          description={showTrash ? "الطلبات المحذوفة ستظهر هنا." : "ستظهر طلبات العميلات هنا فور ورودها."}
+        />
       ) : (
         <>
           <DataTable
@@ -298,6 +424,27 @@ export default function OrdersListPage() {
           />
         </>
       )}
+
+      <ConfirmDialog
+        open={Boolean(trashTarget)}
+        title="نقل الطلب إلى المحذوفات"
+        description={`هل تريدين نقل الطلب #${trashTarget?.id ?? ""} إلى المحذوفات؟ يمكنك استعادته لاحقًا، ولن يظهر ضمن الطلبات النشطة أو إحصاءات لوحة التحكم حتى ذلك الحين.`}
+        confirmLabel="نقل إلى المحذوفات"
+        onConfirm={() => {
+          if (trashTarget) moveOrderToTrash(trashTarget.id);
+          setTrashTarget(null);
+        }}
+        onCancel={() => setTrashTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(permanentTarget)}
+        title="حذف نهائي"
+        description={`هل تريدين حذف الطلب #${permanentTarget?.id ?? ""} نهائيًا؟ سيتم حذف كل بياناته المرتبطة (روابط التحميل، المرفقات) ولا يمكن التراجع عن هذا الإجراء.`}
+        confirmLabel="حذف نهائي"
+        onConfirm={handlePermanentDelete}
+        onCancel={() => setPermanentTarget(null)}
+      />
     </div>
   );
 }

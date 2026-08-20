@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Reveal } from "@/components/motion-primitives";
 import { useBooks } from "@/admin/context/BooksContext";
 import { useOrders } from "@/admin/context/OrdersContext";
+import { isActiveOrder } from "@/admin/types/order";
 import { useMessages } from "@/admin/context/MessagesContext";
 import {
   deriveBestSellingBook,
@@ -53,13 +54,20 @@ export default function DashboardPage() {
   // Soft-deleted books are excluded from every dashboard number — they're
   // no longer part of the real catalog, just recoverable from the trash view.
   const books = useMemo(() => allBooks.filter((b) => b.deletedAt === null), [allBooks]);
+  // Same treatment for trashed orders — Trash is a business-state view, not
+  // part of "what's happening today," so it must not inflate revenue,
+  // order counts, Latest Orders, Needs Attention, or the customer count.
+  const activeOrders = useMemo(() => orders.filter(isActiveOrder), [orders]);
 
-  const needsAttention = useMemo(() => deriveNeedsAttention(orders, conversations), [orders, conversations]);
-  const heroMetrics = useMemo(() => deriveHeroMetrics(orders, books), [orders, books]);
+  const needsAttention = useMemo(
+    () => deriveNeedsAttention(activeOrders, conversations),
+    [activeOrders, conversations]
+  );
+  const heroMetrics = useMemo(() => deriveHeroMetrics(activeOrders, books), [activeOrders, books]);
   const secondaryMetrics = useMemo(() => deriveSecondaryMetrics(books), [books]);
   const publishingPipeline = useMemo(() => derivePublishingPipeline(books), [books]);
-  const bestSellingBook = useMemo(() => deriveBestSellingBook(books, orders), [books, orders]);
-  const latestOrders = useMemo(() => deriveLatestOrders(orders), [orders]);
+  const bestSellingBook = useMemo(() => deriveBestSellingBook(books, activeOrders), [books, activeOrders]);
+  const latestOrders = useMemo(() => deriveLatestOrders(activeOrders), [activeOrders]);
   const latestMessages = useMemo(() => deriveLatestMessages(conversations), [conversations]);
 
   const booksMetric = secondaryMetrics.find((m) => m.id === "books")!;

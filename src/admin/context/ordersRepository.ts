@@ -31,6 +31,7 @@ export interface OrderRow {
   items: OrderItem[];
   discount: number;
   timeline: OrderTimelineEvent[];
+  deleted_at: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -50,6 +51,7 @@ export function orderToSupabaseRow(order: AdminOrder): OrderRow {
     items: order.items,
     discount: order.discount,
     timeline: order.timeline,
+    deleted_at: order.deletedAt,
   };
 }
 
@@ -70,6 +72,7 @@ export function orderFromSupabaseRow(row: OrderRow): AdminOrder {
     createdAt: (row.created_at ?? "").slice(0, 10),
     createdAtISO: row.created_at ?? "",
     timeline: row.timeline,
+    deletedAt: row.deleted_at,
   };
 }
 

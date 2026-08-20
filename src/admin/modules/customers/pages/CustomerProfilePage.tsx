@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Reveal } from "@/components/motion-primitives";
 import { useOrders } from "@/admin/context/OrdersContext";
+import { isActiveOrder } from "@/admin/types/order";
 import { useBooks } from "@/admin/context/BooksContext";
 import { deriveCustomer } from "@/admin/lib/deriveCustomers";
 import { CUSTOMER_SEGMENT_META } from "@/admin/types/customer";
@@ -19,7 +20,9 @@ export default function CustomerProfilePage() {
   const navigate = useNavigate();
   const { orders } = useOrders();
   const { books } = useBooks();
-  const customer = id ? deriveCustomer(orders, books, id) : undefined;
+  // Trashed orders must not count toward this customer's order count/total
+  // spent, matching CustomersListPage.tsx's own filter.
+  const customer = id ? deriveCustomer(orders.filter(isActiveOrder), books, id) : undefined;
 
   if (!customer) {
     return (

@@ -65,7 +65,25 @@ export interface AdminOrder {
    * is a database-assigned column, see orderToSupabaseRow). */
   createdAtISO: string;
   timeline: OrderTimelineEvent[];
+  /** Soft-delete marker — mirrors AdminBook.deletedAt exactly. `null` =
+   * active (the default for every order); a timestamp = moved to Trash.
+   * The original record, id, and every other field stay completely
+   * unchanged either way — this is the only field trash/restore ever
+   * write. */
+  deletedAt: string | null;
 }
 
 export const ORDER_TOTAL = (order: Pick<AdminOrder, "items" | "discount">) =>
   order.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) - order.discount;
+
+/** The one shared predicate every active/trash filter site imports —
+ * Orders List, Dashboard, Customers List, Customer Profile, and the
+ * Messages sidebar's customer panel all use this instead of each
+ * re-typing `order.deletedAt === null`. */
+export function isActiveOrder(order: Pick<AdminOrder, "deletedAt">): boolean {
+  return order.deletedAt === null;
+}
+
+export function isTrashedOrder(order: Pick<AdminOrder, "deletedAt">): boolean {
+  return order.deletedAt !== null;
+}

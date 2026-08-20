@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOrders } from "@/admin/context/OrdersContext";
+import { isActiveOrder } from "@/admin/types/order";
 import { useBooks } from "@/admin/context/BooksContext";
 import { deriveCustomers } from "@/admin/lib/deriveCustomers";
 import type { AdminCustomer } from "@/admin/types/customer";
@@ -32,7 +33,10 @@ export default function CustomersListPage() {
   const { books } = useBooks();
   const navigate = useNavigate();
 
-  const customers = useMemo(() => deriveCustomers(orders, books), [orders, books]);
+  // Trashed orders must not count toward a customer's order count/total
+  // spent — Trash is a business-state view, not part of active data.
+  const activeOrders = useMemo(() => orders.filter(isActiveOrder), [orders]);
+  const customers = useMemo(() => deriveCustomers(activeOrders, books), [activeOrders, books]);
 
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("all");

@@ -6,6 +6,7 @@ import { ORDER_STATUS_META } from "../lib/orderStatus";
 import { INITIAL_ORDERS } from "../data/ordersData";
 import { insertOrder, orderFromSupabaseRow, orderToSupabaseRow, ordersRepository } from "./ordersRepository.ts";
 import { useAuth } from "./AuthContext";
+import { getSupabaseClient } from "../../lib/supabaseClient.ts";
 
 export interface CreateOrderInput {
   customerName: string;
@@ -50,6 +51,16 @@ export interface ConfirmPaymentOutcome {
   error?: string;
 }
 
+export interface PermanentDeleteOutcome {
+  /** True when the order row itself (and, via ON DELETE CASCADE, its
+   * download_tokens/order_attachments/order_notification_claims rows)
+   * was successfully deleted but the best-effort Storage file cleanup
+   * that follows it did not fully succeed — see permanentlyDeleteOrder's
+   * own comment for exactly why this can never leave the database
+   * itself in an inconsistent state. */
+  storageCleanupFailed: boolean;
+}
+
 interface OrdersContextValue {
   orders: AdminOrder[];
   getOrder: (id: string) => AdminOrder | undefined;
@@ -67,6 +78,21 @@ interface OrdersContextValue {
   /** Records the one, fixed-label "download email sent" timeline event —
    * called only after a real send succeeds (see OrderDetailPage). */
   recordEmailSent: (id: string) => void;
+  /** Soft delete — sets deletedAt, hides the order from active Orders/
+   * Dashboard/Customers views but keeps it fully intact and recoverable
+   * from the Trash view. Mirrors BooksContext.deleteBook exactly: a plain
+   * UPDATE of one column, plus one timeline entry. Never touches
+   * payment_status, status, transaction_id, or any other field, and never
+   * calls any email/notification/payment endpoint. */
+  moveOrderToTrash: (id: string) => void;
+  /** Clears deletedAt — the exact same record becomes active again, same
+   * id, same every other field. Mirrors BooksContext.restoreBook. */
+  restoreOrder: (id: string) => void;
+  /** Actually removes the record — only ever called from the Trash view,
+   * only ever reachable by the platform owner (orders_delete_owner RLS).
+   * See its own implementation comment for the Storage-cleanup ordering
+   * and failure behavior. */
+  permanentlyDeleteOrder: (id: string) => Promise<PermanentDeleteOutcome>;
   loadError: string | null;
   reload: () => void;
 }
@@ -165,6 +191,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       discount: input.discount ?? 0,
       createdAt: new Date().toISOString().slice(0, 10),
       createdAtISO: new Date().toISOString(),
+      deletedAt: null,
       timeline: [
         { id: `${id}-t0`, label: "تم إنشاء الطلب من المتجر — بانتظار مراجعة الدفع", time: `اليوم، ${now()}`, tone: "default" },
       ],
@@ -295,6 +322,85 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     [orders]
   );
 
+  const moveOrderToTrash = useCallback(
+    (id: string) => {
+      const current = orders.find((o) => o.id === id);
+      if (!current) return;
+      const deletedAt = new Date().toISOString();
+      const timeline: OrderTimelineEvent[] = [
+        ...current.timeline,
+        { id: `${id}-t${current.timeline.length}`, label: "تم نقل الطلب إلى المحذوفات", time: `اليوم، ${now()}`, tone: "warning" },
+      ];
+      void ordersRepository
+        .update(id, { deleted_at: deletedAt, timeline })
+        .then(() => {
+          setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deletedAt, timeline } : o)));
+        })
+        .catch((error) => {
+          console.error("Failed to move order to trash:", error);
+        });
+    },
+    [orders]
+  );
+
+  const restoreOrder = useCallback(
+    (id: string) => {
+      const current = orders.find((o) => o.id === id);
+      if (!current) return;
+      const timeline: OrderTimelineEvent[] = [
+        ...current.timeline,
+        { id: `${id}-t${current.timeline.length}`, label: "تمت استعادة الطلب من المحذوفات", time: `اليوم، ${now()}`, tone: "success" },
+      ];
+      void ordersRepository
+        .update(id, { deleted_at: null, timeline })
+        .then(() => {
+          setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deletedAt: null, timeline } : o)));
+        })
+        .catch((error) => {
+          console.error("Failed to restore order:", error);
+        });
+    },
+    [orders]
+  );
+
+  /**
+   * Only ever called from the Trash view, behind an explicit confirm
+   * dialog. The entire operation — authentication, owner authorization,
+   * attachment-path lookup, the order DELETE itself, and Storage cleanup
+   * — happens server-side in /api/order-attachment-storage-cleanup, after
+   * a security review found an earlier client-supplied-paths version of
+   * that endpoint was an unauthenticated arbitrary-file-delete
+   * vulnerability. This function's only job now is sending the caller's
+   * own current access token (never a client-asserted user id/role) and
+   * the orderId — never any storage path. The server independently
+   * re-derives every authorization decision and every path; see that
+   * file's own header comment for the full, safety-critical step order.
+   */
+  const permanentlyDeleteOrder = useCallback(async (id: string): Promise<PermanentDeleteOutcome> => {
+    const supabase = getSupabaseClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) {
+      throw new Error("لا توجد جلسة نشطة.");
+    }
+
+    const response = await fetch("/api/order-attachment-storage-cleanup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ orderId: id }),
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(body?.error ?? "تعذر حذف الطلب نهائيًا.");
+    }
+
+    setOrders((prev) => prev.filter((o) => o.id !== id));
+    return { storageCleanupFailed: Boolean(body?.storageCleanupFailed) };
+  }, []);
+
   const setOrdersStatus = useCallback(
     (ids: string[], status: OrderStatus) => {
       for (const id of ids) setOrderStatus(id, status);
@@ -332,6 +438,9 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       addNote,
       confirmPayment,
       recordEmailSent,
+      moveOrderToTrash,
+      restoreOrder,
+      permanentlyDeleteOrder,
       loadError,
       reload,
     }),
@@ -344,6 +453,9 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       addNote,
       confirmPayment,
       recordEmailSent,
+      moveOrderToTrash,
+      restoreOrder,
+      permanentlyDeleteOrder,
       loadError,
       reload,
     ]

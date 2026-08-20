@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { AdminConversation } from "@/admin/types/message";
 import { useOrders } from "@/admin/context/OrdersContext";
+import { isActiveOrder } from "@/admin/types/order";
 import { useBooks } from "@/admin/context/BooksContext";
 import { deriveCustomer } from "@/admin/lib/deriveCustomers";
 import { CustomerAvatar } from "@/admin/components/ui/CustomerAvatar";
@@ -15,7 +16,13 @@ interface ConversationCustomerPanelProps {
 export function ConversationCustomerPanel({ conversation }: ConversationCustomerPanelProps) {
   const { orders } = useOrders();
   const { books } = useBooks();
-  const customer = conversation.customerId ? deriveCustomer(orders, books, conversation.customerId) : undefined;
+  // Trashed orders must not count toward this customer's order count/total
+  // spent — otherwise the same customer would show different numbers here
+  // than on their Customer Profile page (CustomerProfilePage.tsx), which
+  // already excludes them.
+  const customer = conversation.customerId
+    ? deriveCustomer(orders.filter(isActiveOrder), books, conversation.customerId)
+    : undefined;
 
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto p-5">
