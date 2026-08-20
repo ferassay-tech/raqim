@@ -1,11 +1,19 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { NeedsAttentionItem, NeedsAttentionSummary } from "@/admin/types/dashboard";
 import { Panel } from "@/admin/components/ui/Panel";
+import { FilterSelect } from "@/admin/components/ui/FilterBar";
 import { IconBag, IconCheck, IconMail } from "@/admin/icons";
 
 interface NeedsAttentionPanelProps {
   summary: NeedsAttentionSummary;
 }
+
+const DISPLAY_COUNT_OPTIONS = [
+  { value: "5", label: "5" },
+  { value: "10", label: "10" },
+  { value: "20", label: "20" },
+];
 
 function itemIcon(kind: NeedsAttentionItem["kind"]) {
   return kind === "order" ? IconBag : IconMail;
@@ -13,14 +21,16 @@ function itemIcon(kind: NeedsAttentionItem["kind"]) {
 
 /**
  * Pending orders and unread conversations, merged into a single list led
- * by whichever has been waiting longest — one transparent rule rather than
- * a hidden priority score, so the lead only changes once it's resolved.
- * Everything else waiting stays visible, just at a quieter visual weight.
+ * by the most recent activity (see deriveNeedsAttention). Unbounded at the
+ * data layer by design — this panel is the one place that decides how
+ * many of them to actually show, via the 5/10/20 control below. Purely a
+ * display concern: it never affects what deriveNeedsAttention() computes
+ * or what's fetched from Supabase.
  */
 export function NeedsAttentionPanel({ summary }: NeedsAttentionPanelProps) {
-  const { lead, rest } = summary;
+  const [displayCount, setDisplayCount] = useState(5);
 
-  if (!lead) {
+  if (!summary.lead) {
     return (
       <Panel>
         <div className="flex items-start gap-4 py-6">
@@ -36,10 +46,20 @@ export function NeedsAttentionPanel({ summary }: NeedsAttentionPanelProps) {
     );
   }
 
+  const [lead, ...rest] = [summary.lead, ...summary.rest].slice(0, displayCount);
   const LeadIcon = itemIcon(lead.kind);
 
   return (
     <Panel>
+      <div className="flex items-center justify-end gap-2">
+        <FilterSelect
+          ariaLabel="عدد عناصر الانتباه المعروضة"
+          value={String(displayCount)}
+          onChange={(value) => setDisplayCount(Number(value))}
+          options={DISPLAY_COUNT_OPTIONS}
+        />
+      </div>
+
       <Link
         to={lead.href}
         className="-mx-2 flex items-start gap-4 rounded-lg px-2 py-6 transition-colors hover:bg-cream/50"

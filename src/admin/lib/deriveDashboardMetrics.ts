@@ -137,10 +137,16 @@ export function deriveLatestMessages(conversations: AdminConversation[], limit =
 
 /**
  * What genuinely needs the admin's action today — orders awaiting
- * confirmation and unread conversations, merged into a single list and
- * led by whichever has been waiting longest. One transparent rule (oldest
- * first) rather than a hidden priority score, so the lead item only ever
- * changes when it's actually resolved — never reshuffles on its own.
+ * confirmation and unread conversations, merged into a single list led by
+ * the most recent activity. Orders sort by `createdAtISO` (full-precision
+ * timestamp, not the date-only `createdAt` — same reasoning as
+ * deriveLatestOrders: same-day orders would otherwise tie and fall back to
+ * arbitrary fetch order). Messages keep using their own existing
+ * `updatedAt` field unchanged — only the shared list's overall direction
+ * flipped (newest-first, was oldest-first) so the two kinds can still
+ * merge into one coherent feed. How many of these actually get displayed
+ * is NeedsAttentionPanel's own concern (a local, user-selectable count) —
+ * this function always returns the full, unbounded set.
  */
 export function deriveNeedsAttention(orders: AdminOrder[], conversations: AdminConversation[]): NeedsAttentionSummary {
   const pendingItems = orders
@@ -150,7 +156,7 @@ export function deriveNeedsAttention(orders: AdminOrder[], conversations: AdminC
       kind: "order" as const,
       title: order.customerName,
       detail: `$${ORDER_TOTAL(order).toFixed(2)}`,
-      time: order.createdAt,
+      time: order.createdAtISO,
       href: `/admin/orders/${order.id}`,
     }));
 
@@ -165,7 +171,7 @@ export function deriveNeedsAttention(orders: AdminOrder[], conversations: AdminC
       href: `/admin/messages/${conversation.id}`,
     }));
 
-  const [lead, ...rest] = [...pendingItems, ...unreadItems].sort((a, b) => a.time.localeCompare(b.time));
+  const [lead, ...rest] = [...pendingItems, ...unreadItems].sort((a, b) => b.time.localeCompare(a.time));
 
   return { lead: lead ?? null, rest };
 }
