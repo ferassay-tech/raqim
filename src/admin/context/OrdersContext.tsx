@@ -123,6 +123,29 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     };
   }, [isAuthenticated, reloadToken]);
 
+  // Orders is fetched exactly once per session by the effect above — a new
+  // order created from a customer's own separate browser session has no
+  // way to reach this admin's already-mounted state otherwise, so the
+  // Dashboard's "Latest Orders"/"Needs Attention" (and every other orders
+  // view) can silently go stale. Re-triggering the existing `reload()` on
+  // tab/window return is a lightweight, event-based fix — not polling, not
+  // a timer, just re-running the same fetch this context already does
+  // whenever the admin actually comes back to look. `visibilitychange`
+  // alone (not also `focus`) is deliberate: switching OS-level windows
+  // already flips a background tab's visibilityState too in virtually
+  // every modern browser, so a separate `focus` listener would mostly just
+  // double the fetch on a single tab-return.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") reload();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isAuthenticated, reload]);
+
   const getOrder = useCallback((id: string) => orders.find((o) => o.id === id), [orders]);
 
   const createOrder = useCallback(async (input: CreateOrderInput) => {
@@ -141,6 +164,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       items: input.items,
       discount: input.discount ?? 0,
       createdAt: new Date().toISOString().slice(0, 10),
+      createdAtISO: new Date().toISOString(),
       timeline: [
         { id: `${id}-t0`, label: "تم إنشاء الطلب من المتجر — بانتظار مراجعة الدفع", time: `اليوم، ${now()}`, tone: "default" },
       ],

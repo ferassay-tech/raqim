@@ -103,7 +103,12 @@ export function deriveBestSellingBook(books: AdminBook[], orders: AdminOrder[]):
 
 export function deriveLatestOrders(orders: AdminOrder[], limit = 5): LatestOrder[] {
   return [...orders]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    // Sorted by the full-precision timestamp, not the date-only `createdAt`
+    // — multiple orders created on the same calendar day would otherwise
+    // tie and fall back to whatever order the fetch happened to return
+    // them in, not true chronological order. `time` below still surfaces
+    // `createdAt` (date-only) — this only changes ranking, not display.
+    .sort((a, b) => b.createdAtISO.localeCompare(a.createdAtISO))
     .slice(0, limit)
     .map((order) => ({
       id: order.id,

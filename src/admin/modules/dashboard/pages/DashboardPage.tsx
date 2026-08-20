@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Reveal } from "@/components/motion-primitives";
 import { useBooks } from "@/admin/context/BooksContext";
 import { useOrders } from "@/admin/context/OrdersContext";
@@ -37,8 +37,18 @@ const TODAY = new Intl.DateTimeFormat("ar", {
  */
 export default function DashboardPage() {
   const { books: allBooks } = useBooks();
-  const { orders } = useOrders();
+  const { orders, reload } = useOrders();
   const { conversations } = useMessages();
+
+  // OrdersContext fetches once per session and doesn't otherwise know a
+  // customer created a new order in a separate browser — refetch every
+  // time this page is actually navigated to, so "Latest Orders"/"Needs
+  // Attention" reflect the current database rather than whatever was
+  // fetched at login. No visual change; purely a data-freshness effect.
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Soft-deleted books are excluded from every dashboard number — they're
   // no longer part of the real catalog, just recoverable from the trash view.

@@ -68,6 +68,7 @@ export function orderFromSupabaseRow(row: OrderRow): AdminOrder {
     items: row.items,
     discount: row.discount,
     createdAt: (row.created_at ?? "").slice(0, 10),
+    createdAtISO: row.created_at ?? "",
     timeline: row.timeline,
   };
 }

@@ -56,6 +56,14 @@ export interface AdminOrder {
   items: OrderItem[];
   discount: number;
   createdAt: string;
+  /** Full-precision ISO timestamp, kept alongside `createdAt` (which stays
+   * date-only for existing display call sites — Orders List, Order Detail,
+   * Customer Order History all keep showing just a date, unchanged).
+   * Exists solely so dashboard sorting (deriveLatestOrders) can correctly
+   * rank multiple orders created on the same calendar day — `createdAt`
+   * alone can't distinguish them. Never sent back to Supabase (created_at
+   * is a database-assigned column, see orderToSupabaseRow). */
+  createdAtISO: string;
   timeline: OrderTimelineEvent[];
 }
 
