@@ -16,6 +16,16 @@ import { getSupabaseClient } from "../../lib/supabaseClient";
 // not a second, competing source of truth — and changePassword/
 // updateProfile are unchanged, still local-only (out of this phase's
 // scope; see the Phase 2 report for why).
+//
+// Phase 1 security hardening: this fallback must be impossible to reach in
+// a production build. import.meta.env.DEV is Vite's own standard build-time
+// flag — `true` only under `vite dev`, statically inlined to `false` in
+// every `vite build` output (including what Vercel deploys) — not a new
+// mechanism. Below, both the seeded default state (so a fresh production
+// browser's users/credentials start genuinely empty — closing the local-
+// session-match path even without going through login()) and login()'s own
+// fallback branch are gated on it, so the guarantee is visible at both the
+// data-seed site and the exact call site a future reader would check.
 const SEED_USER: AdminUser = {
   id: "admin-1",
   name: "المسؤول",
@@ -23,6 +33,8 @@ const SEED_USER: AdminUser = {
   role: "owner",
 };
 const SEED_CREDENTIALS: Record<string, string> = { [SEED_USER.id]: "admin123" };
+const DEV_SEED_USERS: AdminUser[] = import.meta.env.DEV ? [SEED_USER] : [];
+const DEV_SEED_CREDENTIALS: Record<string, string> = import.meta.env.DEV ? SEED_CREDENTIALS : {};
 
 const SESSION_LOCAL_KEY = "raqim_admin:session";
 const SESSION_TAB_KEY = "raqim_admin:session_tab";
@@ -84,10 +96,10 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = usePersistedState<AdminUser[]>("auth_users", [SEED_USER]);
+  const [users, setUsers] = usePersistedState<AdminUser[]>("auth_users", DEV_SEED_USERS);
   const [credentials, setCredentials] = usePersistedState<Record<string, string>>(
     "auth_credentials",
-    SEED_CREDENTIALS
+    DEV_SEED_CREDENTIALS
   );
   const [session, setSession] = useState<AuthSession | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
@@ -186,10 +198,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Supabase not configured, unreachable, timed out, or these
         // credentials don't match a real Supabase account — fall back
         // rather than fail outright. See this file's top comment for why
-        // both paths coexist during this phase.
-        try {
-          resolved = await localAdapter.signIn(email, password);
-        } catch {
+        // both paths coexist during this phase. Production-gated: a
+        // Supabase sign-in failure in a production build must remain a
+        // real, final authentication failure, never silently recovered by
+        // the local fallback.
+        if (import.meta.env.DEV) {
+          try {
+            resolved = await localAdapter.signIn(email, password);
+          } catch {
+            resolved = null;
+          }
+        } else {
           resolved = null;
         }
       }

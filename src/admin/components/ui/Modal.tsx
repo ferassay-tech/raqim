@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import type { ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { IconClose } from "@/admin/icons";
+import { useDialogA11y } from "@/admin/lib/useDialogA11y";
 
 interface ModalProps {
   open: boolean;
@@ -19,6 +21,10 @@ const SIZE_CLASS: Record<NonNullable<ModalProps["size"]>, string> = {
 };
 
 export function Modal({ open, onClose, title, children, footer, size = "sm" }: ModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, open, onClose);
+  const reduceMotion = useReducedMotion();
+
   return (
     <AnimatePresence>
       {open && (
@@ -27,18 +33,20 @@ export function Modal({ open, onClose, title, children, footer, size = "sm" }: M
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: reduceMotion ? 0 : 0.2 }}
             className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
+            ref={panelRef}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 12, scale: reduceMotion ? 1 : 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: reduceMotion ? 0 : 8, scale: reduceMotion ? 1 : 0.98 }}
+            transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }}
             className={`relative flex w-full flex-col overflow-hidden rounded-[10px] border border-beige bg-ivory shadow-[0_30px_70px_-20px_rgba(44,36,32,0.45)] ${SIZE_CLASS[size]}`}
           >
             <div className="flex shrink-0 items-center justify-between border-b border-beige px-6 py-4">

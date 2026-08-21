@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import type { ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { IconClose } from "@/admin/icons";
+import { useDialogA11y } from "@/admin/lib/useDialogA11y";
 
 interface DrawerProps {
   open: boolean;
@@ -15,6 +17,10 @@ interface DrawerProps {
  * quick-look use cases — so the record stays in context instead of a full
  * page navigation. */
 export function Drawer({ open, onClose, title, children, footer }: DrawerProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, open, onClose);
+  const reduceMotion = useReducedMotion();
+
   return (
     <AnimatePresence>
       {open && (
@@ -23,18 +29,20 @@ export function Drawer({ open, onClose, title, children, footer }: DrawerProps) 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
+            transition={{ duration: reduceMotion ? 0 : 0.22 }}
             className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
+            ref={panelRef}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ x: "100%" }}
+            initial={{ x: reduceMotion ? 0 : "100%" }}
             animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ x: reduceMotion ? 0 : "100%" }}
+            transition={{ duration: reduceMotion ? 0 : 0.32, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col border-s border-beige bg-ivory shadow-[0_0_60px_rgba(0,0,0,0.25)]"
           >
             <div className="flex shrink-0 items-center justify-between border-b border-beige px-6 py-5">

@@ -16,7 +16,27 @@
  * The raw invitation token is never logged — only ever used to build the
  * accept-invitation URL — since it's a bearer credential for
  * accept_admin_invitation() (whoever holds it can accept the invite).
+ *
+ * Phase 1 security hardening: this endpoint previously trusted email/role/
+ * expiresAt from the client with no authentication at all — an
+ * unauthenticated caller could relay an official-looking Raqim invitation
+ * email to any address. Now: (1) the caller must present a valid Supabase
+ * access token (Authorization: Bearer ...) for the admin who is sending
+ * the invitation, verified via supabase.auth.getUser() — never a
+ * client-asserted identity; (2) that caller must be the platform owner,
+ * checked against platform_ownership.owner_profile_id — the same
+ * authoritative source (and the same owner-only requirement) every admin-
+ * invitation RPC in this project already enforces
+ * (create_admin_invitation/resend_admin_invitation/etc., all
+ * current_admin_role() = 'owner'); (3) email/role/expiry are re-derived
+ * from the real admin_invitations row (looked up by re-hashing the raw
+ * invitation token with the exact sha256 scheme those RPCs already use to
+ * store token_hash) rather than trusted from the client, and the send is
+ * refused if that row isn't genuinely pending and unexpired.
  */
+import { createClient } from "@supabase/supabase-js";
+import { createHash } from "node:crypto";
+
 const SITE_URL = "https://www.r-aqim.com";
 const LOGO_PATH = "/Raqim-logo.webp";
 
@@ -167,29 +187,94 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const { email, role, token, expiresAt } = (req.body ?? {}) as {
-    email?: string;
-    role?: string;
-    token?: string;
-    expiresAt?: string;
-  };
-
-  if (!email || !role || !token || !expiresAt) {
-    res.status(400).json({ error: "Missing required fields: email, role, token, expiresAt" });
+  const authHeader = (req.headers?.authorization ?? req.headers?.Authorization) as string | undefined;
+  const sessionToken =
+    typeof authHeader === "string" && authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+  if (!sessionToken) {
+    res.status(401).json({ error: "Missing or invalid Authorization header." });
     return;
   }
 
+  // `token` here is the invitation's own raw bearer token (used only to
+  // build the accept-invitation link and to look up the real invitation
+  // row below) — distinct from `sessionToken` above, the caller admin's
+  // own session credential.
+  const { token } = (req.body ?? {}) as { token?: string };
+  if (!token) {
+    res.status(400).json({ error: "Missing required field: token" });
+    return;
+  }
+
+  const url = process.env.VITE_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL;
+  if (!url || !serviceRoleKey) {
+    res.status(500).json({ error: "Server is not configured." });
+    return;
+  }
   if (!apiKey || !fromEmail) {
     res.status(500).json({ error: "Email is not configured on the server (RESEND_API_KEY / RESEND_FROM_EMAIL)." });
     return;
   }
 
-  const roleLabel = ROLE_LABELS[role] ?? role;
+  const serviceClient = createClient(url, serviceRoleKey);
+
+  // Authenticate the caller — verifies the JWT itself, never a
+  // client-asserted identity.
+  const { data: userData, error: userError } = await serviceClient.auth.getUser(sessionToken);
+  if (userError || !userData?.user) {
+    res.status(401).json({ error: "Invalid or expired session." });
+    return;
+  }
+
+  // Authorize — owner-only, matching every admin-invitation RPC's own
+  // current_admin_role() = 'owner' requirement exactly (platform_ownership
+  // is the same authoritative source AdminUsersContext.isOwner already
+  // uses client-side).
+  const { data: ownership, error: ownershipError } = await serviceClient
+    .from("platform_ownership")
+    .select("owner_profile_id")
+    .maybeSingle();
+  if (ownershipError) {
+    console.error("Failed to resolve platform ownership:", ownershipError);
+    res.status(500).json({ error: "Could not verify ownership." });
+    return;
+  }
+  if (!ownership || ownership.owner_profile_id !== userData.user.id) {
+    res.status(403).json({ error: "Only the platform owner may send admin invitations." });
+    return;
+  }
+
+  // Re-derive email/role/expiry from the real invitation row — never trust
+  // the client's assertion of what invitation this is. Same sha256 hex
+  // scheme create_admin_invitation()/resend_admin_invitation() already use
+  // to store token_hash (confirmed in their own migrations).
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const { data: invitation, error: invitationError } = await serviceClient
+    .from("admin_invitations")
+    .select("email, role, status, expires_at")
+    .eq("token_hash", tokenHash)
+    .maybeSingle();
+  if (invitationError) {
+    console.error("Failed to look up invitation:", invitationError);
+    res.status(500).json({ error: "Could not verify the invitation." });
+    return;
+  }
+  if (!invitation || invitation.status !== "pending" || new Date(invitation.expires_at) <= new Date()) {
+    res.status(400).json({ error: "This invitation is not valid or has expired." });
+    return;
+  }
+
+  const roleLabel = ROLE_LABELS[invitation.role] ?? invitation.role;
   const acceptUrl = `${SITE_URL}/admin/accept-invitation?invite_token=${encodeURIComponent(token)}`;
   const subject = "دعوة للانضمام إلى لوحة تحكم رَقِيم";
-  const html = buildEmailHtml({ email, roleLabel, expiryLabel: formatExpiry(expiresAt), acceptUrl });
+  const html = buildEmailHtml({
+    email: invitation.email,
+    roleLabel,
+    expiryLabel: formatExpiry(invitation.expires_at),
+    acceptUrl,
+  });
 
   try {
     const resendResponse = await fetch("https://api.resend.com/emails", {
@@ -198,7 +283,7 @@ export default async function handler(req: any, res: any) {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from: fromEmail, to: [email], subject, html }),
+      body: JSON.stringify({ from: fromEmail, to: [invitation.email], subject, html }),
     });
 
     if (!resendResponse.ok) {

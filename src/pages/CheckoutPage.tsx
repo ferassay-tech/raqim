@@ -9,29 +9,40 @@ import { useCheckout } from "../context/CheckoutContext";
 import { computeDiscountedPrice } from "../context/couponMath";
 import { paymentMethodList } from "../config/paymentMethods";
 import type { PaymentMethodId } from "../config/paymentMethods";
-import { useCoupons } from "../admin/context/CouponsContext";
-import { getCouponStatus } from "../admin/lib/couponStatus";
+import { getSupabaseClient } from "../lib/supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { product, book, appliedCoupon, setAppliedCoupon, setSelectedMethodId } = useCheckout();
-  const { coupons } = useCoupons();
   const { t, dir, localizePath } = useLanguage();
   const [couponInput, setCouponInput] = useState(appliedCoupon?.code ?? "");
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
 
-  const handleApplyCoupon = () => {
+  // Validated server-side via the validate_coupon_code() RPC rather than a
+  // client-side lookup against the full coupons table — the anon role no
+  // longer has direct SELECT on public.coupons (Phase 1 security
+  // hardening, Finding 6: that table previously let any visitor read
+  // every coupon row, including disabled ones and internal usage counts).
+  const handleApplyCoupon = async () => {
     const code = couponInput.trim().toUpperCase();
     if (!code) return;
-    const match = coupons.find((c) => c.code.toUpperCase() === code);
-    if (!match || getCouponStatus(match) !== "active") {
-      setCouponError(t("checkout.coupon.invalid"));
-      setAppliedCoupon(null);
-      return;
+    setCheckingCoupon(true);
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.rpc("validate_coupon_code", { p_code: code });
+      const match = Array.isArray(data) ? data[0] : null;
+      if (error || !match || !match.is_valid) {
+        setCouponError(t("checkout.coupon.invalid"));
+        setAppliedCoupon(null);
+        return;
+      }
+      setCouponError(null);
+      setAppliedCoupon({ code: match.code, type: match.type, value: match.value });
+    } finally {
+      setCheckingCoupon(false);
     }
-    setCouponError(null);
-    setAppliedCoupon({ code: match.code, type: match.type, value: match.value });
   };
 
   const handleRemoveCoupon = () => {
@@ -107,8 +118,9 @@ const CheckoutPage: React.FC = () => {
                 />
                 <button
                   type="button"
-                  onClick={handleApplyCoupon}
-                  className="shrink-0 rounded-xl border border-gold px-4 py-2.5 text-sm font-medium text-gold-deep transition hover:bg-beige"
+                  onClick={() => void handleApplyCoupon()}
+                  disabled={checkingCoupon}
+                  className="shrink-0 rounded-xl border border-gold px-4 py-2.5 text-sm font-medium text-gold-deep transition hover:bg-beige disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {t("checkout.coupon.apply")}
                 </button>

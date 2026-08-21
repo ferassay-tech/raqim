@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { IconChevronDown } from "@/admin/icons";
 
 export interface DataTableColumn<T> {
@@ -61,6 +61,19 @@ export function DataTable<T>({
     if (next.has(key)) next.delete(key);
     else next.add(key);
     onSelectionChange(next);
+  };
+
+  // Keyboard equivalent of the row's onClick. Guarded to the row itself
+  // (event.target === event.currentTarget) so Enter/Space pressed while
+  // focus is on a nested checkbox or action button — each already
+  // independently focusable and already handles its own activation — never
+  // also triggers row navigation.
+  const handleRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, row: T) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onRowClick?.(row);
+    }
   };
 
   if (rows.length === 0 && emptyState) {
@@ -127,6 +140,8 @@ export function DataTable<T>({
               <tr
                 key={key}
                 onClick={() => onRowClick?.(row)}
+                onKeyDown={onRowClick ? (e) => handleRowKeyDown(e, row) : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
                 className={`border-b border-beige/70 last:border-0 transition-colors ${
                   onRowClick ? "cursor-pointer" : ""
                 } ${isSelected ? "bg-cream/60" : "hover:bg-cream/40"}`}

@@ -31,7 +31,26 @@
  * is the canonical copy to edit first — if you change this function's
  * markup/styles, apply the identical change there by hand, or the preview
  * will silently drift out of sync with the real sent email.
+ *
+ * Phase 1 security hardening: this endpoint previously trusted `to` (the
+ * recipient) from the client with no authentication at all — an
+ * unauthenticated caller could relay arbitrary HTML to an arbitrary
+ * recipient from Raqim's verified sending domain. Now: (1) the caller must
+ * present a valid Supabase access token (Authorization: Bearer ...),
+ * verified via supabase.auth.getUser() — never a client-asserted identity;
+ * (2) that caller must hold the orders.manage permission (checked via the
+ * existing has_permission() SQL function, the same authorization model
+ * every other order-mutating action already uses — reused here through an
+ * RPC call scoped to the caller's own session, not invented); (3) the
+ * actual recipient is re-derived from the order's own customer_email
+ * column (a fresh, service-role-authenticated read), never taken from the
+ * client-supplied `to` field, which is now accepted for backward
+ * compatibility but ignored. contentHtml/bookTitle/bookCoverUrl are
+ * unchanged — they were never the abuse vector (they only affect what an
+ * already-authorized admin's email looks like, not who receives it).
  */
+import { createClient } from "@supabase/supabase-js";
+
 const SITE_URL = "https://r-aqim.com";
 const LOGO_PATH = "/Raqim-logo.webp";
 const SUPPORT_EMAIL = "support@r-aqim.com";
@@ -208,7 +227,14 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const { to, orderId, contentHtml, bookTitle, bookCoverUrl, maxDownloads, expiresAt } = (req.body ?? {}) as {
+  const authHeader = (req.headers?.authorization ?? req.headers?.Authorization) as string | undefined;
+  const token = typeof authHeader === "string" && authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+  if (!token) {
+    res.status(401).json({ error: "Missing or invalid Authorization header." });
+    return;
+  }
+
+  const { orderId, contentHtml, bookTitle, bookCoverUrl, maxDownloads, expiresAt } = (req.body ?? {}) as {
     to?: string;
     orderId?: string;
     contentHtml?: string;
@@ -218,15 +244,63 @@ export default async function handler(req: any, res: any) {
     expiresAt?: string | null;
   };
 
-  if (!to || !orderId || !contentHtml) {
-    res.status(400).json({ error: "Missing required fields: to, orderId, contentHtml" });
+  if (!orderId || !contentHtml) {
+    res.status(400).json({ error: "Missing required fields: orderId, contentHtml" });
     return;
   }
 
+  const url = process.env.VITE_SUPABASE_URL;
+  const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL;
+  if (!url || !anonKey || !serviceRoleKey) {
+    res.status(500).json({ error: "Server is not configured." });
+    return;
+  }
   if (!apiKey || !fromEmail) {
     res.status(500).json({ error: "Email is not configured on the server (RESEND_API_KEY / RESEND_FROM_EMAIL)." });
+    return;
+  }
+
+  const serviceClient = createClient(url, serviceRoleKey);
+
+  // Authenticate — verifies the JWT itself, never a client-asserted identity.
+  const { data: userData, error: userError } = await serviceClient.auth.getUser(token);
+  if (userError || !userData?.user) {
+    res.status(401).json({ error: "Invalid or expired session." });
+    return;
+  }
+
+  // Authorize — same permission the legitimate Confirm Payment / download
+  // email admin action already requires, checked via the existing
+  // has_permission() function through a client scoped to the caller's own
+  // session (so it evaluates for the real caller, not the service role).
+  const userScopedClient = createClient(url, anonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  const { data: allowed, error: permissionError } = await userScopedClient.rpc("has_permission", {
+    p_permission: "orders.manage",
+  });
+  if (permissionError || !allowed) {
+    res.status(403).json({ error: "You are not authorized to send this email." });
+    return;
+  }
+
+  // The real recipient is always re-derived from the order record itself —
+  // never taken from the client-supplied `to` field.
+  const { data: order, error: orderError } = await serviceClient
+    .from("orders")
+    .select("id, customer_email")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (orderError) {
+    console.error("Failed to load order for download email:", orderError);
+    res.status(500).json({ error: "Could not load the order." });
+    return;
+  }
+  if (!order || !order.customer_email) {
+    res.status(400).json({ error: "Order not found." });
     return;
   }
 
@@ -240,7 +314,7 @@ export default async function handler(req: any, res: any) {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from: fromEmail, to: [to], subject, html }),
+      body: JSON.stringify({ from: fromEmail, to: [order.customer_email], subject, html }),
     });
 
     if (!resendResponse.ok) {

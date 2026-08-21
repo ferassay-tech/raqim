@@ -30,6 +30,7 @@ import { ChangeRoleModal } from "../components/ChangeRoleModal";
 import { EditInvitationModal } from "../components/EditInvitationModal";
 import { ManageUserPermissionsModal } from "../components/ManageUserPermissionsModal";
 import { logAndGetErrorMessage } from "@/admin/lib/errorMessage";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import type {
   AdminInvitation,
   AdminInvitationStatus,
@@ -171,9 +172,15 @@ export default function AdminUsersPage() {
   const sendInvitationEmail = useCallback(
     async (email: string, role: AssignableAdminRole, token: string, expiresAt: string) => {
       try {
+        const supabase = getSupabaseClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) {
+          throw new Error("لا توجد جلسة نشطة.");
+        }
         const response = await fetch("/api/send-admin-invitation", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
           body: JSON.stringify({ email, role, token, expiresAt }),
         });
         const body = await response.json().catch(() => ({}) as { error?: string });
