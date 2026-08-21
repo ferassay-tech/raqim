@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -36,9 +37,41 @@ interface CheckoutContextValue {
   setConfirmation: (data: ConfirmationData) => void;
   appliedCoupon: AppliedCoupon | null;
   setAppliedCoupon: (coupon: AppliedCoupon | null) => void;
+  /** Identifies one checkout attempt end-to-end — generated once,
+   * persisted across a refresh of the same attempt, and passed through to
+   * createOrder() so the database's own unique constraint (not just a
+   * frontend guard) can recognize a repeated submission of the same
+   * attempt as the same order rather than a new one. See
+   * resetCheckoutAttempt for when a fresh one is minted. */
+  checkoutAttemptId: string;
+  /** Call once a checkout attempt has produced a definitive order (new or
+   * resolved-as-duplicate) — mints a fresh attempt id so a genuinely new,
+   * later purchase is never blocked by the just-completed attempt's id. */
+  resetCheckoutAttempt: () => void;
 }
 
 const STORAGE_KEY = "raqim_checkout_state_v1";
+const ATTEMPT_ID_STORAGE_KEY = "raqim_checkout_attempt_id_v1";
+
+function createAttemptId(): string {
+  return crypto.randomUUID();
+}
+
+function readOrCreateAttemptId(): string {
+  try {
+    const existing = sessionStorage.getItem(ATTEMPT_ID_STORAGE_KEY);
+    if (existing) return existing;
+  } catch {
+    /* ignore storage access errors — fall through to a fresh id */
+  }
+  const id = createAttemptId();
+  try {
+    sessionStorage.setItem(ATTEMPT_ID_STORAGE_KEY, id);
+  } catch {
+    /* ignore quota/availability errors */
+  }
+  return id;
+}
 
 const CheckoutContext = createContext<CheckoutContextValue | undefined>(
   undefined
@@ -89,6 +122,20 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({
     null
   );
 
+  const [checkoutAttemptId, setCheckoutAttemptId] = useState<string>(() =>
+    readOrCreateAttemptId()
+  );
+
+  const resetCheckoutAttempt = useCallback(() => {
+    const id = createAttemptId();
+    try {
+      sessionStorage.setItem(ATTEMPT_ID_STORAGE_KEY, id);
+    } catch {
+      /* ignore quota/availability errors */
+    }
+    setCheckoutAttemptId(id);
+  }, []);
+
   useEffect(() => {
     try {
       sessionStorage.setItem(
@@ -111,6 +158,8 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({
         setConfirmation,
         appliedCoupon,
         setAppliedCoupon,
+        checkoutAttemptId,
+        resetCheckoutAttempt,
       }}
     >
       {children}

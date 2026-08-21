@@ -30,7 +30,7 @@ function formatAmount(price: number, currency: BookCurrency, t: (key: string) =>
 const PaymentMethodPage: React.FC = () => {
   const { method } = useParams<{ method: string }>();
   const navigate = useNavigate();
-  const { product, book, appliedCoupon, setConfirmation } = useCheckout();
+  const { product, book, appliedCoupon, setConfirmation, checkoutAttemptId, resetCheckoutAttempt } = useCheckout();
   const { createOrder } = useOrders();
   const { t, dir, language, localizePath } = useLanguage();
   const [showConfirmationForm, setShowConfirmationForm] = useState(false);
@@ -70,9 +70,23 @@ const PaymentMethodPage: React.FC = () => {
   // recoverable rather than silently dropping the file a second time (the
   // whole reason this feature exists is that the previous "upload" quietly
   // discarded the file already).
+  //
+  // Lifecycle correction: resetCheckoutAttempt() must NOT fire here just
+  // because createOrder() resolved — the checkout attempt is only truly
+  // over once there is no further post-order step that can fail and need
+  // retrying. If it fired immediately after createOrder() (as it
+  // originally did) and this upload then failed, a subsequent refresh +
+  // resubmit would carry a brand-new attempt id — no longer recognized by
+  // the database as the same attempt — and could create a second order
+  // for what is still, from the customer's perspective, one purchase.
+  // Reset only happens in this function's own success branch below (and
+  // in handleSkipAttachment / the no-receipt branch in
+  // handleConfirmationSubmit) — the three actual terminal transitions to
+  // /order-received.
   const attemptAttachmentUpload = async (orderId: string, file: File) => {
     try {
       await uploadOrderAttachment(orderId, file);
+      resetCheckoutAttempt();
       navigate(localizePath("/order-received"), { state: { orderId, attachmentFailed: false } });
     } catch (error) {
       console.error("Failed to upload order attachment:", error);
@@ -102,11 +116,21 @@ const PaymentMethodPage: React.FC = () => {
       ],
       discount: product.newPrice - discountedPrice,
       hasReceiptFile: Boolean(values.receiptFile),
+      checkoutAttemptId,
     });
 
+    // order.isExistingOrder is true when this exact checkout attempt had
+    // already produced this order (a retried/duplicate submission) —
+    // createOrder() resolved it via the DB's own unique constraint rather
+    // than inserting a second row. A receipt is still attempted below
+    // regardless: the realistic case that reaches this branch is the
+    // upload having genuinely failed the first time (this attempt's id
+    // was never reset, so the order still needs one), which is exactly
+    // the case that must be retried, not skipped.
     if (values.receiptFile) {
       await attemptAttachmentUpload(order.id, values.receiptFile);
     } else {
+      resetCheckoutAttempt();
       navigate(localizePath("/order-received"), { state: { orderId: order.id } });
     }
   };
@@ -119,6 +143,7 @@ const PaymentMethodPage: React.FC = () => {
 
   const handleSkipAttachment = () => {
     if (!pendingAttachment) return;
+    resetCheckoutAttempt();
     navigate(localizePath("/order-received"), {
       state: { orderId: pendingAttachment.orderId, attachmentFailed: true },
     });

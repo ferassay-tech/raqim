@@ -4,7 +4,14 @@ import type { AdminOrder, OrderItem, OrderStatus, OrderTimelineEvent, PaymentSta
 import type { PaymentMethodId } from "@/config/paymentMethods";
 import { ORDER_STATUS_META } from "../lib/orderStatus";
 import { INITIAL_ORDERS } from "../data/ordersData";
-import { insertOrder, orderFromSupabaseRow, orderToSupabaseRow, ordersRepository } from "./ordersRepository.ts";
+import {
+  getOrderIdByCheckoutAttempt,
+  insertOrder,
+  isCheckoutAttemptConflict,
+  orderFromSupabaseRow,
+  orderToSupabaseRow,
+  ordersRepository,
+} from "./ordersRepository.ts";
 import { useAuth } from "./AuthContext";
 import { getSupabaseClient } from "../../lib/supabaseClient.ts";
 
@@ -24,6 +31,11 @@ export interface CreateOrderInput {
    * (PaymentMethodPage.attemptAttachmentUpload) that must never delay or
    * gate this notification. */
   hasReceiptFile?: boolean;
+  /** Identifies the checkout attempt this submission belongs to (see
+   * CheckoutContext.checkoutAttemptId) — the actual duplicate-order guard.
+   * Optional only so existing callers/tests that don't pass one still
+   * type-check; a real checkout submission always provides it. */
+  checkoutAttemptId?: string | null;
 }
 
 /** Fixed, matched exactly by the idempotency check in OrderDetailPage
@@ -64,7 +76,7 @@ export interface PermanentDeleteOutcome {
 interface OrdersContextValue {
   orders: AdminOrder[];
   getOrder: (id: string) => AdminOrder | undefined;
-  createOrder: (input: CreateOrderInput) => Promise<AdminOrder>;
+  createOrder: (input: CreateOrderInput) => Promise<AdminOrder & { isExistingOrder: boolean }>;
   setOrderStatus: (id: string, status: OrderStatus) => void;
   setOrdersStatus: (ids: string[], status: OrderStatus) => void;
   addNote: (id: string, text: string) => void;
@@ -196,7 +208,26 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         { id: `${id}-t0`, label: "تم إنشاء الطلب من المتجر — بانتظار مراجعة الدفع", time: `اليوم، ${now()}`, tone: "default" },
       ],
     };
-    await insertOrder(orderToSupabaseRow(order));
+    try {
+      await insertOrder({ ...orderToSupabaseRow(order), checkout_attempt_id: input.checkoutAttemptId ?? null });
+    } catch (error) {
+      // A 23505 on orders_checkout_attempt_id_unique_idx means this exact
+      // checkout attempt already produced an order — rapid re-clicks,
+      // a browser retry, or a resubmit after refresh, never a different
+      // customer's coincidence (the attempt id is a client-generated
+      // UUID). Resolve to that existing order instead of creating a
+      // second one or surfacing an error; skip the notification fetch
+      // below entirely, since the request that actually created the row
+      // already triggered (and order_notification_claims already
+      // guarantees exactly one send for) it.
+      if (input.checkoutAttemptId && isCheckoutAttemptConflict(error)) {
+        const existingId = await getOrderIdByCheckoutAttempt(input.checkoutAttemptId);
+        if (existingId) {
+          return { ...order, id: existingId, isExistingOrder: true };
+        }
+      }
+      throw error;
+    }
     setOrders((prev) => [order, ...prev]);
 
     // Fire-and-forget admin purchase notification — triggered because the
@@ -239,7 +270,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         console.error("Failed to send admin purchase notification:", error);
       });
 
-    return order;
+    return { ...order, isExistingOrder: false };
   }, []);
 
   const setOrderStatus = useCallback(

@@ -254,6 +254,7 @@
   "confirmationForm.fileSizeError": "حجم الملف كبير جدًا. الحد الأقصى 10 ميجابايت.",
   "confirmationForm.notes": "ملاحظات",
   "confirmationForm.submit": "إرسال بيانات الدفع",
+  "confirmationForm.submitting": "جارٍ الإرسال...",
 
   "orderReceived.seo.title": "تم استلام طلبك — رقيم",
   "orderReceived.seo.description": "تم استلام طلبك بنجاح وهو قيد المراجعة.",

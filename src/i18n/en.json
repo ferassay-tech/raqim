@@ -254,6 +254,7 @@
   "confirmationForm.fileSizeError": "File is too large. Maximum size is 10 MB.",
   "confirmationForm.notes": "Notes",
   "confirmationForm.submit": "Submit Payment Details",
+  "confirmationForm.submitting": "Submitting…",
 
   "orderReceived.seo.title": "Your Order Was Received — Raqim",
   "orderReceived.seo.description": "Your order was received successfully and is being reviewed.",

@@ -32,6 +32,14 @@ export interface OrderRow {
   discount: number;
   timeline: OrderTimelineEvent[];
   deleted_at: string | null;
+  /** Idempotency key for order creation — the checkout attempt that
+   * produced this row (see CheckoutContext.checkoutAttemptId). `null` for
+   * every order created before this column existed. Enforced unique only
+   * among non-null values (see the partial unique index in
+   * 20260821120001_orders_checkout_attempt_id.sql) — this is the actual
+   * concurrency guard against duplicate order creation, not just a
+   * display field. */
+  checkout_attempt_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -101,4 +109,33 @@ export async function insertOrder(row: OrderRow): Promise<void> {
   const supabase = getSupabaseClient();
   const { error } = await supabase.from("orders").insert(row);
   if (error) throw error;
+}
+
+/**
+ * True only for a 23505 raised by orders_checkout_attempt_id_unique_idx
+ * specifically (matched by column name in the error message, not just the
+ * SQLSTATE) — never confused with the ordinary `id` primary-key violation,
+ * which would be an unrelated (and far more concerning) collision, not a
+ * duplicate submission of the same checkout attempt.
+ */
+export function isCheckoutAttemptConflict(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const { code, message } = error as { code?: string; message?: string };
+  return code === "23505" && typeof message === "string" && message.includes("checkout_attempt_id");
+}
+
+/**
+ * Resolves a duplicate submission of the same checkout attempt to the
+ * order that already exists for it — the only read this needs is the
+ * order's own id (that's all createOrder's callers use), so the RPC
+ * behind this returns nothing else. orders has no anon SELECT policy and
+ * this deliberately doesn't add one: get_order_id_by_checkout_attempt is
+ * SECURITY DEFINER, takes only the opaque client-generated attempt id as
+ * input, and returns only a single id string.
+ */
+export async function getOrderIdByCheckoutAttempt(attemptId: string): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("get_order_id_by_checkout_attempt", { p_attempt_id: attemptId });
+  if (error) throw error;
+  return (data as string | null) ?? null;
 }

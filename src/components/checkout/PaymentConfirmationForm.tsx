@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useLanguage } from "../../context/LanguageContext";
 import {
@@ -21,7 +21,7 @@ export interface ConfirmationFormValues {
 
 interface PaymentConfirmationFormProps {
   methodTitle: string;
-  onSubmit: (values: ConfirmationFormValues) => void;
+  onSubmit: (values: ConfirmationFormValues) => void | Promise<void>;
 }
 
 const inputClasses =
@@ -42,6 +42,12 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
     receiptFile: undefined,
   });
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Synchronous guard: a ref updates instantly, before React's isSubmitting
+  // state has re-rendered the disabled button — the actual window rapid
+  // repeat clicks/Enter-key presses exploit. isSubmitting alone is one
+  // render behind and is not enough on its own.
+  const submittingRef = useRef(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -76,9 +82,19 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
     setValues((prev) => ({ ...prev, receiptFile: file }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(values);
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      await onSubmit(values);
+    } finally {
+      // Always restored — including after a failed/recoverable submission
+      // — so the button never becomes permanently stuck disabled.
+      submittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -207,9 +223,11 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
 
       <button
         type="submit"
-        className="mt-2 w-full rounded-full bg-ink py-3 text-sm font-medium text-beige transition hover:bg-gold-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+        disabled={isSubmitting}
+        aria-busy={isSubmitting}
+        className="mt-2 w-full rounded-full bg-ink py-3 text-sm font-medium text-beige transition hover:bg-gold-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {t("confirmationForm.submit")}
+        {isSubmitting ? t("confirmationForm.submitting") : t("confirmationForm.submit")}
       </button>
     </motion.form>
   );
