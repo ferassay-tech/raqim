@@ -1,6 +1,6 @@
-import type { AdminBook } from "../types/book";
-import type { AdminOrder } from "../types/order";
-import { ORDER_TOTAL } from "../types/order";
+import type { AdminBook, BookCurrency } from "../types/book";
+import type { AdminOrder, CurrencyGroupedAmount } from "../types/order";
+import { ORDER_TOTAL, groupOrderTotalsByCurrency } from "../types/order";
 import type { AdminConversation } from "../types/message";
 import type {
   BestSellingBook,
@@ -11,6 +11,7 @@ import type {
   PublishingPipelineSummary,
 } from "../types/dashboard";
 import { deriveCustomers } from "./deriveCustomers";
+import { formatCurrencyAmount, formatCurrencyGroups } from "./formatCurrencyGroups";
 
 /**
  * Every dashboard number is computed from the real, currently-empty admin
@@ -21,14 +22,17 @@ import { deriveCustomers } from "./deriveCustomers";
  */
 export function deriveHeroMetrics(orders: AdminOrder[], books: AdminBook[]): DashboardMetric[] {
   const paidOrders = orders.filter((o) => o.status === "paid");
-  const revenue = paidOrders.reduce((sum, o) => sum + ORDER_TOTAL(o), 0);
+  // Grouped by currency, never blended — RAQIM's USD/EGP/ILS prices are
+  // independent with no FX conversion, so a single summed "$X" figure would
+  // silently add incompatible units together (see A1 remediation plan).
+  const revenueByCurrency = groupOrderTotalsByCurrency(paidOrders);
   const customerCount = deriveCustomers(orders, books).length;
 
   return [
     {
       id: "revenue",
       label: "الإيرادات",
-      value: `$${revenue.toFixed(2)}`,
+      value: formatCurrencyGroups(revenueByCurrency),
       caption: "إجمالي الإيرادات (الطلبات المدفوعة)",
     },
     {
@@ -86,18 +90,38 @@ export function deriveBestSellingBook(books: AdminBook[], orders: AdminOrder[]):
   const book = books.find((b) => b.id === topBookId);
   if (!book) return null;
 
-  const bookRevenue = paidOrders.reduce((sum, order) => {
+  // Grouped by currency — a book sold through more than one payment method
+  // can earn revenue in more than one currency, and these must never be
+  // summed together (see A1 remediation plan).
+  const bookRevenueByCurrency = new Map<BookCurrency | null, number>();
+  for (const order of paidOrders) {
     const items = order.items.filter((i) => i.bookId === topBookId);
-    return sum + items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-  }, 0);
-  const totalRevenue = paidOrders.reduce((sum, o) => sum + ORDER_TOTAL(o), 0);
+    if (items.length === 0) continue;
+    const amount = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+    bookRevenueByCurrency.set(order.currency, (bookRevenueByCurrency.get(order.currency) ?? 0) + amount);
+  }
+  const bookRevenueGroups: CurrencyGroupedAmount[] = Array.from(bookRevenueByCurrency.entries()).map(
+    ([currency, amount]) => ({ currency, amount, count: 0 })
+  );
+
+  // "Share of sales" is only meaningful within one currency — computed
+  // against whichever currency earned this book the most, compared only to
+  // that same currency's total revenue across every book (never a
+  // cross-currency blended percentage).
+  const dominant = bookRevenueGroups.reduce<CurrencyGroupedAmount | null>(
+    (best, g) => (g.amount > (best?.amount ?? -1) ? g : best),
+    null
+  );
+  const totalRevenueByCurrency = groupOrderTotalsByCurrency(paidOrders);
+  const totalForDominantCurrency =
+    totalRevenueByCurrency.find((g) => g.currency === dominant?.currency)?.amount ?? 0;
 
   return {
     title: book.title,
     cover: book.cover,
     unitsSold: topUnits,
-    revenue: `$${bookRevenue.toFixed(2)}`,
-    shareOfSales: totalRevenue > 0 ? bookRevenue / totalRevenue : 0,
+    revenue: formatCurrencyGroups(bookRevenueGroups),
+    shareOfSales: dominant && totalForDominantCurrency > 0 ? dominant.amount / totalForDominantCurrency : 0,
   };
 }
 
@@ -113,7 +137,7 @@ export function deriveLatestOrders(orders: AdminOrder[], limit = 5): LatestOrder
     .map((order) => ({
       id: order.id,
       customerName: order.customerName,
-      amount: `$${ORDER_TOTAL(order).toFixed(2)}`,
+      amount: formatCurrencyAmount(order.currency, ORDER_TOTAL(order)),
       status: order.status,
       time: order.createdAt,
     }));
@@ -155,7 +179,7 @@ export function deriveNeedsAttention(orders: AdminOrder[], conversations: AdminC
       id: order.id,
       kind: "order" as const,
       title: order.customerName,
-      detail: `$${ORDER_TOTAL(order).toFixed(2)}`,
+      detail: formatCurrencyAmount(order.currency, ORDER_TOTAL(order)),
       time: order.createdAtISO,
       href: `/admin/orders/${order.id}`,
     }));

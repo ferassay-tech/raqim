@@ -1,0 +1,45 @@
+-- Security hardening (Audit finding P1 #1): drop two dormant anonymous
+-- INSERT policies on the order-attachments upload path.
+--
+-- order_attachments_insert_anon (public.order_attachments) and
+-- order_attachments_bucket_insert_anon (storage.objects, bucket
+-- 'order-attachments') were created in 20260818330001_order_attachments.sql
+-- for an original design where the browser inserted directly. That design
+-- was superseded before ever shipping to checkout: the real, current flow
+-- (api/order-attachment-init.ts -> signed-URL upload ->
+-- api/order-attachment-confirm.ts) uses a server-minted, single-use signed
+-- upload URL (authorized by the token itself, not by anon's own RLS
+-- grants) for the object write, and a service-role client — which bypasses
+-- RLS entirely — for the order_attachments metadata INSERT. Neither of
+-- those two operations is authorized by, or in any way depends on, the
+-- policies dropped here.
+--
+-- Confirmed via a full repository search before writing this migration:
+-- the only INSERT into public.order_attachments anywhere in this codebase
+-- is api/order-attachment-confirm.ts's service-role client call; the only
+-- Storage write to the 'order-attachments' bucket anywhere in this
+-- codebase is the client's uploadToSignedUrl() call in
+-- src/admin/context/orderAttachmentsRepository.ts, which is authorized by
+-- the per-object signed token minted in order-attachment-init.ts, not by
+-- table/bucket RLS. Both anon policies are therefore unreachable from any
+-- code path this application actually exercises today.
+--
+-- Their continued presence was a live, unauthenticated bypass of the
+-- careful path-scoping/object-existence checks the real flow performs:
+-- with_check only verified private.order_exists(...) (whether an order
+-- with that id exists at all), with no ownership binding beyond that, so
+-- anyone holding the public anon key could INSERT an arbitrary row/object
+-- against any existing order id directly, bypassing
+-- order-attachment-init.ts/confirm.ts entirely.
+--
+-- This migration only drops these two policies. It does not touch the
+-- table, the bucket, its configuration, any other policy, any row, any
+-- function, or any grant. RLS remains enabled on both
+-- public.order_attachments and storage.objects exactly as before; with no
+-- anon policy left for INSERT on either, that role is simply denied by
+-- RLS's own default (no matching policy), the same posture every other
+-- anon-locked-out command on these objects already has.
+
+drop policy order_attachments_insert_anon on public.order_attachments;
+
+drop policy order_attachments_bucket_insert_anon on storage.objects;

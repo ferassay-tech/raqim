@@ -1,6 +1,8 @@
-import { AnimatePresence, motion } from "motion/react";
+import { useRef } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { AdminSidebar } from "./AdminSidebar";
 import { IconClose } from "@/admin/icons";
+import { useDialogA11y } from "@/admin/lib/useDialogA11y";
 
 interface AdminMobileDrawerProps {
   open: boolean;
@@ -8,8 +10,16 @@ interface AdminMobileDrawerProps {
 }
 
 /** Off-canvas nav for < lg. Slides in from the physical right edge, matching
- * the sidebar's position in the desktop RTL layout. */
+ * the sidebar's position in the desktop RTL layout. Reuses the same
+ * useDialogA11y hook Modal/Drawer already use (focus trap, initial focus,
+ * focus restoration, Escape-to-close) — this is a separate implementation
+ * from the shared Drawer component (it renders AdminSidebar directly, no
+ * title/footer slot) but gets the identical keyboard/focus behavior. */
 export function AdminMobileDrawer({ open, onClose }: AdminMobileDrawerProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, open, onClose);
+  const reduceMotion = useReducedMotion();
+
   return (
     <AnimatePresence>
       {open && (
@@ -18,15 +28,20 @@ export function AdminMobileDrawer({ open, onClose }: AdminMobileDrawerProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            transition={{ duration: reduceMotion ? 0 : 0.25, ease: "easeOut" }}
             className="absolute inset-0 bg-ink/50 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
-            initial={{ x: "100%" }}
+            ref={panelRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-label="القائمة"
+            initial={{ x: reduceMotion ? 0 : "100%" }}
             animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ x: reduceMotion ? 0 : "100%" }}
+            transition={{ duration: reduceMotion ? 0 : 0.32, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-y-0 right-0 w-[84%] max-w-xs shadow-[0_0_60px_rgba(0,0,0,0.35)]"
           >
             <div className="relative h-full">

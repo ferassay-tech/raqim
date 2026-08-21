@@ -23,6 +23,9 @@ import { IconArchive, IconBook, IconCheck, IconPlus, IconRefresh, IconTrash } fr
 import { useHasPermission } from "@/admin/lib/useHasPermission";
 import type { BulkAction } from "@/admin/components/ui/BulkActionBar";
 import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
+import { Toast } from "@/admin/components/ui/Toast";
+import type { ToastState } from "@/admin/components/ui/Toast";
+import { logAndGetErrorMessage } from "@/admin/lib/errorMessage";
 
 const STATUS_VARIANT = {
   published: "success",
@@ -85,6 +88,8 @@ export default function BooksListPage() {
   const [deleteTarget, setDeleteTarget] = useState<AdminBook | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [permanentTarget, setPermanentTarget] = useState<AdminBook | null>(null);
+  const [isPermanentlyDeleting, setIsPermanentlyDeleting] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   useEffect(() => {
     if (!flash) return;
@@ -473,12 +478,25 @@ export default function BooksListPage() {
         title="حذف نهائي"
         description={`هل تريدين حذف «${permanentTarget?.title ?? ""}» نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
-        onConfirm={() => {
-          if (permanentTarget) permanentlyDeleteBook(permanentTarget.id);
-          setPermanentTarget(null);
+        onConfirm={async () => {
+          if (!permanentTarget || isPermanentlyDeleting) return;
+          setIsPermanentlyDeleting(true);
+          try {
+            await permanentlyDeleteBook(permanentTarget.id);
+            setPermanentTarget(null);
+          } catch (error) {
+            setToast({
+              variant: "error",
+              message: logAndGetErrorMessage("Failed to permanently delete book:", error, "تعذر حذف الكتاب نهائيًا."),
+            });
+          } finally {
+            setIsPermanentlyDeleting(false);
+          }
         }}
         onCancel={() => setPermanentTarget(null)}
       />
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

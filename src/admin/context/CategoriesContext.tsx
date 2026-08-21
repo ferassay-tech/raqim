@@ -35,9 +35,9 @@ interface CategoriesContextValue {
    * unchanged when no category matches it — e.g. the "قريبًا" placeholder
    * value used by coming-soon books, which isn't a real category. */
   getCategoryLabel: (rawCategoryName: string) => string;
-  createCategory: (values: Omit<AdminCategoryRaw, "id">) => void;
-  updateCategory: (id: string, values: Omit<AdminCategoryRaw, "id">) => void;
-  deleteCategory: (id: string) => void;
+  createCategory: (values: Omit<AdminCategoryRaw, "id">) => Promise<void>;
+  updateCategory: (id: string, values: Omit<AdminCategoryRaw, "id">) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   loadError: string | null;
   reload: () => void;
 }
@@ -171,7 +171,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
   );
 
   const createCategory = useCallback(
-    (values: Omit<AdminCategoryRaw, "id">) => {
+    async (values: Omit<AdminCategoryRaw, "id">) => {
       let id = slugify(values.name.ar);
       let n = 2;
       while (storedCategories.some((c) => c.id === id)) {
@@ -179,27 +179,24 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
         n += 1;
       }
       const row: AdminCategoryRaw = { id, ...values };
-      void adapter.create(row).then(() => {
-        setStoredCategories((prev) => [...prev, row]);
-      });
+      await adapter.create(row);
+      setStoredCategories((prev) => [...prev, row]);
     },
     [adapter, storedCategories]
   );
 
   const updateCategory = useCallback(
-    (id: string, values: Omit<AdminCategoryRaw, "id">) => {
-      void adapter.update(id, values).then((updated) => {
-        setStoredCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
-      });
+    async (id: string, values: Omit<AdminCategoryRaw, "id">) => {
+      const updated = await adapter.update(id, values);
+      setStoredCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
     },
     [adapter]
   );
 
   const deleteCategory = useCallback(
-    (id: string) => {
-      void adapter.remove(id).then(() => {
-        setStoredCategories((prev) => prev.filter((c) => c.id !== id));
-      });
+    async (id: string) => {
+      await adapter.remove(id);
+      setStoredCategories((prev) => prev.filter((c) => c.id !== id));
     },
     [adapter]
   );

@@ -6,9 +6,9 @@ import { couponFromSupabaseRow, couponToSupabaseRow, couponsRepository } from ".
 
 interface CouponsContextValue {
   coupons: AdminCoupon[];
-  createCoupon: (values: Omit<AdminCoupon, "id" | "usageCount">) => void;
-  updateCoupon: (id: string, values: Omit<AdminCoupon, "id" | "usageCount">) => void;
-  deleteCoupon: (id: string) => void;
+  createCoupon: (values: Omit<AdminCoupon, "id" | "usageCount">) => Promise<void>;
+  updateCoupon: (id: string, values: Omit<AdminCoupon, "id" | "usageCount">) => Promise<void>;
+  deleteCoupon: (id: string) => Promise<void>;
   loadError: string | null;
   reload: () => void;
 }
@@ -46,48 +46,30 @@ export function CouponsProvider({ children }: { children: ReactNode }) {
     };
   }, [reloadToken]);
 
-  const createCoupon = useCallback((values: Omit<AdminCoupon, "id" | "usageCount">) => {
+  const createCoupon = useCallback(async (values: Omit<AdminCoupon, "id" | "usageCount">) => {
     const coupon: AdminCoupon = { ...values, id: `cp-${Date.now()}`, usageCount: 0 };
-    void couponsRepository
-      .create(couponToSupabaseRow(coupon))
-      .then(() => {
-        setCoupons((prev) => [...prev, coupon]);
-      })
-      .catch((error) => {
-        console.error("Failed to create coupon:", error);
-      });
+    await couponsRepository.create(couponToSupabaseRow(coupon));
+    setCoupons((prev) => [...prev, coupon]);
   }, []);
 
-  const updateCoupon = useCallback((id: string, values: Omit<AdminCoupon, "id" | "usageCount">) => {
-    void couponsRepository
-      .update(id, {
-        code: values.code,
-        type: values.type,
-        value: values.value,
-        min_order_value: values.minOrderValue,
-        usage_limit: values.usageLimit,
-        starts_at: values.startsAt,
-        expires_at: values.expiresAt,
-        enabled: values.enabled,
-        description: values.description,
-      })
-      .then(() => {
-        setCoupons((prev) => prev.map((c) => (c.id === id ? { ...c, ...values } : c)));
-      })
-      .catch((error) => {
-        console.error("Failed to update coupon:", error);
-      });
+  const updateCoupon = useCallback(async (id: string, values: Omit<AdminCoupon, "id" | "usageCount">) => {
+    await couponsRepository.update(id, {
+      code: values.code,
+      type: values.type,
+      value: values.value,
+      min_order_value: values.minOrderValue,
+      usage_limit: values.usageLimit,
+      starts_at: values.startsAt,
+      expires_at: values.expiresAt,
+      enabled: values.enabled,
+      description: values.description,
+    });
+    setCoupons((prev) => prev.map((c) => (c.id === id ? { ...c, ...values } : c)));
   }, []);
 
-  const deleteCoupon = useCallback((id: string) => {
-    void couponsRepository
-      .remove(id)
-      .then(() => {
-        setCoupons((prev) => prev.filter((c) => c.id !== id));
-      })
-      .catch((error) => {
-        console.error("Failed to delete coupon:", error);
-      });
+  const deleteCoupon = useCallback(async (id: string) => {
+    await couponsRepository.remove(id);
+    setCoupons((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
   const value = useMemo(

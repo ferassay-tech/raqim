@@ -20,6 +20,9 @@ import { useBooks } from "@/admin/context/BooksContext";
 import { useArticles } from "@/admin/context/ArticlesContext";
 import { useSettings } from "@/admin/context/SettingsContext";
 import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
+import { Toast } from "@/admin/components/ui/Toast";
+import type { ToastState } from "@/admin/components/ui/Toast";
+import { logAndGetErrorMessage } from "@/admin/lib/errorMessage";
 
 type ViewMode = "grid" | "list";
 
@@ -37,6 +40,8 @@ export default function MediaLibraryPage() {
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<string | null>(null);
+  const [isDeletingFolder, setIsDeletingFolder] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const filtered = useMemo(() => {
     return assets.filter((a) => {
@@ -50,12 +55,19 @@ export default function MediaLibraryPage() {
   const activeAsset = activeAssetId ? assets.find((a) => a.id === activeAssetId) ?? null : null;
   const folderName = (id: string | null) => (id ? folders.find((f) => f.id === id)?.name ?? "—" : "غير مصنّف");
 
-  const handleCreateFolder = (e: FormEvent) => {
+  const handleCreateFolder = async (e: FormEvent) => {
     e.preventDefault();
     if (!newFolderName.trim()) return;
-    createFolder(newFolderName.trim());
-    setNewFolderName("");
-    setFolderModalOpen(false);
+    try {
+      await createFolder(newFolderName.trim());
+      setNewFolderName("");
+      setFolderModalOpen(false);
+    } catch (error) {
+      setToast({
+        variant: "error",
+        message: logAndGetErrorMessage("Failed to create media folder:", error, "تعذر إنشاء المجلد."),
+      });
+    }
   };
 
   const columns: DataTableColumn<AdminMediaAsset>[] = [
@@ -99,7 +111,11 @@ export default function MediaLibraryPage() {
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              if (!inUse) deleteAsset(a.id);
+              if (!inUse) {
+                deleteAsset(a.id).catch((error) => {
+                  console.error("Failed to delete media asset:", error);
+                });
+              }
             }}
             disabled={inUse}
             aria-label={inUse ? "الملف مستخدم حاليًا — افتحيه لعرض المواضع" : "حذف الملف"}
@@ -205,8 +221,9 @@ export default function MediaLibraryPage() {
         onClose={() => setActiveAssetId(null)}
         onRename={(name) => activeAsset && renameAsset(activeAsset.id, name)}
         onMove={(folderId) => activeAsset && moveAsset(activeAsset.id, folderId)}
-        onDelete={() => {
-          if (activeAsset) deleteAsset(activeAsset.id);
+        onDelete={async () => {
+          if (!activeAsset) return;
+          await deleteAsset(activeAsset.id);
           setActiveAssetId(null);
         }}
       />
@@ -239,15 +256,26 @@ export default function MediaLibraryPage() {
         description="سيتم حذف المجلد، وستنتقل ملفاته إلى «غير مصنّف» دون حذفها."
         confirmLabel="حذف المجلد"
         tone="danger"
-        onConfirm={() => {
-          if (deleteFolderTarget) {
-            deleteFolder(deleteFolderTarget);
+        onConfirm={async () => {
+          if (!deleteFolderTarget || isDeletingFolder) return;
+          setIsDeletingFolder(true);
+          try {
+            await deleteFolder(deleteFolderTarget);
             if (folderFilter === deleteFolderTarget) setFolderFilter("all");
+            setDeleteFolderTarget(null);
+          } catch (error) {
+            setToast({
+              variant: "error",
+              message: logAndGetErrorMessage("Failed to delete media folder:", error, "تعذر حذف المجلد."),
+            });
+          } finally {
+            setIsDeletingFolder(false);
           }
-          setDeleteFolderTarget(null);
         }}
         onCancel={() => setDeleteFolderTarget(null)}
       />
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

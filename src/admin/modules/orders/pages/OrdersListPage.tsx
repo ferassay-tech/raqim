@@ -18,6 +18,7 @@ import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
 import { IconArchive, IconBag, IconCheck, IconRefresh, IconTrash } from "@/admin/icons";
 import { useHasPermission } from "@/admin/lib/useHasPermission";
 import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
+import { formatCurrencyAmount } from "@/admin/lib/formatCurrencyGroups";
 import { PaymentMethodBadge } from "../components/PaymentMethodBadge";
 import { paymentMethodList, orderMatchesPaymentMethod } from "@/config/paymentMethods";
 import type { PaymentMethodId } from "@/config/paymentMethods";
@@ -187,7 +188,7 @@ export default function OrdersListPage() {
       header: "الإجمالي",
       sortAccessor: SORT_ACCESSORS.total,
       align: "end",
-      render: (o) => <span className="text-ink">${ORDER_TOTAL(o).toFixed(2)}</span>,
+      render: (o) => <span className="text-ink">{formatCurrencyAmount(o.currency, ORDER_TOTAL(o))}</span>,
     },
     {
       key: "status",
@@ -252,6 +253,18 @@ export default function OrdersListPage() {
   const bulkStatus = (status: OrderStatus) => {
     setOrdersStatus([...selectedKeys], status);
     setSelectedKeys(new Set());
+  };
+
+  const handleMoveToTrash = async () => {
+    if (!trashTarget) return;
+    const target = trashTarget;
+    setTrashTarget(null);
+    try {
+      await moveOrderToTrash(target.id);
+    } catch (error) {
+      console.error("Failed to move order to trash:", error);
+      setStorageWarning(error instanceof Error ? error.message : `تعذر نقل الطلب #${target.id} إلى المحذوفات.`);
+    }
   };
 
   const handlePermanentDelete = async () => {
@@ -428,10 +441,7 @@ export default function OrdersListPage() {
         title="نقل الطلب إلى المحذوفات"
         description={`هل تريدين نقل الطلب #${trashTarget?.id ?? ""} إلى المحذوفات؟ يمكنك استعادته لاحقًا، ولن يظهر ضمن الطلبات النشطة أو إحصاءات لوحة التحكم حتى ذلك الحين.`}
         confirmLabel="نقل إلى المحذوفات"
-        onConfirm={() => {
-          if (trashTarget) moveOrderToTrash(trashTarget.id);
-          setTrashTarget(null);
-        }}
+        onConfirm={handleMoveToTrash}
         onCancel={() => setTrashTarget(null)}
       />
 

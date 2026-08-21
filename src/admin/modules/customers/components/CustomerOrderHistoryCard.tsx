@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import type { AdminCustomer } from "@/admin/types/customer";
 import { ORDER_TOTAL } from "@/admin/types/order";
 import { ORDER_STATUS_META } from "@/admin/lib/orderStatus";
+import { formatCurrencyAmount } from "@/admin/lib/formatCurrencyGroups";
 import { StatusBadge } from "@/admin/components/ui/StatusBadge";
 
 interface CustomerOrderHistoryCardProps {
@@ -31,7 +32,7 @@ export function CustomerOrderHistoryCard({ customer }: CustomerOrderHistoryCardP
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <span className="text-sm text-ink-soft">${ORDER_TOTAL(order).toFixed(2)}</span>
+                  <span className="text-sm text-ink-soft">{formatCurrencyAmount(order.currency, ORDER_TOTAL(order))}</span>
                   <StatusBadge variant={meta.variant}>{meta.label}</StatusBadge>
                 </div>
               </Link>

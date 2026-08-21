@@ -4,6 +4,7 @@ import { useOrders } from "@/admin/context/OrdersContext";
 import { isActiveOrder } from "@/admin/types/order";
 import { useBooks } from "@/admin/context/BooksContext";
 import { deriveCustomer } from "@/admin/lib/deriveCustomers";
+import { formatCurrencyGroups } from "@/admin/lib/formatCurrencyGroups";
 import { CUSTOMER_SEGMENT_META } from "@/admin/types/customer";
 import { EmptyState } from "@/admin/components/ui/EmptyState";
 import { StatusBadge } from "@/admin/components/ui/StatusBadge";
@@ -76,11 +77,11 @@ export default function CustomerProfilePage() {
       <Reveal delay={0.05}>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard icon={IconBag} label="عدد الطلبات" value={customer.orderCount.toLocaleString("en-US")} />
-          <StatCard icon={IconWallet} label="إجمالي الإنفاق" value={`$${customer.totalSpent.toFixed(2)}`} />
+          <StatCard icon={IconWallet} label="إجمالي الإنفاق" value={formatCurrencyGroups(customer.totalSpent)} />
           <StatCard
             icon={IconWallet}
             label="متوسط قيمة الطلب"
-            value={customer.averageOrderValue ? `$${customer.averageOrderValue.toFixed(2)}` : "—"}
+            value={customer.averageOrderValue.length ? formatCurrencyGroups(customer.averageOrderValue) : "—"}
           />
           <StatCard icon={IconTag} label="الفئة المفضلة" value={customer.favoriteCategory ?? "—"} />
         </div>

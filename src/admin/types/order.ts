@@ -1,4 +1,5 @@
 import type { PaymentMethodId } from "@/config/paymentMethods";
+import type { BookCurrency } from "./book";
 
 export type OrderStatus = "paid" | "pending" | "refunded" | "cancelled";
 
@@ -71,10 +72,51 @@ export interface AdminOrder {
    * unchanged either way — this is the only field trash/restore ever
    * write. */
   deletedAt: string | null;
+  /** The currency this order was actually transacted in — determined
+   * solely by the selected payment method at checkout (see A1 remediation:
+   * PaymentMethodPage resolves this from config.currency, never from the
+   * storefront's indicative USD headline price). `null` only for orders
+   * created before this column existed — deliberately never backfilled,
+   * since the true historical currency/amount can't be reliably recovered
+   * (see groupOrderTotalsByCurrency's doc comment). Every order created
+   * through the real checkout flow after this field's introduction always
+   * has a concrete value. */
+  currency: BookCurrency | null;
 }
 
 export const ORDER_TOTAL = (order: Pick<AdminOrder, "items" | "discount">) =>
   order.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) - order.discount;
+
+export interface CurrencyGroupedAmount {
+  /** `null` = the "legacy/uncurrencied" bucket — orders created before the
+   * currency column existed. Never merged into a real currency's total:
+   * their stored amount may not even be truly USD-denominated (see A1
+   * remediation plan), so folding them into any currency's figure would
+   * silently overstate or mislabel it. */
+  currency: BookCurrency | null;
+  amount: number;
+  count: number;
+}
+
+/**
+ * Groups orders by their transaction currency before summing — the one
+ * safe way to aggregate money across more than one order in a system with
+ * no FX conversion (RAQIM's USD/EGP/ILS prices are independent, not
+ * convertible). Never reduce ORDER_TOTAL across orders without grouping by
+ * currency first; doing so silently adds incompatible units together.
+ */
+export function groupOrderTotalsByCurrency<T extends Pick<AdminOrder, "items" | "discount" | "currency">>(
+  orders: T[]
+): CurrencyGroupedAmount[] {
+  const groups = new Map<BookCurrency | null, { amount: number; count: number }>();
+  for (const order of orders) {
+    const g = groups.get(order.currency) ?? { amount: 0, count: 0 };
+    g.amount += ORDER_TOTAL(order);
+    g.count += 1;
+    groups.set(order.currency, g);
+  }
+  return Array.from(groups.entries()).map(([currency, g]) => ({ currency, amount: g.amount, count: g.count }));
+}
 
 /** The one shared predicate every active/trash filter site imports —
  * Orders List, Dashboard, Customers List, Customer Profile, and the

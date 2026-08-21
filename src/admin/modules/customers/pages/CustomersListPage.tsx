@@ -4,6 +4,7 @@ import { useOrders } from "@/admin/context/OrdersContext";
 import { isActiveOrder } from "@/admin/types/order";
 import { useBooks } from "@/admin/context/BooksContext";
 import { deriveCustomers } from "@/admin/lib/deriveCustomers";
+import { formatCurrencyGroups } from "@/admin/lib/formatCurrencyGroups";
 import type { AdminCustomer } from "@/admin/types/customer";
 import { CUSTOMER_SEGMENT_META } from "@/admin/types/customer";
 import { PageHeader } from "@/admin/components/ui/PageHeader";
@@ -19,12 +20,15 @@ import { IconUsers } from "@/admin/icons";
 
 const PAGE_SIZE = 8;
 
-type SortKey = "name" | "orderCount" | "totalSpent" | "lastOrderDate";
+// "totalSpent" is deliberately not sortable — it's now a per-currency
+// breakdown (RAQIM has no FX conversion, see the A1 remediation plan), and
+// there is no single well-defined ordering across customers who spent in
+// different currencies without inventing a base-currency conversion.
+type SortKey = "name" | "orderCount" | "lastOrderDate";
 
 const SORT_ACCESSORS: Record<SortKey, (c: AdminCustomer) => string | number> = {
   name: (c) => c.name,
   orderCount: (c) => c.orderCount,
-  totalSpent: (c) => c.totalSpent,
   lastOrderDate: (c) => c.lastOrderDate,
 };
 
@@ -40,7 +44,7 @@ export default function CustomersListPage() {
 
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("all");
-  const [sortKey, setSortKey] = useState<SortKey>("totalSpent");
+  const [sortKey, setSortKey] = useState<SortKey>("orderCount");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
 
@@ -112,9 +116,8 @@ export default function CustomersListPage() {
     {
       key: "totalSpent",
       header: "إجمالي الإنفاق",
-      sortAccessor: SORT_ACCESSORS.totalSpent,
       align: "end",
-      render: (c) => <span className="text-ink">${c.totalSpent.toFixed(2)}</span>,
+      render: (c) => <span className="text-ink">{formatCurrencyGroups(c.totalSpent)}</span>,
     },
     {
       key: "lastOrderDate",

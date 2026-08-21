@@ -4,6 +4,7 @@ import { useOrders } from "@/admin/context/OrdersContext";
 import { isActiveOrder } from "@/admin/types/order";
 import { useBooks } from "@/admin/context/BooksContext";
 import { deriveCustomer } from "@/admin/lib/deriveCustomers";
+import { formatCurrencyGroups } from "@/admin/lib/formatCurrencyGroups";
 import { CustomerAvatar } from "@/admin/components/ui/CustomerAvatar";
 import { CopyIconButton } from "@/admin/components/ui/CopyIconButton";
 import { CustomerOrderHistoryCard } from "@/admin/modules/customers/components/CustomerOrderHistoryCard";
@@ -55,7 +56,7 @@ export function ConversationCustomerPanel({ conversation }: ConversationCustomer
               <p className="mt-0.5 text-[11px] text-ink-faint">الطلبات</p>
             </div>
             <div className="rounded-[10px] border border-beige bg-cream/40 p-3">
-              <p className="font-display text-lg text-ink">${customer.totalSpent.toFixed(0)}</p>
+              <p className="font-display text-lg text-ink">{formatCurrencyGroups(customer.totalSpent)}</p>
               <p className="mt-0.5 text-[11px] text-ink-faint">إجمالي الإنفاق</p>
             </div>
           </div>

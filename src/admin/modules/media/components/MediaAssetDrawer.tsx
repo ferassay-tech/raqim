@@ -18,12 +18,14 @@ interface MediaAssetDrawerProps {
   onClose: () => void;
   onRename: (name: string) => void;
   onMove: (folderId: string | null) => void;
-  onDelete: () => void;
+  onDelete: () => Promise<void>;
 }
 
 export function MediaAssetDrawer({ asset, folders, onClose, onRename, onMove, onDelete }: MediaAssetDrawerProps) {
   const [name, setName] = useState(asset?.name ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { books } = useBooks();
   const { articles } = useArticles();
   const { settings } = useSettings();
@@ -35,6 +37,7 @@ export function MediaAssetDrawer({ asset, folders, onClose, onRename, onMove, on
 
   useEffect(() => {
     setName(asset?.name ?? "");
+    setDeleteError(null);
   }, [asset]);
 
   return (
@@ -111,13 +114,22 @@ export function MediaAssetDrawer({ asset, folders, onClose, onRename, onMove, on
 
           <button
             type="button"
-            onClick={() => setConfirmDelete(true)}
+            onClick={() => {
+              setDeleteError(null);
+              setConfirmDelete(true);
+            }}
             disabled={usage.length > 0}
             className="inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-sm text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:text-ink-faint disabled:hover:bg-transparent"
           >
             <IconTrash className="h-4 w-4" />
             حذف الملف
           </button>
+
+          {deleteError && (
+            <p className="rounded-2xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+              {deleteError}
+            </p>
+          )}
         </div>
       )}
 
@@ -126,9 +138,19 @@ export function MediaAssetDrawer({ asset, folders, onClose, onRename, onMove, on
         title="حذف الملف"
         description={`هل تريدين حذف «${asset?.name ?? ""}»؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
-        onConfirm={() => {
-          setConfirmDelete(false);
-          onDelete();
+        onConfirm={async () => {
+          if (isDeleting) return;
+          setIsDeleting(true);
+          try {
+            await onDelete();
+            setConfirmDelete(false);
+          } catch (error) {
+            console.error("Failed to delete media asset:", error);
+            setDeleteError("تعذر حذف الملف. يرجى المحاولة مرة أخرى.");
+            setConfirmDelete(false);
+          } finally {
+            setIsDeleting(false);
+          }
         }}
         onCancel={() => setConfirmDelete(false)}
       />

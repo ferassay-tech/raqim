@@ -8,8 +8,7 @@ import { TextField } from "@/admin/components/forms/TextField";
 import { IconTrash, IconUpload } from "@/admin/icons";
 import { useLibrary } from "@/admin/context/LibraryContext";
 import { useBooks } from "@/admin/context/BooksContext";
-import { useAuth } from "@/admin/context/AuthContext";
-import { can } from "@/admin/lib/permissions";
+import { useHasPermission } from "@/admin/lib/useHasPermission";
 
 interface LibraryFileDrawerProps {
   file: LibraryFile | null;
@@ -19,17 +18,25 @@ interface LibraryFileDrawerProps {
 export function LibraryFileDrawer({ file, onClose }: LibraryFileDrawerProps) {
   const { renameFile, setFileVersion, replaceFile, deleteFile, attachToBook, detachFromBook } = useLibrary();
   const { books } = useBooks();
-  const { currentUser } = useAuth();
-  const canDelete = can(currentUser?.role, "deleteLibraryFile");
+  const hasPermission = useHasPermission();
+  // Matches library_files_delete_owner's own RLS gate
+  // (has_permission('library.manage')) — the legacy role-only can() check
+  // here previously ignored a per-user permission override in one
+  // direction, and under-granted the admin role in the other (it hid this
+  // control for admin even though RLS would have allowed the delete).
+  const canDelete = hasPermission("library.manage");
 
   const [name, setName] = useState(file?.filename ?? "");
   const [version, setVersionInput] = useState(file?.version ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setName(file?.filename ?? "");
     setVersionInput(file?.version ?? "");
+    setDeleteError(null);
   }, [file]);
 
   return (
@@ -125,7 +132,10 @@ export function LibraryFileDrawer({ file, onClose }: LibraryFileDrawerProps) {
             {canDelete && (
               <button
                 type="button"
-                onClick={() => setConfirmDelete(true)}
+                onClick={() => {
+                  setDeleteError(null);
+                  setConfirmDelete(true);
+                }}
                 className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm text-danger transition-colors hover:bg-danger/10"
               >
                 <IconTrash className="h-4 w-4" />
@@ -133,6 +143,12 @@ export function LibraryFileDrawer({ file, onClose }: LibraryFileDrawerProps) {
               </button>
             )}
           </div>
+
+          {deleteError && (
+            <p className="rounded-2xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+              {deleteError}
+            </p>
+          )}
         </div>
       )}
 
@@ -141,10 +157,20 @@ export function LibraryFileDrawer({ file, onClose }: LibraryFileDrawerProps) {
         title="حذف الملف"
         description={`هل تريدين حذف «${file?.filename ?? ""}»؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
-        onConfirm={() => {
-          if (file) deleteFile(file.id);
-          setConfirmDelete(false);
-          onClose();
+        onConfirm={async () => {
+          if (!file || isDeleting) return;
+          setIsDeleting(true);
+          try {
+            await deleteFile(file.id);
+            setConfirmDelete(false);
+            onClose();
+          } catch (error) {
+            console.error("Failed to delete library file:", error);
+            setDeleteError("تعذر حذف الملف. يرجى المحاولة مرة أخرى.");
+            setConfirmDelete(false);
+          } finally {
+            setIsDeleting(false);
+          }
         }}
         onCancel={() => setConfirmDelete(false)}
       />

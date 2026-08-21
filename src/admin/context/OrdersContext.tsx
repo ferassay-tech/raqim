@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { AdminOrder, OrderItem, OrderStatus, OrderTimelineEvent, PaymentStatus, TimelineTone } from "../types/order";
+import type { BookCurrency } from "../types/book";
 import type { PaymentMethodId } from "@/config/paymentMethods";
 import { ORDER_STATUS_META } from "../lib/orderStatus";
 import { INITIAL_ORDERS } from "../data/ordersData";
@@ -20,6 +21,12 @@ export interface CreateOrderInput {
   customerEmail: string;
   paymentMethod: string;
   paymentMethodId: PaymentMethodId;
+  /** The currency this order is actually transacted in — determined solely
+   * by the selected payment method (never a USD fallback). Required: every
+   * order created through the real checkout flow always has a payment
+   * method selected first, so a currency is always known at this point
+   * (mirrors paymentMethodId's own required, non-nullable shape here). */
+  currency: BookCurrency;
   transactionId?: string | null;
   customerNotes?: string | null;
   items: OrderItem[];
@@ -79,7 +86,7 @@ interface OrdersContextValue {
   createOrder: (input: CreateOrderInput) => Promise<AdminOrder & { isExistingOrder: boolean }>;
   setOrderStatus: (id: string, status: OrderStatus) => void;
   setOrdersStatus: (ids: string[], status: OrderStatus) => void;
-  addNote: (id: string, text: string) => void;
+  addNote: (id: string, text: string) => Promise<void>;
   /** Sets payment_status="confirmed" and status="paid" as one update, plus
    * one timeline entry — guarded against double-confirmation. Does not
    * touch download tokens or email; that orchestration lives in
@@ -96,7 +103,7 @@ interface OrdersContextValue {
    * UPDATE of one column, plus one timeline entry. Never touches
    * payment_status, status, transaction_id, or any other field, and never
    * calls any email/notification/payment endpoint. */
-  moveOrderToTrash: (id: string) => void;
+  moveOrderToTrash: (id: string) => Promise<void>;
   /** Clears deletedAt — the exact same record becomes active again, same
    * id, same every other field. Mirrors BooksContext.restoreBook. */
   restoreOrder: (id: string) => void;
@@ -196,6 +203,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       status: "pending",
       paymentMethod: input.paymentMethod,
       paymentMethodId: input.paymentMethodId,
+      currency: input.currency,
       paymentStatus: "pending_review",
       transactionId: input.transactionId ?? null,
       customerNotes: input.customerNotes ?? null,
@@ -354,7 +362,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   );
 
   const moveOrderToTrash = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const current = orders.find((o) => o.id === id);
       if (!current) return;
       const deletedAt = new Date().toISOString();
@@ -362,14 +370,8 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         ...current.timeline,
         { id: `${id}-t${current.timeline.length}`, label: "تم نقل الطلب إلى المحذوفات", time: `اليوم، ${now()}`, tone: "warning" },
       ];
-      void ordersRepository
-        .update(id, { deleted_at: deletedAt, timeline })
-        .then(() => {
-          setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deletedAt, timeline } : o)));
-        })
-        .catch((error) => {
-          console.error("Failed to move order to trash:", error);
-        });
+      await ordersRepository.update(id, { deleted_at: deletedAt, timeline });
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deletedAt, timeline } : o)));
     },
     [orders]
   );
@@ -440,21 +442,15 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   );
 
   const addNote = useCallback(
-    (id: string, text: string) => {
+    async (id: string, text: string) => {
       const current = orders.find((o) => o.id === id);
       if (!current) return;
       const timeline: OrderTimelineEvent[] = [
         ...current.timeline,
         { id: `${id}-t${current.timeline.length}`, label: `ملاحظة: ${text}`, time: `اليوم، ${now()}`, tone: "default" },
       ];
-      void ordersRepository
-        .update(id, { timeline })
-        .then(() => {
-          setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, timeline } : o)));
-        })
-        .catch((error) => {
-          console.error("Failed to add order note:", error);
-        });
+      await ordersRepository.update(id, { timeline });
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, timeline } : o)));
     },
     [orders]
   );

@@ -1,5 +1,5 @@
 import type { AdminOrder } from "../types/order";
-import { ORDER_TOTAL } from "../types/order";
+import { groupOrderTotalsByCurrency } from "../types/order";
 import type { AdminCustomer } from "../types/customer";
 import type { AdminBook } from "../types/book";
 
@@ -29,8 +29,15 @@ export function deriveCustomers(orders: AdminOrder[], books: AdminBook[]): Admin
     const last = chronological[chronological.length - 1];
 
     const paidOrders = customerOrders.filter((o) => o.status === "paid");
-    const totalSpent = paidOrders.reduce((sum, o) => sum + ORDER_TOTAL(o), 0);
-    const averageOrderValue = paidOrders.length ? totalSpent / paidOrders.length : 0;
+    // Grouped by currency, never blended (see A1 remediation plan) — a
+    // customer who paid once in USD and once in EGP gets two separate
+    // entries, never one combined number.
+    const totalSpent = groupOrderTotalsByCurrency(paidOrders);
+    const averageOrderValue = totalSpent.map((group) => ({
+      currency: group.currency,
+      amount: group.count ? group.amount / group.count : 0,
+      count: group.count,
+    }));
 
     const categoryCounts = new Map<string, number>();
     for (const order of customerOrders) {

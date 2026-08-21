@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { AdminOrder } from "@/admin/types/order";
 import { BookCoverThumb } from "@/admin/modules/books/components/BookCoverThumb";
+import { formatCurrencyAmount } from "@/admin/lib/formatCurrencyGroups";
 
 interface OrderItemsCardProps {
   order: AdminOrder;
@@ -26,11 +27,11 @@ export function OrderItemsCard({ order }: OrderItemsCardProps) {
                 {item.title}
               </Link>
               <p className="mt-0.5 text-xs text-ink-faint">
-                {item.quantity} × ${item.unitPrice.toFixed(2)}
+                {item.quantity} × {formatCurrencyAmount(order.currency, item.unitPrice)}
               </p>
             </div>
             <span className="shrink-0 text-sm text-ink-soft">
-              ${(item.quantity * item.unitPrice).toFixed(2)}
+              {formatCurrencyAmount(order.currency, item.quantity * item.unitPrice)}
             </span>
           </li>
         ))}
@@ -39,17 +40,17 @@ export function OrderItemsCard({ order }: OrderItemsCardProps) {
       <div className="mt-5 flex flex-col gap-2 border-t border-beige pt-5 text-sm">
         <div className="flex items-center justify-between text-ink-soft">
           <span>المجموع الفرعي</span>
-          <span>${subtotal.toFixed(2)}</span>
+          <span>{formatCurrencyAmount(order.currency, subtotal)}</span>
         </div>
         {order.discount > 0 && (
           <div className="flex items-center justify-between text-ink-soft">
             <span>الخصم</span>
-            <span>-${order.discount.toFixed(2)}</span>
+            <span>-{formatCurrencyAmount(order.currency, order.discount)}</span>
           </div>
         )}
         <div className="flex items-center justify-between pt-1 text-base">
           <span className="font-display text-ink">الإجمالي</span>
-          <span className="font-display text-ink">${total.toFixed(2)}</span>
+          <span className="font-display text-ink">{formatCurrencyAmount(order.currency, total)}</span>
         </div>
       </div>
     </div>

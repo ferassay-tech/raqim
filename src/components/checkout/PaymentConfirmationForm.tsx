@@ -180,6 +180,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
           <input
             id="transactionId"
             name="transactionId"
+            required
             value={values.transactionId}
             onChange={handleChange}
             className={inputClasses}

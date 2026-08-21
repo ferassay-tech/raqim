@@ -1,4 +1,5 @@
 import type { AdminOrder, OrderItem, OrderStatus, PaymentStatus, OrderTimelineEvent } from "../types/order";
+import type { BookCurrency } from "../types/book";
 import type { PaymentMethodId } from "@/config/paymentMethods";
 import { createCollectionAdapter } from "../services/data/index.ts";
 import type { CollectionAdapter } from "../services/data/index.ts";
@@ -25,6 +26,11 @@ export interface OrderRow {
   status: OrderStatus;
   payment_method: string;
   payment_method_id: PaymentMethodId | null;
+  /** `null` only for orders created before this column existed — never
+   * backfilled (see A1 remediation plan's historical-orders section); every
+   * order created through the real checkout flow after its introduction
+   * always has a concrete value. */
+  currency: BookCurrency | null;
   payment_status: PaymentStatus | null;
   transaction_id: string | null;
   customer_notes: string | null;
@@ -53,6 +59,7 @@ export function orderToSupabaseRow(order: AdminOrder): OrderRow {
     status: order.status,
     payment_method: order.paymentMethod,
     payment_method_id: order.paymentMethodId,
+    currency: order.currency,
     payment_status: order.paymentStatus,
     transaction_id: order.transactionId,
     customer_notes: order.customerNotes,
@@ -72,6 +79,7 @@ export function orderFromSupabaseRow(row: OrderRow): AdminOrder {
     status: row.status,
     paymentMethod: row.payment_method,
     paymentMethodId: row.payment_method_id,
+    currency: row.currency,
     paymentStatus: row.payment_status,
     transactionId: row.transaction_id,
     customerNotes: row.customer_notes,

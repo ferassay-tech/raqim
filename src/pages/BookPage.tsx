@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import NotFoundPage from "./NotFoundPage";
 import { Helmet } from "../components/Helmet";
@@ -7,7 +7,6 @@ import { GoldDivider, CornerFlourish, QuoteMark, IconHeart } from "../components
 import { StampCTA, UnderlineLink, NumeralCTA } from "../components/cta";
 import { Reveal } from "../components/motion-primitives";
 import { StructuredData } from "../components/StructuredData";
-import PremiumBook3D from "../components/PremiumBook3D";
 import { useBooks } from "../admin/context/BooksContext";
 import { useSiteContent } from "../admin/context/SiteContentContext";
 import { useSettings } from "../admin/context/SettingsContext";
@@ -19,6 +18,11 @@ import { useAssetDimensions } from "../lib/mediaDimensions";
 import { useLanguage } from "../context/LanguageContext";
 import { localizeProperName } from "../lib/properNames";
 import { formatNumeral } from "../lib/numerals";
+
+// Lazy-loaded: pulls in react-pageflip + motion, kept out of the main
+// public bundle every visitor downloads — only fetched when this component
+// actually renders.
+const PremiumBook3D = lazy(() => import("../components/PremiumBook3D"));
 
 function formatUsdPrice(n: number): string {
   return Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`;
@@ -125,12 +129,14 @@ function BookHero({ book }: { book: AdminBook }) {
         <Reveal className="order-2 flex justify-center lg:order-1 lg:justify-start">
           <div className="relative">
             <div className="absolute -inset-10 -z-10 rounded-full bg-gold/10 blur-3xl" />
-            <PremiumBook3D
-              cover={book.cover ?? ""}
-              alt={book.title}
-              previewPages={book.previewPages}
-              backCover={book.backCoverImage ?? undefined}
-            />
+            <Suspense fallback={null}>
+              <PremiumBook3D
+                cover={book.cover ?? ""}
+                alt={book.title}
+                previewPages={book.previewPages}
+                backCover={book.backCoverImage ?? undefined}
+              />
+            </Suspense>
           </div>
         </Reveal>
 

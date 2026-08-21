@@ -18,9 +18,9 @@ interface MediaContextValue {
   addAssets: (files: File[], folderId: string | null) => void;
   renameAsset: (id: string, name: string) => void;
   moveAsset: (id: string, folderId: string | null) => void;
-  deleteAsset: (id: string) => void;
-  createFolder: (name: string) => void;
-  deleteFolder: (id: string) => void;
+  deleteAsset: (id: string) => Promise<void>;
+  createFolder: (name: string) => Promise<void>;
+  deleteFolder: (id: string) => Promise<void>;
   loadError: string | null;
   reload: () => void;
 }
@@ -132,15 +132,9 @@ export function MediaProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
-  const deleteAsset = useCallback((id: string) => {
-    void mediaAssetsRepository
-      .remove(id)
-      .then(() => {
-        setAssets((prev) => prev.filter((a) => a.id !== id));
-      })
-      .catch((error) => {
-        console.error("Failed to delete media asset:", error);
-      });
+  const deleteAsset = useCallback(async (id: string) => {
+    await mediaAssetsRepository.remove(id);
+    setAssets((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
   // Computes the new id from the `folders` closure (not a setState-updater
@@ -148,7 +142,7 @@ export function MediaProvider({ children }: { children: ReactNode }) {
   // functional state updaters in dev to surface impure ones — doing the
   // repository write in there would double-fire the insert.
   const createFolder = useCallback(
-    (name: string) => {
+    async (name: string) => {
       let id = `folder-${slugify(name)}`;
       let n = 2;
       while (folders.some((f) => f.id === id)) {
@@ -156,33 +150,21 @@ export function MediaProvider({ children }: { children: ReactNode }) {
         n += 1;
       }
       const folder: AdminMediaFolder = { id, name };
-      void mediaFoldersRepository
-        .create(folderToSupabaseRow(folder))
-        .then(() => {
-          setFolders((prev) => [...prev, folder]);
-        })
-        .catch((error) => {
-          console.error("Failed to create media folder:", error);
-        });
+      await mediaFoldersRepository.create(folderToSupabaseRow(folder));
+      setFolders((prev) => [...prev, folder]);
     },
     [folders]
   );
 
-  const deleteFolder = useCallback((id: string) => {
+  const deleteFolder = useCallback(async (id: string) => {
     // The real foreign key (media_assets.folder_id -> media_folders.id)
     // is ON DELETE SET NULL, so the database already does this same
     // cascade on its own; this mirrors it client-side so local state
     // matches what Supabase just did, without a second round-trip to
     // re-fetch assets.
-    void mediaFoldersRepository
-      .remove(id)
-      .then(() => {
-        setFolders((prev) => prev.filter((f) => f.id !== id));
-        setAssets((prev) => prev.map((a) => (a.folderId === id ? { ...a, folderId: null } : a)));
-      })
-      .catch((error) => {
-        console.error("Failed to delete media folder:", error);
-      });
+    await mediaFoldersRepository.remove(id);
+    setFolders((prev) => prev.filter((f) => f.id !== id));
+    setAssets((prev) => prev.map((a) => (a.folderId === id ? { ...a, folderId: null } : a)));
   }, []);
 
   const value = useMemo(

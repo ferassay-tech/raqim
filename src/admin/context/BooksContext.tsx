@@ -14,7 +14,7 @@ interface BooksContextValue {
   getBook: (id: string) => AdminBook | undefined;
   /** Raw, bilingual — Book Editor only. */
   getRawBook: (id: string) => AdminBookRaw | undefined;
-  createBook: (book: Omit<AdminBookRaw, "id" | "updatedAt" | "sales">) => void;
+  createBook: (book: Omit<AdminBookRaw, "id" | "updatedAt" | "sales">) => Promise<void>;
   updateBook: (id: string, patch: Partial<AdminBookRaw>) => void;
   /** Soft delete — sets deletedAt, hides the book from public site + default
    * Admin views, but keeps it recoverable from the "المحذوفة" trash view. */
@@ -23,7 +23,7 @@ interface BooksContextValue {
   restoreBook: (id: string) => void;
   restoreBooks: (ids: string[]) => void;
   /** Actually removes the record — only ever called from the trash view. */
-  permanentlyDeleteBook: (id: string) => void;
+  permanentlyDeleteBook: (id: string) => Promise<void>;
   duplicateBook: (id: string) => void;
   setBooksStatus: (ids: string[], status: BookStatus) => void;
   /** Set when the initial Supabase fetch fails; null once it succeeds. */
@@ -195,7 +195,7 @@ export function BooksProvider({ children }: { children: ReactNode }) {
    * here ever computes one). */
   const categoryIdFor = useCallback((id: string) => rowsById.current.get(id)?.category_id ?? null, []);
 
-  const createBook = useCallback((book: Omit<AdminBookRaw, "id" | "updatedAt" | "sales">) => {
+  const createBook = useCallback(async (book: Omit<AdminBookRaw, "id" | "updatedAt" | "sales">) => {
     let id = slugify(book.title.ar);
     let n = 2;
     while (storedBooks.some((b) => b.id === id)) {
@@ -204,10 +204,13 @@ export function BooksProvider({ children }: { children: ReactNode }) {
     }
     const created: AdminBookRaw = { ...book, id, sales: 0, updatedAt: today() };
     const row = toSupabaseRow(created, null);
-    void booksRepository.create(row).then(() => {
-      rowsById.current.set(id, row);
-      setStoredBooks((prev) => [created, ...prev]);
-    });
+    // Awaited (not fire-and-forget) so a genuine write failure rejects this
+    // promise instead of being silently swallowed — the caller (BookNewPage)
+    // now knows whether the book was actually created before navigating
+    // away or showing a success message.
+    await booksRepository.create(row);
+    rowsById.current.set(id, row);
+    setStoredBooks((prev) => [created, ...prev]);
   }, [storedBooks]);
 
   const persistPatch = useCallback(
@@ -247,11 +250,10 @@ export function BooksProvider({ children }: { children: ReactNode }) {
     [persistPatch]
   );
 
-  const permanentlyDeleteBook = useCallback((id: string) => {
-    void booksRepository.remove(id).then(() => {
-      rowsById.current.delete(id);
-      setStoredBooks((prev) => prev.filter((b) => b.id !== id));
-    });
+  const permanentlyDeleteBook = useCallback(async (id: string) => {
+    await booksRepository.remove(id);
+    rowsById.current.delete(id);
+    setStoredBooks((prev) => prev.filter((b) => b.id !== id));
   }, []);
 
   const duplicateBook = useCallback(

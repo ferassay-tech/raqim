@@ -5,8 +5,7 @@ import { SegmentedControl } from "@/admin/components/forms/SegmentedControl";
 import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
 import { CopyIconButton } from "@/admin/components/ui/CopyIconButton";
 import { StatusBadge } from "@/admin/components/ui/StatusBadge";
-import { useAuth } from "@/admin/context/AuthContext";
-import { can } from "@/admin/lib/permissions";
+import { useHasPermission } from "@/admin/lib/useHasPermission";
 import { PaymentMethodBadge } from "./PaymentMethodBadge";
 
 /** The full outcome of one Confirm Payment click, including the
@@ -37,11 +36,16 @@ export function OrderPaymentCard({ order, onStatusChange, onConfirmPayment }: Or
   const [confirmFeedback, setConfirmFeedback] = useState<{ tone: "success" | "warning" | "error"; message: string } | null>(
     null
   );
-  const { currentUser } = useAuth();
+  const hasPermission = useHasPermission();
   // Same capability that already gates the pending→paid transition in the
   // status control below — Confirm Payment is the same class of action,
-  // no new permission concept introduced.
-  const canChangeStatus = can(currentUser?.role, "changeOrderStatus");
+  // no new permission concept introduced. Resolved via has_permission()'s
+  // effective-permission computation (role default + any per-user
+  // override), matching the real orders_update_editor_or_owner RLS gate —
+  // the legacy role-only can() check here previously ignored an override,
+  // so a UI control could stay enabled after an owner had revoked
+  // orders.manage from this specific admin, only to fail silently at RLS.
+  const canChangeStatus = hasPermission("orders.manage");
   const paymentStatusMeta = resolvePaymentStatusMeta(order);
 
   const handleConfirmPayment = async () => {

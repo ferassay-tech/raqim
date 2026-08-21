@@ -14,7 +14,7 @@ interface LibraryContextValue {
   replaceFile: (id: string, file: File) => Promise<void>;
   renameFile: (id: string, filename: string) => void;
   setFileVersion: (id: string, version: string | null) => void;
-  deleteFile: (id: string) => void;
+  deleteFile: (id: string) => Promise<void>;
   attachToBook: (id: string, bookId: string) => void;
   detachFromBook: (id: string) => void;
   loadError: string | null;
@@ -160,30 +160,24 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const deleteFile = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const file = files.find((f) => f.id === id);
       if (!file) return;
-      void libraryFilesRepository
-        .remove(id)
-        .then(() => {
-          setFiles((prev) => prev.filter((f) => f.id !== id));
-          // Best-effort remote cleanup — resolved by the file's own recorded
-          // provider (not necessarily the currently active one), so an old
-          // file uploaded under a different provider still gets cleaned up
-          // correctly. The Admin's own record is already removed regardless
-          // of this outcome; a failed remote delete leaves an orphaned
-          // object behind rather than blocking the Admin's delete action on
-          // a network hiccup.
-          getStorageAdapter(file.storageProvider)
-            .delete(file.storageKey)
-            .catch(() => {
-              /* orphaned remote object — same honest limitation as any
-               * other best-effort cleanup; nothing further to do
-               * client-side */
-            });
-        })
-        .catch((error) => {
-          console.error("Failed to delete library file:", error);
+      await libraryFilesRepository.remove(id);
+      setFiles((prev) => prev.filter((f) => f.id !== id));
+      // Best-effort remote cleanup — resolved by the file's own recorded
+      // provider (not necessarily the currently active one), so an old
+      // file uploaded under a different provider still gets cleaned up
+      // correctly. The Admin's own record is already removed regardless
+      // of this outcome; a failed remote delete leaves an orphaned
+      // object behind rather than blocking the Admin's delete action on
+      // a network hiccup.
+      getStorageAdapter(file.storageProvider)
+        .delete(file.storageKey)
+        .catch(() => {
+          /* orphaned remote object — same honest limitation as any
+           * other best-effort cleanup; nothing further to do
+           * client-side */
         });
     },
     [files]

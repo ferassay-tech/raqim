@@ -10,6 +10,9 @@ import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
 import { CategoryFormModal } from "../components/CategoryFormModal";
 import { IconPencil, IconPlus, IconTag, IconTrash } from "@/admin/icons";
 import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
+import { Toast } from "@/admin/components/ui/Toast";
+import type { ToastState } from "@/admin/components/ui/Toast";
+import { logAndGetErrorMessage } from "@/admin/lib/errorMessage";
 
 interface CategoryRow extends AdminCategory {
   bookCount: number;
@@ -31,6 +34,8 @@ export default function CategoriesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<AdminCategoryRaw | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CategoryRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const rows: CategoryRow[] = useMemo(
     () =>
@@ -143,10 +148,17 @@ export default function CategoriesPage() {
         onClose={() => setFormOpen(false)}
         initialCategory={editing}
         existingCategories={rawCategories}
-        onSave={(values) => {
-          if (editing) updateCategory(editing.id, values);
-          else createCategory(values);
-          setFormOpen(false);
+        onSave={async (values) => {
+          try {
+            if (editing) await updateCategory(editing.id, values);
+            else await createCategory(values);
+            setFormOpen(false);
+          } catch (error) {
+            setToast({
+              variant: "error",
+              message: logAndGetErrorMessage("Failed to save category:", error, "تعذر حفظ التصنيف."),
+            });
+          }
         }}
       />
 
@@ -155,12 +167,25 @@ export default function CategoriesPage() {
         title="حذف التصنيف"
         description={`هل تريدين حذف تصنيف «${deleteTarget?.name ?? ""}»؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
-        onConfirm={() => {
-          if (deleteTarget) deleteCategory(deleteTarget.id);
-          setDeleteTarget(null);
+        onConfirm={async () => {
+          if (!deleteTarget || isDeleting) return;
+          setIsDeleting(true);
+          try {
+            await deleteCategory(deleteTarget.id);
+            setDeleteTarget(null);
+          } catch (error) {
+            setToast({
+              variant: "error",
+              message: logAndGetErrorMessage("Failed to delete category:", error, "تعذر حذف التصنيف."),
+            });
+          } finally {
+            setIsDeleting(false);
+          }
         }}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

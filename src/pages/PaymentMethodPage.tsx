@@ -36,6 +36,7 @@ const PaymentMethodPage: React.FC = () => {
   const [showConfirmationForm, setShowConfirmationForm] = useState(false);
   const [attachmentUploadFailed, setAttachmentUploadFailed] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<{ orderId: string; file: File } | null>(null);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   const config = getPaymentMethod(method);
 
@@ -97,27 +98,62 @@ const PaymentMethodPage: React.FC = () => {
 
   const handleConfirmationSubmit = async (values: ConfirmationFormValues) => {
     setConfirmation(values);
-    const discountedPrice = appliedCoupon ? computeDiscountedPrice(product.newPrice, appliedCoupon) : product.newPrice;
-    const order = await createOrder({
-      customerName: values.fullName,
-      customerEmail: values.email,
-      paymentMethod: config.title,
-      paymentMethodId: config.id,
-      transactionId: values.transactionId || null,
-      customerNotes: values.notes || null,
-      items: [
-        {
-          bookId: book?.id ?? product.id,
-          title: product.title,
-          cover: product.coverImage,
-          quantity: 1,
-          unitPrice: product.newPrice,
-        },
-      ],
-      discount: product.newPrice - discountedPrice,
-      hasReceiptFile: Boolean(values.receiptFile),
-      checkoutAttemptId,
-    });
+    setOrderError(null);
+
+    // The selected payment method (config.currency) is the single source of
+    // truth for what currency this order is transacted in — never the
+    // storefront's indicative USD headline price (product.newPrice). If the
+    // book has no price entered for this method's currency, there is no
+    // correct amount to charge, so the order must not be created with a
+    // substituted (wrong-currency) number — see A1 remediation plan.
+    if (!priceEntry) {
+      setOrderError(t("payment.priceUnavailableForMethod"));
+      return;
+    }
+
+    // Fixed-value coupons have no currency of their own (only percentage
+    // coupons are currency-neutral) — applying one to a non-USD price would
+    // silently subtract the wrong-scale amount (e.g. a "$5 off" coupon
+    // becoming "5 EGP off"). Blocked rather than silently mis-applied; see
+    // A1 remediation plan's coupon review.
+    if (appliedCoupon?.type === "fixed" && config.currency !== "USD") {
+      setOrderError(t("payment.fixedCouponNotValidForMethod"));
+      return;
+    }
+
+    const discountedPrice = computeDiscountedPrice(priceEntry.price, appliedCoupon);
+    let order;
+    try {
+      order = await createOrder({
+        customerName: values.fullName,
+        customerEmail: values.email,
+        paymentMethod: config.title,
+        paymentMethodId: config.id,
+        currency: config.currency,
+        transactionId: values.transactionId || null,
+        customerNotes: values.notes || null,
+        items: [
+          {
+            bookId: book?.id ?? product.id,
+            title: product.title,
+            cover: product.coverImage,
+            quantity: 1,
+            unitPrice: priceEntry.price,
+          },
+        ],
+        discount: priceEntry.price - discountedPrice,
+        hasReceiptFile: Boolean(values.receiptFile),
+        checkoutAttemptId,
+      });
+    } catch (error) {
+      // A genuine, one-time failure (network drop, RLS/DB error) — never
+      // silent: the confirmation form stays visible so the customer can
+      // simply resubmit, safely covered by the checkout_attempt_id guard
+      // if the first attempt actually succeeded server-side after all.
+      console.error("Failed to create order:", error);
+      setOrderError(t("payment.orderCreationFailed"));
+      return;
+    }
 
     // order.isExistingOrder is true when this exact checkout attempt had
     // already produced this order (a retried/duplicate submission) —
@@ -275,10 +311,17 @@ const PaymentMethodPage: React.FC = () => {
               </motion.div>
             ) : (
               showConfirmationForm && (
-                <PaymentConfirmationForm
-                  methodTitle={config.title}
-                  onSubmit={handleConfirmationSubmit}
-                />
+                <div className="flex flex-col gap-3">
+                  {orderError && (
+                    <p className="rounded-2xl border border-danger/30 bg-danger/5 px-4 py-3 text-center text-sm text-danger">
+                      {orderError}
+                    </p>
+                  )}
+                  <PaymentConfirmationForm
+                    methodTitle={config.title}
+                    onSubmit={handleConfirmationSubmit}
+                  />
+                </div>
               )
             )}
           </AnimatePresence>

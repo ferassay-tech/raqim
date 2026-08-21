@@ -2,11 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AdminOrder } from "@/admin/types/order";
 import { useDownloads } from "@/admin/context/DownloadsContext";
 import { useLibrary } from "@/admin/context/LibraryContext";
-import { useAuth } from "@/admin/context/AuthContext";
+import { useHasPermission } from "@/admin/lib/useHasPermission";
 import { useCommunicationTemplates } from "@/admin/context/CommunicationTemplatesContext";
 import { DOWNLOAD_EMAIL_TEMPLATE_ID } from "@/admin/data/communicationTemplatesData";
 import { renderTemplateToHtml } from "@/admin/modules/communications/utils/renderTemplateToHtml";
-import { can } from "@/admin/lib/permissions";
 import { getEmailProvider } from "@/admin/services/email";
 import { CopyIconButton } from "@/admin/components/ui/CopyIconButton";
 import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
@@ -64,8 +63,14 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
   const { getTokensForOrder, generateToken, regenerateToken, disableToken } = useDownloads();
   const { getFilesForBook } = useLibrary();
   const { resolveTemplateForSending } = useCommunicationTemplates();
-  const { currentUser } = useAuth();
-  const canManage = can(currentUser?.role, "manageDownloads");
+  const hasPermission = useHasPermission();
+  // Matches download_tokens' own RLS gate (has_permission('library.manage'),
+  // see download_tokens_insert_editor_or_owner/_update_editor_or_owner) —
+  // the legacy role-only can() check here previously ignored a per-user
+  // permission override, so this control could stay enabled after an
+  // owner revoked the capability from this specific admin, only to fail
+  // silently at RLS.
+  const canManage = hasPermission("library.manage");
 
   const [confirmDisable, setConfirmDisable] = useState(false);
   const [emailStatus, setEmailStatus] = useState<EmailSendStatus>("idle");

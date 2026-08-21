@@ -29,7 +29,7 @@ export function ImageListEditor({ label, hint, images, onChange }: ImageListEdit
               type="button"
               onClick={() => onChange(images.filter((_, idx) => idx !== i))}
               aria-label="إزالة الصورة"
-              className="absolute inset-0 grid place-items-center bg-ink/50 text-ivory opacity-0 transition-opacity group-hover:opacity-100"
+              className="absolute inset-0 grid place-items-center bg-ink/50 text-ivory opacity-0 transition-opacity group-hover:opacity-100 group-active:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ivory"
             >
               <IconTrash className="h-4 w-4" />
             </button>

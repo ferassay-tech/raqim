@@ -15,7 +15,7 @@ interface ArticlesContextValue {
   getArticle: (id: string) => AdminArticle | undefined;
   /** Raw, bilingual — Article Editor only. */
   getRawArticle: (id: string) => AdminArticleRaw | undefined;
-  createArticle: (values: Omit<AdminArticleRaw, "id" | "updatedAt">) => void;
+  createArticle: (values: Omit<AdminArticleRaw, "id" | "updatedAt">) => Promise<void>;
   updateArticle: (id: string, values: Omit<AdminArticleRaw, "id" | "updatedAt">) => void;
   deleteArticle: (id: string) => void;
   deleteArticles: (ids: string[]) => void;
@@ -135,7 +135,7 @@ export function ArticlesProvider({ children }: { children: ReactNode }) {
   // updater — React 18 StrictMode double-invokes updater functions in
   // dev to catch impure code like a repository write triggered from one.
   const createArticle = useCallback(
-    (values: Omit<AdminArticleRaw, "id" | "updatedAt">) => {
+    async (values: Omit<AdminArticleRaw, "id" | "updatedAt">) => {
       const base = slugify(values.title.ar);
       let id = base;
       let n = 2;
@@ -144,14 +144,8 @@ export function ArticlesProvider({ children }: { children: ReactNode }) {
         n += 1;
       }
       const created: AdminArticleRaw = { ...values, id, updatedAt: today() };
-      void articlesRepository
-        .create(articleToSupabaseRow(created))
-        .then(() => {
-          setStoredArticles((prev) => [created, ...prev]);
-        })
-        .catch((error) => {
-          console.error("Failed to create article:", error);
-        });
+      await articlesRepository.create(articleToSupabaseRow(created));
+      setStoredArticles((prev) => [created, ...prev]);
     },
     [storedArticles]
   );

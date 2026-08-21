@@ -13,6 +13,9 @@ import { CopyIconButton } from "@/admin/components/ui/CopyIconButton";
 import { CouponFormModal } from "../components/CouponFormModal";
 import { IconPencil, IconPlus, IconTicket, IconTrash } from "@/admin/icons";
 import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
+import { Toast } from "@/admin/components/ui/Toast";
+import type { ToastState } from "@/admin/components/ui/Toast";
+import { logAndGetErrorMessage } from "@/admin/lib/errorMessage";
 
 export default function CouponsPage() {
   const { coupons, createCoupon, updateCoupon, deleteCoupon, loadError, reload } = useCoupons();
@@ -21,6 +24,8 @@ export default function CouponsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<AdminCoupon | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminCoupon | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const filtered = useMemo(() => {
     if (statusFilter === "all") return coupons;
@@ -176,10 +181,17 @@ export default function CouponsPage() {
         onClose={() => setFormOpen(false)}
         initialCoupon={editing}
         existingCodes={coupons.map((c) => c.code)}
-        onSave={(values) => {
-          if (editing) updateCoupon(editing.id, values);
-          else createCoupon(values);
-          setFormOpen(false);
+        onSave={async (values) => {
+          try {
+            if (editing) await updateCoupon(editing.id, values);
+            else await createCoupon(values);
+            setFormOpen(false);
+          } catch (error) {
+            setToast({
+              variant: "error",
+              message: logAndGetErrorMessage("Failed to save coupon:", error, "تعذر حفظ كود الخصم."),
+            });
+          }
         }}
       />
 
@@ -188,12 +200,25 @@ export default function CouponsPage() {
         title="حذف كود الخصم"
         description={`هل تريدين حذف الكود «${deleteTarget?.code ?? ""}»؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
-        onConfirm={() => {
-          if (deleteTarget) deleteCoupon(deleteTarget.id);
-          setDeleteTarget(null);
+        onConfirm={async () => {
+          if (!deleteTarget || isDeleting) return;
+          setIsDeleting(true);
+          try {
+            await deleteCoupon(deleteTarget.id);
+            setDeleteTarget(null);
+          } catch (error) {
+            setToast({
+              variant: "error",
+              message: logAndGetErrorMessage("Failed to delete coupon:", error, "تعذر حذف كود الخصم."),
+            });
+          } finally {
+            setIsDeleting(false);
+          }
         }}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

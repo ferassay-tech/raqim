@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/page-shell";
 import { GoldDivider, CornerFlourish, ArchFrame, QuoteMark, IconBook, IconHeart, IconOpenHands } from "../components/ornaments";
@@ -6,7 +6,6 @@ import { StampCTA, UnderlineLink } from "../components/cta";
 import {Reveal,ParallaxLayer,CursorDrift,Floating,MouseTilt,} from "../components/motion-primitives";
 import { StructuredData } from "../components/StructuredData";
 import { Helmet } from "../components/Helmet";
-import PremiumBook3D from "../components/PremiumBook3D";
 import { useBooks } from "../admin/context/BooksContext";
 import type { AdminBook } from "../admin/types/book";
 import { isInLibraryGrid } from "../admin/lib/bookPlacement";
@@ -18,6 +17,12 @@ import { useAssetDimensions } from "../lib/mediaDimensions";
 import { DEFAULT_OG_IMAGE } from "../lib/seo";
 import { localizeProperName } from "../lib/properNames";
 import { BRAND_ASSETS } from "../config/brandAssets";
+
+// Lazy-loaded: pulls in react-pageflip + motion, kept out of the main
+// public bundle every visitor downloads (HomePage is the highest-traffic
+// route) — only fetched when this component actually renders.
+const PremiumBook3D = lazy(() => import("../components/PremiumBook3D"));
+
 // Every Hero* atmosphere component (HeroLight, HeroClouds, HeroParticles,
 // HeroBirds, HeroForeground) and the shared ambient mask are temporarily
 // not rendered anywhere on the homepage — components and assets are kept
@@ -113,10 +118,12 @@ function HeroSection({ book }: { book: AdminBook | null }) {
   {/* Subtle rim light */}
   <div className="pointer-events-none absolute inset-0 -z-10 rounded-[16px] bg-gold/15 blur-2xl" />
 
-  <PremiumBook3D
-    cover={book.cover ?? ""}
-    alt={book.title}
-  />
+  <Suspense fallback={null}>
+    <PremiumBook3D
+      cover={book.cover ?? ""}
+      alt={book.title}
+    />
+  </Suspense>
 
   {/* Soft luxury highlight */}
   <div

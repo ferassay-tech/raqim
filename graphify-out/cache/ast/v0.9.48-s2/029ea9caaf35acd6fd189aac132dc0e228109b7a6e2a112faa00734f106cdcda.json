@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_seed_bootstrap_admin_profiles_sql", "label": "bootstrap_admin_profiles.sql", "file_type": "code", "source_file": "supabase/seed/bootstrap_admin_profiles.sql", "source_location": null}], "edges": []}
