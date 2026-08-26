@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { PageShell } from "../components/page-shell";
 import { GoldDivider, CornerFlourish, ArchFrame, QuoteMark, IconBook, IconHeart, IconOpenHands } from "../components/ornaments";
 import { StampCTA, UnderlineLink } from "../components/cta";
-import {Reveal,ParallaxLayer,CursorDrift,Floating,MouseTilt,} from "../components/motion-primitives";
+import {Reveal,ParallaxLayer,Floating,} from "../components/motion-primitives";
 import { StructuredData } from "../components/StructuredData";
 import { Helmet } from "../components/Helmet";
 import { useBooks } from "../admin/context/BooksContext";
@@ -89,8 +89,6 @@ function HeroSection({ book }: { book: AdminBook | null }) {
         <div className="relative order-2 flex justify-center lg:order-1 lg:justify-start">
           <ParallaxLayer speed={0.08} className="relative">
            <Floating amplitude={8} duration={6}>
-            <MouseTilt>
-            <CursorDrift strength={8}>
              <div className="relative">
                 <div className="absolute -inset-10 -z-10 rounded-full bg-gold/10 blur-3xl" />
                 <div className="relative">
@@ -152,8 +150,6 @@ function HeroSection({ book }: { book: AdminBook | null }) {
   />
 </div>
                      </div>
-                   </CursorDrift>
-                 </MouseTilt>
                </Floating>
             </ParallaxLayer>
         </div>
