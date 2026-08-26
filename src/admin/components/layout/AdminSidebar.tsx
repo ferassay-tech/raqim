@@ -10,12 +10,18 @@ interface AdminSidebarProps {
   onToggleCollapsed: () => void;
   /** True when rendered inside the mobile drawer — skips the collapse affordance. */
   variant?: "desktop" | "drawer";
+  /** Called when the user clicks the nav item for the route they're already
+   * exactly on — react-router's Link would otherwise no-op (no pathname
+   * change, so nothing closes the mobile drawer or resets scroll on its
+   * own). Only passed by AdminMobileDrawer; desktop usage is unaffected. */
+  onSameRouteSelect?: () => void;
 }
 
 export function AdminSidebar({
   collapsed,
   onToggleCollapsed,
   variant = "desktop",
+  onSameRouteSelect,
 }: AdminSidebarProps) {
   const { pathname } = useLocation();
   const { currentUser } = useAuth();
@@ -82,10 +88,22 @@ export function AdminSidebar({
               {group.items.map((item) => {
                 const active =
                   pathname === item.to || pathname.startsWith(`${item.to}/`);
+                // Deliberately stricter than `active`: a detail route like
+                // /admin/orders/123 is "active" for the /admin/orders item
+                // (so it stays highlighted) but clicking it must still
+                // navigate to the list — only an exact match is a true
+                // same-route no-op.
+                const isExactCurrent = pathname === item.to;
                 return (
                   <li key={item.to}>
                     <Link
                       to={item.to}
+                      onClick={(e) => {
+                        if (isExactCurrent && onSameRouteSelect) {
+                          e.preventDefault();
+                          onSameRouteSelect();
+                        }
+                      }}
                       title={showLabels ? undefined : item.label}
                       className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors duration-200 ${
                         showLabels ? "" : "justify-center"

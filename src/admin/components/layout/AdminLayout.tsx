@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminMobileDrawer } from "./AdminMobileDrawer";
 import { AdminTopbar } from "./AdminTopbar";
@@ -18,6 +18,17 @@ function readStoredCollapsed(): boolean {
 export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(readStoredCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { pathname } = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+
+  // Route actually changed (e.g. tapped a different destination in the
+  // mobile drawer) — close it. Mirrors the public site's mobile-menu
+  // auto-close pattern (site-nav.tsx). The same-route case (pathname
+  // unchanged) is handled separately below via onSameRouteSelect, since
+  // this effect never fires for it.
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
@@ -37,12 +48,19 @@ export function AdminLayout() {
         <AdminSidebar collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
       </div>
 
-      <AdminMobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <AdminMobileDrawer
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        onSameRouteSelect={() => {
+          setMobileOpen(false);
+          mainRef.current?.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        }}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AdminTopbar onOpenMobileMenu={() => setMobileOpen(true)} />
         <AdminBreadcrumbs />
-        <main className="flex-1 overflow-y-auto px-4 pb-10 sm:px-6 lg:px-8">
+        <main ref={mainRef} className="flex-1 overflow-y-auto px-4 pb-10 sm:px-6 lg:px-8">
           <Outlet />
         </main>
       </div>

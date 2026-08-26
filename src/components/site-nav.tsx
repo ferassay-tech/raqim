@@ -8,6 +8,7 @@ import { useSettings } from "../admin/context/SettingsContext";
 import { FONT_STACKS } from "../admin/context/ThemeContext";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useLanguage } from "../context/LanguageContext";
+import { scrollToTop } from "../lib/scrollToTop";
 
 function IconMenu({ size = 22 }: { size?: number }) {
   return (
@@ -160,15 +161,30 @@ export function SiteNav() {
       {open && (
         <div id="mobile-nav" className="border-t border-beige bg-ivory px-6 pb-8 pt-4 lg:hidden">
           <nav aria-label={t("nav.mobileMenuLabel")} className="flex flex-col gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={localizePath(link.to)}
-                className="rounded-lg px-3 py-3 text-base text-ink transition-colors hover:bg-cream"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const to = localizePath(link.to);
+              const isCurrent = pathname === to;
+              return (
+                <Link
+                  key={link.to}
+                  to={to}
+                  onClick={(e) => {
+                    // Same route: react-router's Link would otherwise no-op —
+                    // close the menu and reset scroll ourselves, since a
+                    // pathname change (which ScrollToTop/the effect above key
+                    // off) never happens in this case.
+                    if (isCurrent) {
+                      e.preventDefault();
+                      scrollToTop();
+                      setOpen(false);
+                    }
+                  }}
+                  className="rounded-lg px-3 py-3 text-base text-ink transition-colors hover:bg-cream"
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
             <Link to={localizePath("/search")} className="rounded-lg px-3 py-3 text-base text-ink hover:bg-cream">
               {getValue("nav.search")}
             </Link>
@@ -192,6 +208,15 @@ function NavLink({ to, label, active }: { to: string; label: string; active: boo
   return (
     <Link
       to={to}
+      onClick={(e) => {
+        // Same route: react-router's Link would otherwise no-op — reset
+        // scroll ourselves, since no pathname change occurs for
+        // ScrollToTop's own effect to react to.
+        if (active) {
+          e.preventDefault();
+          scrollToTop();
+        }
+      }}
       className="group relative py-2 text-sm text-ink-soft transition-colors hover:text-ink"
     >
       <span className={active ? "text-ink" : ""}>{label}</span>

@@ -7,6 +7,10 @@ import { useDialogA11y } from "@/admin/lib/useDialogA11y";
 interface AdminMobileDrawerProps {
   open: boolean;
   onClose: () => void;
+  /** Forwarded to AdminSidebar — called when the user taps the nav item for
+   * the route they're already exactly on, so the drawer still closes even
+   * though no navigation (and thus no route-change-driven close) occurs. */
+  onSameRouteSelect?: () => void;
 }
 
 /** Off-canvas nav for < lg. Slides in from the physical right edge, matching
@@ -15,7 +19,7 @@ interface AdminMobileDrawerProps {
  * focus restoration, Escape-to-close) — this is a separate implementation
  * from the shared Drawer component (it renders AdminSidebar directly, no
  * title/footer slot) but gets the identical keyboard/focus behavior. */
-export function AdminMobileDrawer({ open, onClose }: AdminMobileDrawerProps) {
+export function AdminMobileDrawer({ open, onClose, onSameRouteSelect }: AdminMobileDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   useDialogA11y(panelRef, open, onClose);
   const reduceMotion = useReducedMotion();
@@ -57,6 +61,7 @@ export function AdminMobileDrawer({ open, onClose }: AdminMobileDrawerProps) {
                 collapsed={false}
                 onToggleCollapsed={() => {}}
                 variant="drawer"
+                onSameRouteSelect={onSameRouteSelect}
               />
             </div>
           </motion.div>
