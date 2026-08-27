@@ -89,6 +89,8 @@ export default function BooksListPage() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [permanentTarget, setPermanentTarget] = useState<AdminBook | null>(null);
   const [isPermanentlyDeleting, setIsPermanentlyDeleting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
 
   useEffect(() => {
@@ -154,6 +156,7 @@ export default function BooksListPage() {
       header: "الكتاب",
       sortAccessor: SORT_ACCESSORS.title,
       className: "min-w-[240px]",
+      mobileField: "title",
       render: (b) => (
         <div className="flex items-center gap-3">
           <BookCoverThumb id={b.id} cover={b.cover} title={b.title} className="h-14 w-10 shrink-0" />
@@ -168,11 +171,13 @@ export default function BooksListPage() {
       key: "category",
       header: "التصنيف",
       sortAccessor: SORT_ACCESSORS.category,
+      mobileField: "meta",
       render: (b) => <span className="text-ink-soft">{b.category}</span>,
     },
     {
       key: "placement",
       header: "الظهور",
+      mobileField: "meta",
       render: (b) => {
         const meta = BOOK_PLACEMENT_META[b.placement];
         return <StatusBadge variant={meta.variant}>{meta.label}</StatusBadge>;
@@ -183,6 +188,7 @@ export default function BooksListPage() {
       header: "السعر",
       sortAccessor: SORT_ACCESSORS.price,
       align: "end",
+      mobileField: "value",
       render: (b) => {
         const p = primaryPrice(b);
         if (!p) return <span className="text-ink-faint">—</span>;
@@ -207,6 +213,7 @@ export default function BooksListPage() {
       header: "المخزون",
       sortAccessor: SORT_ACCESSORS.stock,
       align: "end",
+      mobileField: "meta",
       render: (b) => <span className="text-ink-soft">{b.stock.toLocaleString("en-US")}</span>,
     },
     {
@@ -214,18 +221,21 @@ export default function BooksListPage() {
       header: "المبيعات",
       sortAccessor: SORT_ACCESSORS.sales,
       align: "end",
+      mobileField: "meta",
       render: (b) => <span className="text-ink-soft">{b.sales.toLocaleString("en-US")}</span>,
     },
     {
       key: "status",
       header: "الحالة",
       sortAccessor: SORT_ACCESSORS.status,
+      mobileField: "status",
       render: (b) => <StatusBadge variant={STATUS_VARIANT[b.status]}>{BOOK_STATUS_META[b.status]}</StatusBadge>,
     },
     {
       key: "actions",
       header: "",
       align: "end",
+      mobileField: "actions",
       render: (b) =>
         showTrash ? (
           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -306,7 +316,7 @@ export default function BooksListPage() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="flex items-center gap-2.5 rounded-[10px] border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+            className="flex items-center gap-2.5 rounded-md border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
           >
             <IconCheck className="h-4 w-4 shrink-0" />
             {flash}
@@ -453,9 +463,21 @@ export default function BooksListPage() {
         title="حذف الكتاب"
         description={`هل تريدين نقل «${deleteTarget?.title ?? ""}» إلى المحذوفات؟ يمكنك استعادته لاحقًا.`}
         confirmLabel="نقل إلى المحذوفات"
-        onConfirm={() => {
-          if (deleteTarget) deleteBook(deleteTarget.id);
-          setDeleteTarget(null);
+        busy={isDeleting}
+        onConfirm={async () => {
+          if (!deleteTarget || isDeleting) return;
+          setIsDeleting(true);
+          try {
+            await deleteBook(deleteTarget.id);
+            setDeleteTarget(null);
+          } catch (error) {
+            setToast({
+              variant: "error",
+              message: logAndGetErrorMessage("Failed to delete book:", error, "تعذر نقل الكتاب إلى المحذوفات."),
+            });
+          } finally {
+            setIsDeleting(false);
+          }
         }}
         onCancel={() => setDeleteTarget(null)}
       />
@@ -465,10 +487,17 @@ export default function BooksListPage() {
         title="حذف الكتب المحددة"
         description={`هل تريدين نقل ${selectedKeys.size} كتابًا إلى المحذوفات؟ يمكنك استعادتها لاحقًا.`}
         confirmLabel="نقل إلى المحذوفات"
-        onConfirm={() => {
-          deleteBooks([...selectedKeys]);
-          setSelectedKeys(new Set());
-          setBulkDeleteOpen(false);
+        busy={isBulkDeleting}
+        onConfirm={async () => {
+          if (isBulkDeleting) return;
+          setIsBulkDeleting(true);
+          try {
+            await deleteBooks([...selectedKeys]);
+            setSelectedKeys(new Set());
+            setBulkDeleteOpen(false);
+          } finally {
+            setIsBulkDeleting(false);
+          }
         }}
         onCancel={() => setBulkDeleteOpen(false)}
       />
@@ -478,6 +507,7 @@ export default function BooksListPage() {
         title="حذف نهائي"
         description={`هل تريدين حذف «${permanentTarget?.title ?? ""}» نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
+        busy={isPermanentlyDeleting}
         onConfirm={async () => {
           if (!permanentTarget || isPermanentlyDeleting) return;
           setIsPermanentlyDeleting(true);

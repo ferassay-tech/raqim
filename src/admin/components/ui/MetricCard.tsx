@@ -44,7 +44,7 @@ export function MetricCard({ metric, variant = "compact" }: MetricCardProps) {
 
   if (variant === "hero") {
     return (
-      <div className="flex flex-col rounded-[10px] border border-beige bg-white/70 p-8 shadow-[0_10px_40px_-24px_rgba(44,36,32,0.25)] backdrop-blur">
+      <div className="flex flex-col rounded-md border border-beige bg-white/70 p-8 shadow-[0_10px_40px_-24px_rgba(44,36,32,0.25)] backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-ink-faint">{metric.label}</p>
@@ -58,7 +58,7 @@ export function MetricCard({ metric, variant = "compact" }: MetricCardProps) {
             <AreaChart data={metric.chart} />
           </div>
         ) : (
-          <div className="mt-7 flex h-[88px] items-center justify-center rounded-[10px] border border-dashed border-beige">
+          <div className="mt-7 flex h-[88px] items-center justify-center rounded-md border border-dashed border-beige">
             <p className="text-xs text-ink-faint">لا توجد بيانات كافية للعرض بعد</p>
           </div>
         )}
@@ -67,7 +67,7 @@ export function MetricCard({ metric, variant = "compact" }: MetricCardProps) {
   }
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[10px] border border-beige bg-white/70 p-5 backdrop-blur">
+    <div className="flex items-center justify-between gap-4 rounded-md border border-beige bg-white/70 p-5 backdrop-blur">
       <div>
         <p className="text-xs uppercase tracking-[0.15em] text-ink-faint">{metric.label}</p>
         <p className="mt-2 font-display text-2xl text-ink">{metric.value}</p>

@@ -1,8 +1,9 @@
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "motion/react";
 import type { PaymentMethodConfig } from "../../config/paymentMethods";
 import { iconMap as icons } from "./icons";
 import { useLanguage } from "../../context/LanguageContext";
+import { cardSurface } from "../ui/Card";
 
 interface PaymentMethodCardProps {
   method: PaymentMethodConfig;
@@ -15,12 +16,13 @@ export const PaymentMethodCard: React.FC<PaymentMethodCardProps> = ({
 }) => {
   const Icon = icons[method.iconKey];
   const { t, language } = useLanguage();
+  const reduceMotion = useReducedMotion();
 
   return (
     <motion.div
-      whileHover={{ y: -4 }}
+      whileHover={reduceMotion ? undefined : { y: -4 }}
       transition={{ type: "spring", stiffness: 260, damping: 20 }}
-      className="flex flex-col justify-between gap-4 rounded-2xl border border-beige bg-white/70 p-5 shadow-[0_6px_24px_rgba(60,45,20,0.06)] backdrop-blur"
+      className={cardSurface("option", "flex flex-col justify-between gap-4")}
     >
       <div className="flex items-center gap-3">
         <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-beige text-gold-deep">

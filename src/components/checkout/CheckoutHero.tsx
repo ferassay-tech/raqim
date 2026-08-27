@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "motion/react";
 import { useLanguage } from "../../context/LanguageContext";
 
 interface CheckoutHeroProps {
@@ -8,11 +8,12 @@ interface CheckoutHeroProps {
 
 export const CheckoutHero: React.FC<CheckoutHeroProps> = ({ title }) => {
   const { t } = useLanguage();
+  const reduceMotion = useReducedMotion();
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      transition={{ duration: reduceMotion ? 0 : 0.6, ease: "easeOut" }}
       className="mx-auto max-w-2xl text-center"
     >
       <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-white/60 px-4 py-1.5 text-xs font-medium tracking-wide text-gold-deep">

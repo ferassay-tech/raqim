@@ -28,6 +28,7 @@ interface MessagesContextValue {
   submitConversation: (input: SubmitConversationInput) => Promise<void>;
   loadError: string | null;
   reload: () => void;
+  isLoading: boolean;
 }
 
 const MessagesContext = createContext<MessagesContextValue | null>(null);
@@ -50,11 +51,13 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const reload = useCallback(() => setReloadToken((t) => t + 1), []);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
     setLoadError(null);
+    setIsLoading(true);
     messagesRepository
       .list()
       .then((rows) => {
@@ -65,6 +68,10 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         console.error("Failed to load conversations from Supabase:", error);
         setLoadError("تعذر تحميل المحادثات من الخادم.");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -207,8 +214,20 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       submitConversation,
       loadError,
       reload,
+      isLoading,
     }),
-    [conversations, getConversation, markRead, sendReply, addNote, setStatus, submitConversation, loadError, reload]
+    [
+      conversations,
+      getConversation,
+      markRead,
+      sendReply,
+      addNote,
+      setStatus,
+      submitConversation,
+      loadError,
+      reload,
+      isLoading,
+    ]
   );
 
   return <MessagesContext.Provider value={value}>{children}</MessagesContext.Provider>;

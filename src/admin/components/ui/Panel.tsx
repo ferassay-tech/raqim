@@ -49,7 +49,7 @@ export function Panel({
     <div className={`${WEIGHT_SURFACE[weight]} ${className}`.trim()}>
       {hasHeader && (
         <div className="flex items-center justify-between gap-3">
-          {title && <h2 className="font-display text-lg text-ink">{title}</h2>}
+          {title && <h2 className="font-display text-h2 text-ink">{title}</h2>}
           {viewAllTo && (
             <Link
               to={viewAllTo}

@@ -184,7 +184,7 @@ function WhoForSection({ book }: { book: AdminBook }) {
         <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {book.whoFor.map((line, i) => (
             <Reveal key={i} delay={i * 0.08}>
-              <div className="flex items-start gap-4 rounded-[10px] border border-beige bg-ivory p-6">
+              <div className="flex items-start gap-4 rounded-md border border-beige bg-ivory p-6">
                 <span className="mt-1 shrink-0 text-gold">
                   <IconHeart className="h-6 w-6" />
                 </span>
@@ -215,7 +215,7 @@ function StorySection({ book }: { book: AdminBook }) {
 
         {book.gallery[0] && (
           <Reveal delay={0.15} className="relative">
-            <div className="relative overflow-hidden rounded-[10px]">
+            <div className="relative overflow-hidden rounded-md">
               <img
                 src={book.gallery[0]}
                 alt={`${t("book.story.imageAltPrefix")}${book.title}`}
@@ -246,7 +246,7 @@ function ChaptersSection({ book }: { book: AdminBook }) {
         <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {book.chapters.map((ch, i) => (
             <Reveal key={ch.number} delay={i * 0.08} className={i % 2 === 1 ? "sm:translate-y-6" : ""}>
-              <div className="group relative overflow-hidden rounded-[10px] border border-gold/30 bg-ivory p-7 shadow-[0_10px_30px_-18px_rgba(44,36,32,0.2)] transition-transform duration-300 hover:-translate-y-1.5">
+              <div className="group relative overflow-hidden rounded-md border border-gold/30 bg-ivory p-7 shadow-[0_10px_30px_-18px_rgba(44,36,32,0.2)] transition-transform duration-300 hover:-translate-y-1.5">
                 <CornerFlourish className="absolute -left-2 -top-2 h-10 w-10 text-gold/30" />
                 <span className="font-logotype text-4xl text-gold">{formatNumeral(ch.number, language)}</span>
                 <h3 className="mt-4 font-display text-lg leading-snug text-ink">{ch.title}</h3>
@@ -273,7 +273,7 @@ function BenefitsSection({ book }: { book: AdminBook }) {
           {book.features.map((f, i) => (
             <Reveal key={f.title} delay={i * 0.06} className={i === 0 ? "sm:col-span-2 lg:col-span-1" : ""}>
               <div
-                className={`h-full rounded-[10px] p-7 ${
+                className={`h-full rounded-md p-7 ${
                   i % 3 === 1 ? "bg-lavender/25" : i % 3 === 2 ? "bg-mauve/20" : "bg-cream"
                 }`}
               >
@@ -301,7 +301,7 @@ function TestimonialsSection({ book }: { book: AdminBook }) {
         <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-3">
           {book.reviews.map((review, i) => (
             <Reveal key={review.name} delay={i * 0.1} className={i === 1 ? "lg:-translate-y-6" : ""}>
-              <div className="h-full rounded-[10px] border border-gold/25 bg-ivory p-7">
+              <div className="h-full rounded-md border border-gold/25 bg-ivory p-7">
                 <QuoteMark className="h-6 w-9 text-gold/70" />
                 <p className="mt-4 text-balance leading-loose text-ink">{review.quote}</p>
                 <p className="mt-5 text-sm text-gold">{review.name}</p>
@@ -346,7 +346,7 @@ function PurchaseSection({ book }: { book: AdminBook }) {
   const { t, language, localizePath } = useLanguage();
   return (
     <section id="purchase" className="bg-cream px-6 py-24 lg:px-10 lg:py-28">
-      <Reveal className="mx-auto max-w-3xl rounded-[10px] border border-gold/30 bg-ivory p-10 text-center lg:p-14">
+      <Reveal className="mx-auto max-w-3xl rounded-md border border-gold/30 bg-ivory p-10 text-center lg:p-14">
         <p className="text-sm uppercase tracking-[0.25em] text-gold">{t("book.purchase.eyebrow")}</p>
         <h2 className="mt-4 font-display text-3xl text-ink md:text-4xl">{book.title}</h2>
         {price && (
@@ -434,9 +434,9 @@ function FaqSection({ book }: { book: AdminBook }) {
                   onClick={() => setOpen(isOpen ? null : i)}
                   aria-expanded={isOpen}
                   aria-controls={panelId}
-                  className="flex w-full items-center justify-between gap-4 text-start"
+                  className="flex w-full items-center justify-between gap-4 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
                 >
-                  <span className="font-display text-lg text-ink">{faq.question}</span>
+                  <span className="font-display text-h2 text-ink">{faq.question}</span>
                   <span className={`shrink-0 text-gold transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`}>
                     +
                   </span>
@@ -503,7 +503,7 @@ function SimpleBookPage({ book }: { book: AdminBook }) {
       <section className="px-6 py-20 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-2">
           <Reveal className="flex justify-center">
-            <div className="rounded-[10px] bg-gradient-to-br from-cream to-beige p-10">
+            <div className="rounded-md bg-gradient-to-br from-cream to-beige p-10">
               {book.cover && (
                 <img
                   src={book.cover}
@@ -522,7 +522,7 @@ function SimpleBookPage({ book }: { book: AdminBook }) {
             <p className="mt-4 text-balance leading-loose text-ink-soft">{book.subtitle}</p>
             <p className="mt-6 max-w-lg text-balance leading-loose text-ink-soft">{book.description}</p>
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:max-lg:justify-center lg:rtl:justify-end lg:ltr:justify-start">
-              <div className="rounded-[10px] border border-gold/30 bg-cream px-8 py-4 text-center">
+              <div className="rounded-md border border-gold/30 bg-cream px-8 py-4 text-center">
                 <p className="font-display text-lg text-gold">{t("book.comingSoon.badge")}</p>
                 <p className="mt-2 text-sm text-ink-soft">{t("book.comingSoon.helperText")}</p>
               </div>

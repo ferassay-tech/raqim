@@ -53,7 +53,7 @@ export default function ContactPage() {
 
           <Reveal delay={0.1}>
             {sent ? (
-              <div className="rounded-[10px] border border-gold/30 bg-cream/50 p-10 text-center">
+              <div className="rounded-md border border-gold/30 bg-cream/50 p-10 text-center">
                 <p className="font-display text-2xl text-ink">{t("contact.successTitle")}</p>
                 <p className="mt-3 text-ink-soft">{t("contact.successBody")}</p>
               </div>
@@ -100,7 +100,7 @@ export default function ContactPage() {
                     isSubmittingRef.current = false;
                   }
                 }}
-                className="space-y-5 rounded-[10px] border border-beige bg-cream/40 p-8"
+                className="space-y-5 rounded-md border border-beige bg-cream/40 p-8"
               >
                 <input
                   type="text"
@@ -137,19 +137,19 @@ export default function ContactPage() {
                     rows={5}
                     value={form.message}
                     onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-                    className="w-full rounded-[10px] border border-beige bg-ivory px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
+                    className="w-full rounded-md border border-beige bg-ivory px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
                     placeholder={t("contact.messagePlaceholder")}
                   />
                 </div>
                 {error && (
-                <p className="rounded-[10px] bg-red-50 px-4 py-3 text-sm text-red-700">
+                <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
                  {error}
                 </p>
                  )}
                 <button
                   type="submit"
                   disabled={loading}
-                  className="group relative inline-flex items-center gap-3 rounded-[10px] bg-gold px-8 py-4 text-base font-medium text-ink shadow-[0_10px_30px_-12px_rgba(185,148,81,0.55)] transition-all duration-200 ease-out hover:bg-gold-deep active:translate-y-[2px] active:scale-[0.98]"
+                  className="group relative inline-flex items-center gap-3 rounded-md bg-gold px-8 py-4 text-base font-medium text-ink shadow-[0_10px_30px_-12px_rgba(185,148,81,0.55)] transition-all duration-200 ease-out hover:bg-gold-deep active:translate-y-[2px] active:scale-[0.98]"
                 >
                   <span>{loading ? t("contact.sending") : t("contact.send")}</span>
                   <span
@@ -204,7 +204,7 @@ function Field({
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-[10px] border border-beige bg-ivory px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
+        className="w-full rounded-md border border-beige bg-ivory px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
       />
     </div>
   );

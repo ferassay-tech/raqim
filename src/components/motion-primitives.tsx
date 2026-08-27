@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import { EASE_ARRIVAL } from "@/lib/motionEasing";
 
 /**
  * Scroll-triggered reveal: animates transform + opacity as each instance
@@ -36,7 +37,7 @@ export function Reveal({
       initial={{ opacity: 0.001, y }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.7, delay, ease: EASE_ARRIVAL }}
     >
       {children}
     </MotionTag>
@@ -128,7 +129,7 @@ export function CursorDrift({
       className={className}
       style={{
         transform: reduced ? undefined : `translate3d(${pos.x}px, ${pos.y}px, 0)`,
-        transition: "transform 0.6s cubic-bezier(0.16,1,0.3,1)",
+        transition: `transform 0.6s cubic-bezier(${EASE_ARRIVAL.join(",")})`,
         willChange: "transform",
       }}
     >

@@ -123,7 +123,7 @@ export default function BlogPostPage() {
               <img
                 src={post.coverImage}
                 alt={post.title}
-                className="mt-10 w-full rounded-[10px] object-cover"
+                className="mt-10 w-full rounded-md object-cover"
                 loading="lazy"
                 decoding="async"
               />

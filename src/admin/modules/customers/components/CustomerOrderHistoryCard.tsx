@@ -11,8 +11,8 @@ interface CustomerOrderHistoryCardProps {
 
 export function CustomerOrderHistoryCard({ customer }: CustomerOrderHistoryCardProps) {
   return (
-    <div className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
-      <h2 className="font-display text-lg text-ink">سجل الطلبات</h2>
+    <div className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
+      <h2 className="font-display text-h2 text-ink">سجل الطلبات</h2>
       <ul className="mt-4 flex flex-col divide-y divide-beige">
         {customer.orders.map((order) => {
           const meta = ORDER_STATUS_META[order.status];

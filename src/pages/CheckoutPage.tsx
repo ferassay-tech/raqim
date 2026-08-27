@@ -120,9 +120,10 @@ const CheckoutPage: React.FC = () => {
                   type="button"
                   onClick={() => void handleApplyCoupon()}
                   disabled={checkingCoupon}
+                  aria-busy={checkingCoupon}
                   className="shrink-0 rounded-xl border border-gold px-4 py-2.5 text-sm font-medium text-gold-deep transition hover:bg-beige disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {t("checkout.coupon.apply")}
+                  {checkingCoupon ? t("checkout.coupon.applying") : t("checkout.coupon.apply")}
                 </button>
               </div>
               {couponError && <p className="text-xs text-danger">{couponError}</p>}

@@ -1,6 +1,7 @@
 import { TextField } from "@/admin/components/forms/TextField";
 import { TextArea } from "@/admin/components/forms/TextArea";
 import { Select } from "@/admin/components/forms/Select";
+import { Button } from "@/admin/components/ui/Button";
 import { useSettings } from "@/admin/context/SettingsContext";
 import { SettingsRow } from "./SettingsRow";
 
@@ -57,13 +58,9 @@ export function GeneralSection({ onSaved, onError }: GeneralSectionProps) {
       </SettingsRow>
 
       <div className="pt-6">
-        <button
-          type="button"
-          onClick={() => onSaved("تم حفظ الإعدادات العامة")}
-          className="rounded-full bg-ink px-6 py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
-        >
+        <Button variant="primary" onClick={() => onSaved("تم حفظ الإعدادات العامة")} className="!px-6">
           حفظ التغييرات
-        </button>
+        </Button>
       </div>
     </div>
   );

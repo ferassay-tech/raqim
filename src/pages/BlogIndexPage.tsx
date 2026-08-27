@@ -8,6 +8,7 @@ import { useArticles } from "../admin/context/ArticlesContext";
 import { formatArticleDate, formatReadTime } from "../admin/lib/articleStatus";
 import { buildGraph, breadcrumbSchema, webPageSchema } from "../lib/structuredData";
 import { useLanguage } from "../context/LanguageContext";
+import { cardSurface } from "../components/ui/Card";
 
 export default function BlogIndexPage() {
   const { articles } = useArticles();
@@ -58,7 +59,10 @@ export default function BlogIndexPage() {
                 <Reveal key={post.slug} delay={i * 0.08} className={i === 0 ? "lg:col-span-2" : ""}>
                   <Link
                     to={localizePath(`/blog/${post.slug}`)}
-                    className="group block rounded-[10px] border border-beige bg-cream/40 p-8 transition-shadow duration-300 hover:shadow-[0_20px_45px_-20px_rgba(44,36,32,0.25)]"
+                    className={cardSurface(
+                      "listing",
+                      "group block bg-cream/40 p-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+                    )}
                   >
                     <div className="flex items-center gap-3 text-xs text-ink-soft">
                       <span className="text-gold">{post.category}</span>

@@ -45,7 +45,7 @@ export default function CommunicationDashboardPage() {
           {channels.map((channel) => (
             <div
               key={channel.id}
-              className="rounded-[10px] border border-beige bg-white/70 p-4 shadow-(--shadow-soft)"
+              className="rounded-md border border-beige bg-white/70 p-4 shadow-(--shadow-soft)"
             >
               <div className="flex items-center justify-between gap-2">
                 <IconMail className="h-5 w-5 text-gold-deep" />
@@ -73,7 +73,7 @@ export default function CommunicationDashboardPage() {
             <Link
               key={section.to}
               to={section.to}
-              className="group rounded-[10px] border border-beige bg-white/70 p-5 shadow-(--shadow-soft) transition-colors hover:border-gold/60"
+              className="group rounded-md border border-beige bg-white/70 p-5 shadow-(--shadow-soft) transition-colors hover:border-gold/60"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-beige/70 text-gold-deep">
                 <section.icon className="h-5 w-5" />

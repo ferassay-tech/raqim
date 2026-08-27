@@ -73,7 +73,7 @@ export default function AboutPage() {
 </p>
           </Reveal>
           <Reveal delay={0.15}>
-            <div className="overflow-hidden rounded-[10px]">
+            <div className="overflow-hidden rounded-md">
               <img
   src="/assets/lumora-about.webp"
   alt={t("about.story.imageAlt")}
@@ -99,11 +99,11 @@ export default function AboutPage() {
               { icon: <IconJournal className="h-8 w-8" />, title: t("about.values.legacy.title"), body: t("about.values.legacy.body") },
             ].map((v, i) => (
               <Reveal key={v.title} delay={i * 0.06}>
-                <div className="h-full rounded-[10px] border border-beige bg-cream/50 p-7 text-center">
+                <div className="h-full rounded-md border border-beige bg-cream/50 p-7 text-center">
                   <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold/10 text-gold">
                     {v.icon}
                   </span>
-                  <h3 className="mt-5 font-display text-lg text-ink">{v.title}</h3>
+                  <h3 className="mt-5 font-display text-h2 text-ink">{v.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-ink-soft">{v.body}</p>
                 </div>
               </Reveal>

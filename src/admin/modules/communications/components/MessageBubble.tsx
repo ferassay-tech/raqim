@@ -7,7 +7,7 @@ interface MessageBubbleProps {
 export function MessageBubble({ message }: MessageBubbleProps) {
   if (message.direction === "note") {
     return (
-      <div className="mx-auto w-full max-w-lg rounded-[10px] border border-dashed border-gold/40 bg-gold/5 px-4 py-3">
+      <div className="mx-auto w-full max-w-lg rounded-md border border-dashed border-gold/40 bg-gold/5 px-4 py-3">
         <p className="text-xs font-medium text-gold-deep">ملاحظة داخلية — {message.author}</p>
         <p className="mt-1 text-sm leading-relaxed text-ink-soft">{message.body}</p>
         <p className="mt-1.5 text-[11px] text-ink-faint">{message.time}</p>
@@ -20,7 +20,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className={`flex ${isOutbound ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[75%] rounded-[10px] px-4 py-3 ${
+        className={`max-w-[75%] rounded-md px-4 py-3 ${
           isOutbound ? "bg-ink text-ivory" : "border border-beige bg-white/80 text-ink"
         }`}
       >

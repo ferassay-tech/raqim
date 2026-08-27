@@ -30,7 +30,7 @@ export function Repeater<T>({ label, items, onChange, newItem, renderItem, addLa
       <div className="flex flex-col gap-3">
         {items.length === 0 && <p className="text-xs text-ink-faint">{emptyLabel}</p>}
         {items.map((item, i) => (
-          <div key={i} className="flex items-start gap-2 rounded-[10px] border border-beige bg-ivory p-4">
+          <div key={i} className="flex items-start gap-2 rounded-md border border-beige bg-ivory p-4">
             <div className="min-w-0 flex-1">{renderItem(item, (value) => updateAt(i, value))}</div>
             <button
               type="button"

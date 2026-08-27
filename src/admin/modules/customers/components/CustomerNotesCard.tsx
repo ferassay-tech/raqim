@@ -21,15 +21,15 @@ export function CustomerNotesCard({ customerId }: CustomerNotesCardProps) {
   };
 
   return (
-    <div className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
-      <h2 className="font-display text-lg text-ink">ملاحظات داخلية</h2>
+    <div className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
+      <h2 className="font-display text-h2 text-ink">ملاحظات داخلية</h2>
 
       {notes.length === 0 ? (
         <p className="mt-3 text-sm text-ink-faint">لا توجد ملاحظات بعد.</p>
       ) : (
         <ul className="mt-4 flex flex-col gap-3">
           {notes.map((note) => (
-            <li key={note.id} className="rounded-[10px] bg-cream/50 p-3.5">
+            <li key={note.id} className="rounded-md bg-cream/50 p-3.5">
               <p className="text-sm leading-relaxed text-ink-soft">{note.text}</p>
               <p className="mt-1.5 text-xs text-ink-faint">{note.time}</p>
             </li>

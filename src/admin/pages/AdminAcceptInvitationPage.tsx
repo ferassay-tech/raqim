@@ -181,7 +181,7 @@ export default function AdminAcceptInvitationPage() {
 
   return (
     <div dir="rtl" className="flex min-h-dvh items-center justify-center bg-cream/40 px-4">
-      <div className="w-full max-w-sm rounded-[10px] border border-beige bg-white/70 p-8 shadow-[0_20px_50px_-24px_rgba(44,36,32,0.3)] backdrop-blur">
+      <div className="w-full max-w-sm rounded-md border border-beige bg-white/70 p-8 shadow-[0_20px_50px_-24px_rgba(44,36,32,0.3)] backdrop-blur">
         <div className="text-center">
           <span className="font-logotype text-3xl text-gold">رقيم</span>
           <p className="mt-1 text-xs uppercase tracking-[0.2em] text-ink-faint">Admin</p>

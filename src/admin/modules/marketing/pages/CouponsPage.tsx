@@ -9,6 +9,7 @@ import type { DataTableColumn } from "@/admin/components/ui/DataTable";
 import { EmptyState } from "@/admin/components/ui/EmptyState";
 import { StatusBadge } from "@/admin/components/ui/StatusBadge";
 import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
+import { Button } from "@/admin/components/ui/Button";
 import { CopyIconButton } from "@/admin/components/ui/CopyIconButton";
 import { CouponFormModal } from "../components/CouponFormModal";
 import { IconPencil, IconPlus, IconTicket, IconTrash } from "@/admin/icons";
@@ -122,14 +123,9 @@ export default function CouponsPage() {
         title="أكواد الخصم"
         description={`${coupons.length.toLocaleString("en-US")} كودًا`}
         actions={
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-gold-deep"
-          >
-            <IconPlus className="h-4 w-4" />
+          <Button variant="primary" icon={IconPlus} onClick={openCreate} className="!gap-2 !px-5 !font-normal">
             كود جديد
-          </button>
+          </Button>
         }
       />
 
@@ -155,14 +151,14 @@ export default function CouponsPage() {
           title="لا توجد أكواد خصم بعد"
           description="أنشئي أول كود خصم لتحفيز عميلاتك على الشراء."
           action={
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              icon={IconPlus}
               onClick={openCreate}
-              className="mt-2 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-gold-deep"
+              className="mt-2 !gap-2 !px-5 !font-normal"
             >
-              <IconPlus className="h-4 w-4" />
               كود جديد
-            </button>
+            </Button>
           }
         />
       ) : (
@@ -200,6 +196,7 @@ export default function CouponsPage() {
         title="حذف كود الخصم"
         description={`هل تريدين حذف الكود «${deleteTarget?.code ?? ""}»؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
+        busy={isDeleting}
         onConfirm={async () => {
           if (!deleteTarget || isDeleting) return;
           setIsDeleting(true);

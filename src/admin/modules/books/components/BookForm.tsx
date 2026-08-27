@@ -24,6 +24,7 @@ import { FileDropzone } from "@/admin/components/forms/FileDropzone";
 import { Repeater } from "@/admin/components/forms/Repeater";
 import { ImageListEditor } from "@/admin/components/forms/ImageListEditor";
 import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
+import { Button } from "@/admin/components/ui/Button";
 import { MediaPickerModal } from "@/admin/modules/media/components/MediaPickerModal";
 import { BookFilesPanel } from "./BookFilesPanel";
 import { IconTrash } from "@/admin/icons";
@@ -97,9 +98,9 @@ const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
 interface BookFormProps {
   mode: "create" | "edit";
   initialBook?: AdminBookRaw;
-  onSave: (values: BookFormValues) => void;
+  onSave: (values: BookFormValues) => void | Promise<void>;
   onCancel: () => void;
-  onDelete?: () => void;
+  onDelete?: () => Promise<void>;
 }
 
 export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: BookFormProps) {
@@ -110,6 +111,9 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
   const [activeTab, setActiveTab] = useState("hero");
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   const [backCoverPickerOpen, setBackCoverPickerOpen] = useState(false);
   const coverObjectUrlRef = useRef<string | null>(null);
@@ -152,19 +156,25 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
     else onCancel();
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!values.title.ar.trim()) {
       setEditingLanguage("ar");
       setActiveTab("hero");
       return;
     }
-    onSave(values);
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await onSave(values);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <div className="rounded-[10px] border border-beige bg-white/70 backdrop-blur">
+      <div className="rounded-md border border-beige bg-white/70 backdrop-blur">
         <div className="flex items-center justify-between gap-4 px-6 pt-2">
           <Tabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
           <div className="flex shrink-0 items-center gap-1 rounded-full border border-beige p-1">
@@ -394,7 +404,7 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
                 const entry = values.prices[currency];
                 const enabled = Boolean(entry);
                 return (
-                  <div key={currency} className="rounded-[10px] border border-beige bg-cream/30 p-4">
+                  <div key={currency} className="rounded-md border border-beige bg-cream/30 p-4">
                     <label className="flex items-center gap-2 text-sm text-ink">
                       <input
                         type="checkbox"
@@ -555,28 +565,30 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
           {mode === "edit" && onDelete && (
             <button
               type="button"
-              onClick={() => setConfirmDelete(true)}
+              onClick={() => {
+                setDeleteError(null);
+                setConfirmDelete(true);
+              }}
               className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm text-danger transition-colors hover:bg-danger/10"
             >
               <IconTrash className="h-4 w-4" />
               حذف الكتاب
             </button>
           )}
+          {deleteError && <p className="mt-2 text-xs text-danger">{deleteError}</p>}
         </div>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={handleCancelClick}
-            className="rounded-full px-5 py-2.5 text-sm text-ink-soft transition-colors hover:bg-beige"
+            disabled={isSaving}
+            className="rounded-full px-5 py-2.5 text-sm text-ink-soft transition-colors hover:bg-beige disabled:pointer-events-none disabled:opacity-30"
           >
             إلغاء
           </button>
-          <button
-            type="submit"
-            className="rounded-full bg-ink px-6 py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
-          >
+          <Button type="submit" variant="primary" loading={isSaving} className="!px-6">
             {mode === "create" ? "إضافة الكتاب" : "حفظ التغييرات"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -614,7 +626,20 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
           description={`هل تريدين نقل «${displayTitle}» إلى المحذوفات؟ يمكنك استعادته لاحقًا من صفحة الكتب.`}
           confirmLabel="نقل إلى المحذوفات"
           tone="danger"
-          onConfirm={onDelete}
+          busy={isDeleting}
+          onConfirm={async () => {
+            if (isDeleting) return;
+            setIsDeleting(true);
+            try {
+              await onDelete();
+              setConfirmDelete(false);
+            } catch (error) {
+              console.error("Failed to delete book:", error);
+              setDeleteError("تعذر حذف الكتاب. حاولي مرة أخرى.");
+            } finally {
+              setIsDeleting(false);
+            }
+          }}
           onCancel={() => setConfirmDelete(false)}
         />
       )}

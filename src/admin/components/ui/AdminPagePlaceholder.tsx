@@ -21,7 +21,7 @@ export function AdminPagePlaceholder({
   actions,
 }: AdminPagePlaceholderProps) {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-5 rounded-[10px] border border-dashed border-beige bg-white/50 px-6 py-24 text-center">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-5 rounded-md border border-dashed border-beige bg-white/50 px-6 py-24 text-center">
       <span className="flex h-14 w-14 items-center justify-center rounded-full bg-beige/70 text-gold-deep">
         <Icon className="h-6 w-6" />
       </span>

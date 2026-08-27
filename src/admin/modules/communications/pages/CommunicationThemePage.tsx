@@ -14,7 +14,7 @@ export default function CommunicationThemePage() {
       />
       {tokens && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-[10px] border border-beige bg-white/70 p-5">
+          <div className="rounded-md border border-beige bg-white/70 p-5">
             <p className="mb-3 text-sm font-medium text-ink">الألوان</p>
             <div className="flex flex-wrap gap-3">
               {Object.entries(tokens.colors).map(([key, value]) => (
@@ -28,7 +28,7 @@ export default function CommunicationThemePage() {
               ))}
             </div>
           </div>
-          <div className="rounded-[10px] border border-beige bg-white/70 p-5">
+          <div className="rounded-md border border-beige bg-white/70 p-5">
             <p className="mb-3 text-sm font-medium text-ink">الطباعة</p>
             <p className="text-sm text-ink-soft">
               {tokens.typography.headingFont} / {tokens.typography.bodyFont} — {tokens.typography.baseFontSize}px

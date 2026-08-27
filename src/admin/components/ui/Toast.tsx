@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { IconAlertTriangle, IconCheck, IconClose } from "@/admin/icons";
+import { EASE_ARRIVAL } from "@/lib/motionEasing";
 
 export type ToastVariant = "success" | "error";
 
@@ -37,7 +38,7 @@ export function Toast({ toast, onDismiss, duration = 4000 }: ToastProps) {
             initial={{ opacity: 0, y: 16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.25, ease: EASE_ARRIVAL }}
             className={`pointer-events-auto flex items-center gap-3 rounded-full border px-5 py-3.5 shadow-[0_20px_45px_-15px_rgba(44,36,32,0.35)] backdrop-blur ${
               toast.variant === "success"
                 ? "border-gold/40 bg-ink text-ivory"

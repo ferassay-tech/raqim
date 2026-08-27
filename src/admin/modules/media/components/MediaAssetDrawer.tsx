@@ -44,7 +44,7 @@ export function MediaAssetDrawer({ asset, folders, onClose, onRename, onMove, on
     <Drawer open={Boolean(asset)} onClose={onClose} title="تفاصيل الملف">
       {asset && (
         <div className="flex flex-col gap-6">
-          <div className="overflow-hidden rounded-[10px] bg-cream">
+          <div className="overflow-hidden rounded-md bg-cream">
             <img src={asset.url} alt={asset.name} className="max-h-72 w-full object-contain" />
           </div>
 
@@ -55,7 +55,7 @@ export function MediaAssetDrawer({ asset, folders, onClose, onRename, onMove, on
               value={name}
               onChange={(e) => setName(e.target.value)}
               onBlur={() => name.trim() && name !== asset.name && onRename(name.trim())}
-              className="w-full rounded-[10px] border border-beige bg-ivory px-4 py-3 text-sm text-ink focus:border-gold focus:outline-none"
+              className="w-full rounded-md border border-beige bg-ivory px-4 py-3 text-sm text-ink focus:border-gold focus:outline-none"
             />
           </label>
 
@@ -66,7 +66,7 @@ export function MediaAssetDrawer({ asset, folders, onClose, onRename, onMove, on
             options={[{ value: "none", label: "غير مصنّف" }, ...folders.map((f) => ({ value: f.id, label: f.name }))]}
           />
 
-          <dl className="grid grid-cols-2 gap-4 rounded-[10px] border border-beige bg-cream/40 p-4 text-sm">
+          <dl className="grid grid-cols-2 gap-4 rounded-md border border-beige bg-cream/40 p-4 text-sm">
             <div>
               <dt className="text-xs text-ink-faint">الأبعاد</dt>
               <dd className="mt-0.5 text-ink">{asset.width && asset.height ? `${asset.width} × ${asset.height}` : "—"}</dd>
@@ -91,7 +91,7 @@ export function MediaAssetDrawer({ asset, folders, onClose, onRename, onMove, on
           </dl>
 
           {usage.length > 0 && (
-            <div className="rounded-[10px] border border-warning/30 bg-warning/10 p-4">
+            <div className="rounded-md border border-warning/30 bg-warning/10 p-4">
               <p className="text-sm text-ink">مستخدم في {usage.length} موضع{usage.length > 1 ? "ًا" : ""}:</p>
               <ul className="mt-2 flex flex-col gap-1.5">
                 {usage.map((ref, i) => (
@@ -138,6 +138,7 @@ export function MediaAssetDrawer({ asset, folders, onClose, onRename, onMove, on
         title="حذف الملف"
         description={`هل تريدين حذف «${asset?.name ?? ""}»؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
+        busy={isDeleting}
         onConfirm={async () => {
           if (isDeleting) return;
           setIsDeleting(true);

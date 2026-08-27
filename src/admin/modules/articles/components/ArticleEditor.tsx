@@ -7,6 +7,7 @@ import type { Language } from "@/context/LanguageContext";
 import { ARTICLE_STATUS_META, ARTICLE_STATUS_OPTIONS, estimateReadingMinutes } from "@/admin/lib/articleStatus";
 import { Drawer } from "@/admin/components/ui/Drawer";
 import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
+import { Button } from "@/admin/components/ui/Button";
 import { StatusBadge } from "@/admin/components/ui/StatusBadge";
 import { TextField } from "@/admin/components/forms/TextField";
 import { TextArea } from "@/admin/components/forms/TextArea";
@@ -55,9 +56,9 @@ function slugify(title: string) {
 interface ArticleEditorProps {
   mode: "create" | "edit";
   initialArticle?: AdminArticleRaw;
-  onSave: (values: ArticleFormValues) => void;
+  onSave: (values: ArticleFormValues) => void | Promise<void>;
   onCancel: () => void;
-  onDelete?: () => void;
+  onDelete?: () => Promise<void>;
 }
 
 /**
@@ -81,6 +82,9 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
   const [previewOpen, setPreviewOpen] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const objectUrlRef = useRef<string | null>(null);
 
@@ -133,16 +137,22 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
     else onCancel();
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!values.title.ar.trim()) {
       setEditingLanguage("ar");
       setSettingsOpen(false);
       return;
     }
+    if (isSaving) return;
     const publishedAt =
       values.status === "published" ? values.publishedAt ?? new Date().toISOString().slice(0, 10) : values.publishedAt;
-    onSave({ ...values, slug: values.slug || slugify(values.title.ar), publishedAt });
+    setIsSaving(true);
+    try {
+      await onSave({ ...values, slug: values.slug || slugify(values.title.ar), publishedAt });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const primaryLabel =
@@ -211,12 +221,9 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
             <IconGear className="h-3.5 w-3.5" />
             إعدادات المقالة
           </button>
-          <button
-            type="submit"
-            className="rounded-full bg-ink px-5 py-2 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
-          >
+          <Button type="submit" variant="primary" loading={isSaving} className="!px-5 !py-2">
             {primaryLabel}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -342,12 +349,16 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
             <section className="border-t border-beige pt-6">
               <button
                 type="button"
-                onClick={() => setConfirmDelete(true)}
+                onClick={() => {
+                  setDeleteError(null);
+                  setConfirmDelete(true);
+                }}
                 className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm text-danger transition-colors hover:bg-danger/10"
               >
                 <IconTrash className="h-4 w-4" />
                 حذف المقالة
               </button>
+              {deleteError && <p className="mt-2 text-xs text-danger">{deleteError}</p>}
             </section>
           )}
         </div>
@@ -380,7 +391,20 @@ export function ArticleEditor({ mode, initialArticle, onSave, onCancel, onDelete
           title="حذف المقالة"
           description={`هل تريدين حذف «${displayTitle}»؟ لا يمكن التراجع عن هذا الإجراء.`}
           confirmLabel="حذف نهائي"
-          onConfirm={onDelete}
+          busy={isDeleting}
+          onConfirm={async () => {
+            if (isDeleting) return;
+            setIsDeleting(true);
+            try {
+              await onDelete();
+              setConfirmDelete(false);
+            } catch (error) {
+              console.error("Failed to delete article:", error);
+              setDeleteError("تعذر حذف المقالة. حاولي مرة أخرى.");
+            } finally {
+              setIsDeleting(false);
+            }
+          }}
           onCancel={() => setConfirmDelete(false)}
         />
       )}

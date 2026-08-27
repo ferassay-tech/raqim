@@ -56,7 +56,7 @@ export default function MessagesPage() {
 
       {loadError && <LoadErrorBanner message={loadError} onRetry={reload} />}
 
-      <div className="flex h-[70vh] min-h-[520px] overflow-hidden rounded-[10px] border border-beige bg-white/70 backdrop-blur">
+      <div className="flex h-[70vh] min-h-[520px] overflow-hidden rounded-md border border-beige bg-white/70 backdrop-blur">
         <div className={`${id ? "hidden sm:flex" : "flex"} w-full shrink-0 flex-col border-e border-beige sm:w-80`}>
           {conversations.length > 0 && (
             <div className="border-b border-beige p-3">

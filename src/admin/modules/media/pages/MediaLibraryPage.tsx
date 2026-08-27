@@ -10,6 +10,7 @@ import type { DataTableColumn } from "@/admin/components/ui/DataTable";
 import { EmptyState } from "@/admin/components/ui/EmptyState";
 import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
 import { Modal } from "@/admin/components/ui/Modal";
+import { Button } from "@/admin/components/ui/Button";
 import { TextField } from "@/admin/components/forms/TextField";
 import { MediaAssetCard } from "../components/MediaAssetCard";
 import { MediaUploadDropzone } from "../components/MediaUploadDropzone";
@@ -240,13 +241,9 @@ export default function MediaLibraryPage() {
           >
             إلغاء
           </button>
-          <button
-            type="submit"
-            form="folder-form"
-            className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
-          >
+          <Button type="submit" form="folder-form" variant="primary" className="!px-5">
             إنشاء المجلد
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -256,6 +253,7 @@ export default function MediaLibraryPage() {
         description="سيتم حذف المجلد، وستنتقل ملفاته إلى «غير مصنّف» دون حذفها."
         confirmLabel="حذف المجلد"
         tone="danger"
+        busy={isDeletingFolder}
         onConfirm={async () => {
           if (!deleteFolderTarget || isDeletingFolder) return;
           setIsDeletingFolder(true);

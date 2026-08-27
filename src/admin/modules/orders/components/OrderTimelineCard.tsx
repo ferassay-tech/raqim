@@ -39,8 +39,8 @@ export function OrderTimelineCard({ order, onAddNote }: OrderTimelineCardProps) 
   };
 
   return (
-    <div className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
-      <h2 className="font-display text-lg text-ink">السجل الزمني</h2>
+    <div className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
+      <h2 className="font-display text-h2 text-ink">السجل الزمني</h2>
 
       <div className="mt-5">
         <Timeline

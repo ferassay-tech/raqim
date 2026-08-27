@@ -41,7 +41,7 @@ export function StorageSection({ onSaved, onError }: StorageSectionProps) {
                 disabled={disabled}
                 onClick={() => updateStorage({ activeProvider: option.value as StorageProviderId })}
                 title={disabled ? "غير مُهيّأ بعد — يتطلب ربط حساب المزوّد الحقيقي" : undefined}
-                className={`rounded-[10px] border p-4 text-right transition-colors ${
+                className={`rounded-md border p-4 text-right transition-colors ${
                   active ? "border-ink bg-ink text-ivory" : "border-beige text-ink-soft hover:border-gold hover:text-ink"
                 } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
               >
@@ -68,7 +68,7 @@ export function StorageSection({ onSaved, onError }: StorageSectionProps) {
               onChange={(e) => updateStorage({ downloadLinkExpiryDays: toNullableInt(e.target.value) })}
               placeholder="بلا انتهاء"
               dir="ltr"
-              className="w-full rounded-[10px] border border-beige bg-ivory px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
+              className="w-full rounded-md border border-beige bg-ivory px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
             />
           </label>
           <label className="block">
@@ -81,7 +81,7 @@ export function StorageSection({ onSaved, onError }: StorageSectionProps) {
               onChange={(e) => updateStorage({ downloadLinkMaxDownloads: toNullableInt(e.target.value) })}
               placeholder="بلا حد"
               dir="ltr"
-              className="w-full rounded-[10px] border border-beige bg-ivory px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
+              className="w-full rounded-md border border-beige bg-ivory px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
             />
           </label>
         </div>

@@ -138,8 +138,8 @@ export default function BrandStudioPage() {
             exit={{ opacity: 0, y: -8 }}
             className={
               flash.variant === "success"
-                ? "flex items-center gap-2.5 rounded-[10px] border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
-                : "flex items-center gap-2.5 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
+                ? "flex items-center gap-2.5 rounded-md border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+                : "flex items-center gap-2.5 rounded-md border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
             }
           >
             {flash.variant === "success" ? <IconCheck className="h-4 w-4 shrink-0" /> : <IconAlertTriangle className="h-4 w-4 shrink-0" />}

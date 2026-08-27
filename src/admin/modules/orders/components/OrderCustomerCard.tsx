@@ -13,12 +13,12 @@ interface OrderCustomerCardProps {
  * transaction mechanics. */
 export function OrderCustomerCard({ order }: OrderCustomerCardProps) {
   return (
-    <div className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
+    <div className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
       <p className="text-xs uppercase tracking-[0.15em] text-ink-faint">العميلة</p>
       <div className="mt-3 flex items-center gap-3.5">
         <CustomerAvatar name={order.customerName} />
         <div className="min-w-0">
-          <p className="truncate font-display text-lg text-ink">{order.customerName}</p>
+          <p className="truncate font-display text-h2 text-ink">{order.customerName}</p>
           <div className="mt-0.5 flex items-center gap-1.5">
             <p className="truncate text-xs text-ink-faint" dir="ltr">
               {order.customerEmail}

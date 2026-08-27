@@ -99,7 +99,7 @@ export default function AuthorPage() {
               <Reveal key={book.id} delay={i * 0.08}>
                 <Link
                   to={localizePath(`/books/${book.id}`)}
-                  className="group block overflow-hidden rounded-[10px] border border-beige bg-ivory"
+                  className="group block overflow-hidden rounded-md border border-beige bg-ivory"
                 >
                   <div className="aspect-[3/4] bg-gradient-to-br from-cream to-beige p-8">
                     {book.cover && (
@@ -115,7 +115,7 @@ export default function AuthorPage() {
                     )}
                   </div>
                   <div className="p-5 text-start">
-                    <h3 className="font-display text-lg text-ink">{book.title}</h3>
+                    <h3 className="font-display text-h2 text-ink">{book.title}</h3>
                     <div className="mt-3">
                       <UnderlineLink to={`/books/${book.id}`} interactive={false}>
                         {book.placement === "comingSoon" ? t("author.comingSoonLink") : t("author.viewBook")}

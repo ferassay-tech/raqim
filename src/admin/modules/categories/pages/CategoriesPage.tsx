@@ -7,6 +7,7 @@ import { DataTable } from "@/admin/components/ui/DataTable";
 import type { DataTableColumn } from "@/admin/components/ui/DataTable";
 import { EmptyState } from "@/admin/components/ui/EmptyState";
 import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
+import { Button } from "@/admin/components/ui/Button";
 import { CategoryFormModal } from "../components/CategoryFormModal";
 import { IconPencil, IconPlus, IconTag, IconTrash } from "@/admin/icons";
 import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
@@ -110,14 +111,9 @@ export default function CategoriesPage() {
         title="التصنيفات"
         description={`${categories.length.toLocaleString("en-US")} تصنيفًا`}
         actions={
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-gold-deep"
-          >
-            <IconPlus className="h-4 w-4" />
+          <Button variant="primary" icon={IconPlus} onClick={openCreate} className="!gap-2 !px-5 !font-normal">
             تصنيف جديد
-          </button>
+          </Button>
         }
       />
 
@@ -129,14 +125,14 @@ export default function CategoriesPage() {
           title="لا توجد تصنيفات بعد"
           description="أضيفي تصنيفًا لتنظيم كتالوج الكتب."
           action={
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              icon={IconPlus}
               onClick={openCreate}
-              className="mt-2 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-gold-deep"
+              className="mt-2 !gap-2 !px-5 !font-normal"
             >
-              <IconPlus className="h-4 w-4" />
               تصنيف جديد
-            </button>
+            </Button>
           }
         />
       ) : (
@@ -167,6 +163,7 @@ export default function CategoriesPage() {
         title="حذف التصنيف"
         description={`هل تريدين حذف تصنيف «${deleteTarget?.name ?? ""}»؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
+        busy={isDeleting}
         onConfirm={async () => {
           if (!deleteTarget || isDeleting) return;
           setIsDeleting(true);

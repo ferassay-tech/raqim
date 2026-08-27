@@ -16,9 +16,15 @@ interface ArticlesContextValue {
   /** Raw, bilingual — Article Editor only. */
   getRawArticle: (id: string) => AdminArticleRaw | undefined;
   createArticle: (values: Omit<AdminArticleRaw, "id" | "updatedAt">) => Promise<void>;
-  updateArticle: (id: string, values: Omit<AdminArticleRaw, "id" | "updatedAt">) => void;
-  deleteArticle: (id: string) => void;
-  deleteArticles: (ids: string[]) => void;
+  /** Awaited (not fire-and-forget), like createArticle — so ArticleEditor's
+   * submit button can show a real Button `loading` state. */
+  updateArticle: (id: string, values: Omit<AdminArticleRaw, "id" | "updatedAt">) => Promise<void>;
+  /** Awaited (not fire-and-forget) so ArticlesListPage's delete
+   * confirmation can show a real busy state and only close on success. */
+  deleteArticle: (id: string) => Promise<void>;
+  /** Best-effort per item, matching this context's existing semantics —
+   * not a newly-invented all-or-nothing rule. */
+  deleteArticles: (ids: string[]) => Promise<void>;
   duplicateArticle: (id: string) => void;
   setArticlesStatus: (ids: string[], status: ArticleStatus) => void;
   loadError: string | null;
@@ -150,32 +156,29 @@ export function ArticlesProvider({ children }: { children: ReactNode }) {
     [storedArticles]
   );
 
-  const updateArticle = useCallback((id: string, values: Omit<AdminArticleRaw, "id" | "updatedAt">) => {
+  const updateArticle = useCallback(async (id: string, values: Omit<AdminArticleRaw, "id" | "updatedAt">) => {
     const updated: AdminArticleRaw = { ...values, id, updatedAt: today() };
-    void articlesRepository
-      .update(id, articleToSupabaseRow(updated))
-      .then(() => {
-        setStoredArticles((prev) => prev.map((a) => (a.id === id ? updated : a)));
-      })
-      .catch((error) => {
-        console.error("Failed to update article:", error);
-      });
+    // Awaited (not fire-and-forget) — mirrors createArticle's own pattern —
+    // so ArticleEditPage can show a real busy state on save and only
+    // navigate away on success.
+    await articlesRepository.update(id, articleToSupabaseRow(updated));
+    setStoredArticles((prev) => prev.map((a) => (a.id === id ? updated : a)));
   }, []);
 
-  const deleteArticle = useCallback((id: string) => {
-    void articlesRepository
-      .remove(id)
-      .then(() => {
-        setStoredArticles((prev) => prev.filter((a) => a.id !== id));
-      })
-      .catch((error) => {
-        console.error("Failed to delete article:", error);
-      });
+  const deleteArticle = useCallback(async (id: string) => {
+    await articlesRepository.remove(id);
+    setStoredArticles((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
   const deleteArticles = useCallback(
-    (ids: string[]) => {
-      ids.forEach((id) => deleteArticle(id));
+    async (ids: string[]) => {
+      await Promise.all(
+        ids.map((id) =>
+          deleteArticle(id).catch((error) => {
+            console.error("Failed to delete article:", error);
+          })
+        )
+      );
     },
     [deleteArticle]
   );

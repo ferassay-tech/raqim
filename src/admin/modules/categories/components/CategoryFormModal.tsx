@@ -4,13 +4,14 @@ import type { AdminCategoryRaw } from "@/admin/types/category";
 import type { LocalizedText } from "@/admin/types/siteContent";
 import type { Language } from "@/context/LanguageContext";
 import { Modal } from "@/admin/components/ui/Modal";
+import { Button } from "@/admin/components/ui/Button";
 import { TextField } from "@/admin/components/forms/TextField";
 import { TextArea } from "@/admin/components/forms/TextArea";
 
 interface CategoryFormModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (values: Omit<AdminCategoryRaw, "id">) => void;
+  onSave: (values: Omit<AdminCategoryRaw, "id">) => void | Promise<void>;
   initialCategory?: AdminCategoryRaw | null;
   /** Every other category (raw, bilingual) — for the per-language duplicate
    * name check. Includes the category being edited; it's excluded by id. */
@@ -35,6 +36,7 @@ export function CategoryFormModal({
   const [values, setValues] = useState(EMPTY);
   const [editingLanguage, setEditingLanguage] = useState<Language>("ar");
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -44,8 +46,9 @@ export function CategoryFormModal({
     }
   }, [open, initialCategory]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     const trimmedAr = values.name.ar.trim();
     if (!trimmedAr) {
       setEditingLanguage("ar");
@@ -66,10 +69,15 @@ export function CategoryFormModal({
       return;
     }
 
-    onSave({
-      name: { ar: trimmedAr, en: values.name.en.trim() },
-      description: { ar: values.description.ar.trim(), en: values.description.en.trim() },
-    });
+    setIsSaving(true);
+    try {
+      await onSave({
+        name: { ar: trimmedAr, en: values.name.en.trim() },
+        description: { ar: values.description.ar.trim(), en: values.description.en.trim() },
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -86,13 +94,9 @@ export function CategoryFormModal({
           >
             إلغاء
           </button>
-          <button
-            type="submit"
-            form="category-form"
-            className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
-          >
+          <Button type="submit" form="category-form" variant="primary" loading={isSaving} className="!px-5">
             {initialCategory ? "حفظ التغييرات" : "إضافة التصنيف"}
-          </button>
+          </Button>
         </>
       }
     >

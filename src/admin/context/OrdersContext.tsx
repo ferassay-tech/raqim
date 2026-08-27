@@ -84,8 +84,13 @@ interface OrdersContextValue {
   orders: AdminOrder[];
   getOrder: (id: string) => AdminOrder | undefined;
   createOrder: (input: CreateOrderInput) => Promise<AdminOrder & { isExistingOrder: boolean }>;
-  setOrderStatus: (id: string, status: OrderStatus) => void;
-  setOrdersStatus: (ids: string[], status: OrderStatus) => void;
+  /** Awaited (not fire-and-forget) so OrderPaymentCard's sensitive
+   * status-change confirmation (refund/cancel) can show a real busy state
+   * and only close on success. */
+  setOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
+  /** Best-effort per item, matching this context's existing semantics —
+   * not a newly-invented all-or-nothing rule. */
+  setOrdersStatus: (ids: string[], status: OrderStatus) => Promise<void>;
   addNote: (id: string, text: string) => Promise<void>;
   /** Sets payment_status="confirmed" and status="paid" as one update, plus
    * one timeline entry — guarded against double-confirmation. Does not
@@ -114,6 +119,7 @@ interface OrdersContextValue {
   permanentlyDeleteOrder: (id: string) => Promise<PermanentDeleteOutcome>;
   loadError: string | null;
   reload: () => void;
+  isLoading: boolean;
 }
 
 const OrdersContext = createContext<OrdersContextValue | null>(null);
@@ -147,11 +153,13 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const reload = useCallback(() => setReloadToken((t) => t + 1), []);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
     setLoadError(null);
+    setIsLoading(true);
     ordersRepository
       .list()
       .then((rows) => {
@@ -162,6 +170,10 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         console.error("Failed to load orders from Supabase:", error);
         setLoadError("تعذر تحميل الطلبات من الخادم.");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -282,7 +294,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setOrderStatus = useCallback(
-    (id: string, status: OrderStatus) => {
+    async (id: string, status: OrderStatus) => {
       const current = orders.find((o) => o.id === id);
       if (!current) return;
       const tone: TimelineTone = ORDER_STATUS_META[status].variant === "danger" ? "danger" : "success";
@@ -295,14 +307,11 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
           tone,
         },
       ];
-      void ordersRepository
-        .update(id, { status, timeline })
-        .then(() => {
-          setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status, timeline } : o)));
-        })
-        .catch((error) => {
-          console.error("Failed to update order status:", error);
-        });
+      // Awaited (not fire-and-forget) so OrderPaymentCard's sensitive
+      // status-change confirmation (refund/cancel) can show a real busy
+      // state and only close on success.
+      await ordersRepository.update(id, { status, timeline });
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status, timeline } : o)));
     },
     [orders]
   );
@@ -435,8 +444,14 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setOrdersStatus = useCallback(
-    (ids: string[], status: OrderStatus) => {
-      for (const id of ids) setOrderStatus(id, status);
+    async (ids: string[], status: OrderStatus) => {
+      await Promise.all(
+        ids.map((id) =>
+          setOrderStatus(id, status).catch((error) => {
+            console.error("Failed to update order status:", error);
+          })
+        )
+      );
     },
     [setOrderStatus]
   );
@@ -470,6 +485,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       permanentlyDeleteOrder,
       loadError,
       reload,
+      isLoading,
     }),
     [
       orders,
@@ -485,6 +501,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       permanentlyDeleteOrder,
       loadError,
       reload,
+      isLoading,
     ]
   );
 

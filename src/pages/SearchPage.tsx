@@ -75,9 +75,9 @@ export default function SearchPage() {
                   <Reveal key={b.id} delay={i * 0.04}>
                     <Link
                       to={localizePath(`/books/${b.id}`)}
-                      className="flex items-center justify-between rounded-[10px] border border-beige bg-ivory px-5 py-4 transition-colors hover:border-gold"
+                      className="flex items-center justify-between rounded-md border border-beige bg-ivory px-5 py-4 transition-colors hover:border-gold"
                     >
-                      <span className="font-display text-lg text-ink">{b.title}</span>
+                      <span className="font-display text-h2 text-ink">{b.title}</span>
                       <span className="text-xs text-ink-soft">{localizeProperName(b.author, language)}</span>
                     </Link>
                   </Reveal>
@@ -94,7 +94,7 @@ export default function SearchPage() {
                   <Reveal key={p.slug} delay={i * 0.04}>
                     <Link
                       to={localizePath(`/blog/${p.slug}`)}
-                      className="flex items-center justify-between rounded-[10px] border border-beige bg-ivory px-5 py-4 transition-colors hover:border-gold"
+                      className="flex items-center justify-between rounded-md border border-beige bg-ivory px-5 py-4 transition-colors hover:border-gold"
                     >
                       <span className="text-ink">{p.title}</span>
                       <span className="text-xs text-ink-soft">{p.category}</span>

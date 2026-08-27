@@ -1,6 +1,7 @@
 import type { FC } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { IconClose } from "@/admin/icons";
+import { EASE_ARRIVAL } from "@/lib/motionEasing";
 
 export interface BulkAction {
   key: string;
@@ -24,8 +25,8 @@ export function BulkActionBar({ count, onClear, actions }: BulkActionBarProps) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 12 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="flex flex-wrap items-center gap-3 rounded-[10px] border border-beige bg-ink px-5 py-3.5 text-ivory"
+          transition={{ duration: 0.2, ease: EASE_ARRIVAL }}
+          className="flex flex-wrap items-center gap-3 rounded-md border border-beige bg-ink px-5 py-3.5 text-ivory"
         >
           <button
             type="button"

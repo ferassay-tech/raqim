@@ -153,7 +153,7 @@ export default function DownloadPage() {
                       type="button"
                       onClick={() => handleDownload(file)}
                       disabled={isPending}
-                      className="group relative inline-flex items-center gap-3 rounded-[10px] bg-gold px-8 py-4 text-base font-medium text-ink shadow-[0_10px_30px_-12px_rgba(185,148,81,0.55)] transition-all duration-200 ease-out hover:bg-gold-deep active:translate-y-[2px] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
+                      className="group relative inline-flex items-center gap-3 rounded-md bg-gold px-8 py-4 text-base font-medium text-ink shadow-[0_10px_30px_-12px_rgba(185,148,81,0.55)] transition-all duration-200 ease-out hover:bg-gold-deep active:translate-y-[2px] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
                     >
                       <span>
                         {isPending

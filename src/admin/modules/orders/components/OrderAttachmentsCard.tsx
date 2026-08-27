@@ -113,8 +113,8 @@ export function OrderAttachmentsCard({ order }: OrderAttachmentsCardProps) {
   };
 
   return (
-    <div className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
-      <h2 className="font-display text-lg text-ink">مرفقات العميل</h2>
+    <div className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
+      <h2 className="font-display text-h2 text-ink">مرفقات العميل</h2>
 
       {state === "loading" && <p className="mt-3 text-sm text-ink-faint">جارٍ التحميل...</p>}
 
@@ -139,7 +139,7 @@ export function OrderAttachmentsCard({ order }: OrderAttachmentsCardProps) {
             return (
               <li
                 key={attachment.id}
-                className="flex items-center gap-3 rounded-[10px] border border-beige bg-cream/40 p-3"
+                className="flex items-center gap-3 rounded-md border border-beige bg-cream/40 p-3"
               >
                 <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-white">
                   {image && thumbnailUrl ? (

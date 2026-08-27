@@ -15,7 +15,7 @@ export default function GlobalComponentsPage() {
         description="عناصر رأس/تذييل/دعوة لاتخاذ إجراء يمكن إعادة استخدامها في أكثر من قالب."
       />
       {components.length === 0 ? (
-        <div className="rounded-[10px] border border-beige bg-white/70">
+        <div className="rounded-md border border-beige bg-white/70">
           <EmptyState
             icon={IconImage}
             title="لا توجد مكوّنات مشتركة بعد"
@@ -25,7 +25,7 @@ export default function GlobalComponentsPage() {
       ) : (
         <ul className="flex flex-col gap-2">
           {components.map((c) => (
-            <li key={c.id} className="rounded-[10px] border border-beige bg-white/70 p-4 text-sm text-ink">
+            <li key={c.id} className="rounded-md border border-beige bg-white/70 p-4 text-sm text-ink">
               {c.name}
             </li>
           ))}

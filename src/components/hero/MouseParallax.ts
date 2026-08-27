@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
-import { useMotionValue, useSpring, useTransform, MotionValue } from "framer-motion";
+import { useMotionValue, useSpring, useTransform, MotionValue } from "motion/react";
 
 /**
  * Tracks prefers-reduced-motion reactively (handles OS-level toggles

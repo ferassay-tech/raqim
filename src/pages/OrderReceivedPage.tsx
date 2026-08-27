@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "motion/react";
 import { Helmet } from "../components/Helmet";
 import { IconSuccess } from "../components/checkout/icons";
 import { useLanguage } from "../context/LanguageContext";
@@ -10,6 +10,7 @@ const OrderSuccessPage: React.FC = () => {
   const state = location.state as { orderId?: string; attachmentFailed?: boolean } | null;
   const orderId = state?.orderId;
   const { t, dir, localizePath } = useLanguage();
+  const reduceMotion = useReducedMotion();
 
   return (
     <main
@@ -25,7 +26,7 @@ const OrderSuccessPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        transition={{ duration: reduceMotion ? 0 : 0.6, ease: "easeOut" }}
       >
         <IconSuccess className="h-24 w-24" />
       </motion.div>
@@ -33,7 +34,7 @@ const OrderSuccessPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+        transition={{ duration: reduceMotion ? 0 : 0.5, delay: reduceMotion ? 0 : 0.15, ease: "easeOut" }}
         className="max-w-md"
       >
         <h1 className="text-2xl font-semibold text-ink">
@@ -57,7 +58,7 @@ const OrderSuccessPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
+        transition={{ duration: reduceMotion ? 0 : 0.5, delay: reduceMotion ? 0 : 0.3, ease: "easeOut" }}
         className="flex flex-col gap-3 sm:flex-row"
       >
         <Link

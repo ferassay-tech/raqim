@@ -19,8 +19,8 @@ export function CustomerActivityTimelineCard({ customer }: CustomerActivityTimel
   );
 
   return (
-    <div className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
-      <h2 className="font-display text-lg text-ink">النشاط</h2>
+    <div className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
+      <h2 className="font-display text-h2 text-ink">النشاط</h2>
       <div className="mt-4">
         <Timeline items={items} />
       </div>

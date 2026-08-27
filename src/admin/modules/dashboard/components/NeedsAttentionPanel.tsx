@@ -38,7 +38,7 @@ export function NeedsAttentionPanel({ summary }: NeedsAttentionPanelProps) {
             <IconCheck className="h-4 w-4" />
           </span>
           <div>
-            <p className="font-display text-lg text-ink">كل شيء تحت السيطرة</p>
+            <p className="font-display text-h2 text-ink">كل شيء تحت السيطرة</p>
             <p className="mt-1.5 text-xs text-ink-faint">لا توجد طلبات أو رسائل بانتظارك الآن.</p>
           </div>
         </div>
@@ -66,7 +66,7 @@ export function NeedsAttentionPanel({ summary }: NeedsAttentionPanelProps) {
       >
         <LeadIcon className="mt-1 h-5 w-5 shrink-0 text-ink-faint" />
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-display text-lg text-ink">{lead.title}</span>
+          <span className="block truncate font-display text-h2 text-ink">{lead.title}</span>
           <span className="mt-1.5 block truncate text-xs text-ink-faint">{lead.detail}</span>
         </span>
       </Link>

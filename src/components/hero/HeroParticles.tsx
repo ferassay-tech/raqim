@@ -1,5 +1,5 @@
 import React from "react";
-import { motion, MotionValue } from "framer-motion";
+import { motion, MotionValue } from "motion/react";
 import { useParallaxLayer } from "./MouseParallax";
 import heroParticles from "../../assets/hero/hero-golden-dust.png";
 interface HeroParticlesProps {

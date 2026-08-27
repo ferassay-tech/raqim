@@ -31,7 +31,7 @@ export function ArticlePreviewDrawer({ article, onClose }: ArticlePreviewDrawerP
           </div>
 
           {article.coverImage && (
-            <div className="overflow-hidden rounded-[10px]">
+            <div className="overflow-hidden rounded-md">
               <img src={article.coverImage} alt={article.title} className="h-40 w-full object-cover" />
             </div>
           )}

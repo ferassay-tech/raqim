@@ -73,7 +73,7 @@ export default function ProfilePage() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="flex items-center gap-2.5 rounded-[10px] border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+            className="flex items-center gap-2.5 rounded-md border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
           >
             <IconCheck className="h-4 w-4 shrink-0" />
             {flash}
@@ -85,9 +85,9 @@ export default function ProfilePage() {
         <div className="flex flex-col gap-6 lg:col-span-2">
           <form
             onSubmit={handleSaveProfile}
-            className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur"
+            className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur"
           >
-            <h2 className="font-display text-lg text-ink">البيانات الشخصية</h2>
+            <h2 className="font-display text-h2 text-ink">البيانات الشخصية</h2>
 
             <div className="mt-5 flex items-center gap-5">
               <CustomerAvatar name={name} imageUrl={avatarUrl} size="lg" />
@@ -107,7 +107,7 @@ export default function ProfilePage() {
               <TextField label="البريد الإلكتروني" type="email" value={email} onChange={setEmail} dir="ltr" required />
               <div>
                 <span className="mb-2 block text-sm text-ink">الدور</span>
-                <p className="rounded-[10px] border border-beige bg-cream/40 px-4 py-3 text-sm text-ink-soft">
+                <p className="rounded-md border border-beige bg-cream/40 px-4 py-3 text-sm text-ink-soft">
                   {currentUser?.role === "owner" ? "مالك الحساب" : "محررة"}
                 </p>
               </div>
@@ -123,9 +123,9 @@ export default function ProfilePage() {
 
           <form
             onSubmit={handleChangePassword}
-            className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur"
+            className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur"
           >
-            <h2 className="font-display text-lg text-ink">تغيير كلمة المرور</h2>
+            <h2 className="font-display text-h2 text-ink">تغيير كلمة المرور</h2>
             <p className="mt-1 text-xs text-ink-faint">
               نظام الدخول محلي حاليًا (لا يتصل بأي خادم)، لكنه فعّال بالكامل داخل هذا المتصفح.
             </p>
@@ -162,8 +162,8 @@ export default function ProfilePage() {
         </div>
 
         <div className="flex flex-col gap-6">
-          <div className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
-            <h2 className="font-display text-lg text-ink">التفضيلات</h2>
+          <div className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
+            <h2 className="font-display text-h2 text-ink">التفضيلات</h2>
             <div className="mt-4 flex flex-col gap-5">
               <Select
                 label="اللغة"
@@ -186,9 +186,9 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
-            <h2 className="font-display text-lg text-ink">جلسات الدخول</h2>
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-[10px] border border-beige bg-cream/40 px-4 py-3">
+          <div className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
+            <h2 className="font-display text-h2 text-ink">جلسات الدخول</h2>
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-md border border-beige bg-cream/40 px-4 py-3">
               <div>
                 <p className="text-sm text-ink">الجلسة الحالية</p>
                 <p className="mt-0.5 text-xs text-ink-faint">نشطة الآن</p>

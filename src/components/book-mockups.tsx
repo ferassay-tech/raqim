@@ -62,7 +62,7 @@ function MockupCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`group overflow-hidden rounded-[10px] border border-beige bg-cream/60 ${span}`}>
+    <div className={`group overflow-hidden rounded-md border border-beige bg-cream/60 ${span}`}>
       <div className="aspect-[4/5] overflow-hidden">{children}</div>
       <div className="flex items-center justify-between border-t border-beige px-4 py-3">
         <span className="text-xs text-ink-soft">{label}</span>

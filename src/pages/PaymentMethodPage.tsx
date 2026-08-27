@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Helmet } from "../components/Helmet";
 import { getPaymentMethod } from "../config/paymentMethods";
 import { CopyButton } from "../components/checkout/CopyButton";
@@ -8,6 +8,7 @@ import { PaymentConfirmationForm } from "../components/checkout/PaymentConfirmat
 import type { ConfirmationFormValues } from "../components/checkout/PaymentConfirmationForm";
 import { iconMap } from "../components/checkout/icons";
 import { IconArrowLeft } from "../components/checkout/icons";
+import { cardSurface } from "../components/ui/Card";
 import { useCheckout } from "../context/CheckoutContext";
 import type { BookCurrency } from "../admin/types/book";
 import { computeDiscountedPrice } from "../context/couponMath";
@@ -33,6 +34,7 @@ const PaymentMethodPage: React.FC = () => {
   const { product, book, appliedCoupon, setConfirmation, checkoutAttemptId, resetCheckoutAttempt } = useCheckout();
   const { createOrder } = useOrders();
   const { t, dir, language, localizePath } = useLanguage();
+  const reduceMotion = useReducedMotion();
   const [showConfirmationForm, setShowConfirmationForm] = useState(false);
   const [attachmentUploadFailed, setAttachmentUploadFailed] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<{ orderId: string; file: File } | null>(null);
@@ -207,8 +209,8 @@ const PaymentMethodPage: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="rounded-3xl border border-beige bg-white/70 p-6 shadow-[0_10px_40px_rgba(60,45,20,0.08)] backdrop-blur sm:p-8"
+          transition={{ duration: reduceMotion ? 0 : 0.5, ease: "easeOut" }}
+          className={cardSurface("focal", "sm:p-8")}
         >
           <div className="flex items-center gap-3">
             <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-beige text-gold-deep">
@@ -289,6 +291,7 @@ const PaymentMethodPage: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: reduceMotion ? 0 : 0.4, ease: "easeOut" }}
                 className="flex flex-col gap-4 rounded-3xl border border-danger/30 bg-danger/5 p-6 text-center"
               >
                 <p className="text-sm text-danger">{t("payment.attachmentUploadFailed")}</p>

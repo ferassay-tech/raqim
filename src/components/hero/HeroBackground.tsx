@@ -1,6 +1,6 @@
 import React from "react";
 import type { RefObject } from "react";
-import { motion, MotionValue } from "framer-motion";
+import { motion, MotionValue } from "motion/react";
 import { useParallaxLayer } from "./MouseParallax";
 import heroLandscape from "../../assets/hero/hero-landscape.webp";
 

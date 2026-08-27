@@ -28,7 +28,7 @@ export function FileDropzone({ label, hint, previewUrl, onFileSelected, onClear,
     <div>
       <span className="mb-2 block text-sm text-ink">{label}</span>
       {previewUrl ? (
-        <div className="flex items-center gap-4 rounded-[10px] border border-beige bg-ivory p-4">
+        <div className="flex items-center gap-4 rounded-md border border-beige bg-ivory p-4">
           <div className="h-28 w-20 shrink-0 overflow-hidden rounded-md shadow-[0_10px_25px_-10px_rgba(44,36,32,0.4)]">
             <img src={previewUrl} alt="غلاف الكتاب" className="h-full w-full object-cover" />
           </div>
@@ -74,7 +74,7 @@ export function FileDropzone({ label, hint, previewUrl, onFileSelected, onClear,
             setDragOver(false);
             handleFiles(e.dataTransfer.files);
           }}
-          className={`flex w-full flex-col items-center gap-2.5 rounded-[10px] border border-dashed px-6 py-10 text-center transition-colors ${
+          className={`flex w-full flex-col items-center gap-2.5 rounded-md border border-dashed px-6 py-10 text-center transition-colors ${
             dragOver ? "border-gold bg-gold/5" : "border-beige bg-ivory hover:border-gold/60"
           }`}
         >

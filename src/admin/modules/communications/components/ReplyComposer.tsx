@@ -86,7 +86,7 @@ export function ReplyComposer({ onSendReply, onAddNote }: ReplyComposerProps) {
           placeholder={mode === "reply" ? "اكتبي ردك هنا..." : "أضيفي ملاحظة يراها فريقك فقط..."}
           rows={2}
           disabled={isSending}
-          className={`w-full resize-none rounded-[10px] border px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:outline-none disabled:opacity-60 ${
+          className={`w-full resize-none rounded-md border px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:outline-none disabled:opacity-60 ${
             mode === "note" ? "border-gold/40 bg-gold/5 focus:border-gold" : "border-beige bg-ivory focus:border-gold"
           }`}
         />

@@ -17,6 +17,7 @@ import { useAssetDimensions } from "../lib/mediaDimensions";
 import { DEFAULT_OG_IMAGE } from "../lib/seo";
 import { localizeProperName } from "../lib/properNames";
 import { BRAND_ASSETS } from "../config/brandAssets";
+import { cardSurface } from "../components/ui/Card";
 
 // Lazy-loaded: pulls in react-pageflip + motion, kept out of the main
 // public bundle every visitor downloads (HomePage is the highest-traffic
@@ -129,7 +130,7 @@ function HeroSection({ book }: { book: AdminBook | null }) {
       pointer-events-none
       absolute
       inset-0
-      rounded-[10px]
+      rounded-md
       bg-gradient-to-br
       from-white/20
       via-transparent
@@ -141,7 +142,7 @@ function HeroSection({ book }: { book: AdminBook | null }) {
       pointer-events-none
       absolute
       inset-0
-      rounded-[10px]
+      rounded-md
       bg-gradient-to-br
       from-white/30
       via-transparent
@@ -209,7 +210,7 @@ function PhilosophySection() {
 
         {/* the gold pattern is the section's real visual anchor — bleeding to the edge, entering once and staying settled within this section */}
         <Reveal delay={0.15} className="relative">
-          <div className="relative -mx-6 aspect-[4/5] overflow-hidden rounded-[10px] lg:mx-0 lg:-ms-16 lg:aspect-auto lg:h-[36rem]">
+          <div className="relative -mx-6 aspect-[4/5] overflow-hidden rounded-md lg:mx-0 lg:-ms-16 lg:aspect-auto lg:h-[36rem]">
             <img
               src="/assets/arabesque-pattern.webp"
               alt=""
@@ -244,7 +245,7 @@ function FeaturedBookSection({ book }: { book: AdminBook }) {
     <section className="relative overflow-hidden bg-gradient-to-b from-ivory via-ivory to-cream px-6 py-16 lg:px-10 lg:py-24">
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 lg:grid-cols-2">
         <Reveal className="relative order-2 lg:order-1">
-          <div className="relative overflow-hidden rounded-[10px] shadow-[0_30px_60px_-25px_rgba(44,36,32,0.35)]">
+          <div className="relative overflow-hidden rounded-md shadow-[0_30px_60px_-25px_rgba(44,36,32,0.35)]">
             <picture>
               {mobileSrc !== desktopSrc && <source media="(max-width: 1023px)" srcSet={mobileSrc} />}
               <img
@@ -327,7 +328,10 @@ function BooksGridSection({ books }: { books: AdminBook[] }) {
             <Reveal key={book.id} delay={i * 0.06}>
               <Link
                 to={`/books/${book.id}`}
-                className="group block overflow-hidden rounded-[10px] border border-beige bg-ivory transition-shadow duration-300 hover:shadow-[0_20px_45px_-20px_rgba(44,36,32,0.25)]"
+                className={cardSurface(
+                  "listing",
+                  "group block overflow-hidden bg-ivory focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+                )}
               >
                 <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-cream to-beige p-6">
                   {book.cover && (
@@ -352,7 +356,7 @@ function BooksGridSection({ books }: { books: AdminBook[] }) {
                 </div>
                 <div className="border-t border-beige p-5 text-start">
                   <p className="text-xs text-gold">{getCategoryLabel(book.category)}</p>
-                  <h3 className="mt-1.5 font-display text-lg text-ink">{book.title}</h3>
+                  <h3 className="mt-1.5 font-display text-h2 text-ink">{book.title}</h3>
                   <p className="mt-1 text-xs text-ink-soft">{localizeProperName(book.author, language)}</p>
                 </div>
               </Link>
@@ -372,7 +376,7 @@ function QuoteSection() {
   const { t } = useLanguage();
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-mauve/25 via-mauve/25 to-ivory px-6 py-20 lg:px-10 lg:py-24">
-      <div className="relative mx-auto max-w-3xl rounded-[10px] border border-mauve/40 bg-ivory/50 px-6 py-14 text-center shadow-[0_20px_50px_-30px_rgba(44,36,32,0.35)] backdrop-blur-sm lg:px-14 lg:py-16">
+      <div className="relative mx-auto max-w-3xl rounded-md border border-mauve/40 bg-ivory/50 px-6 py-14 text-center shadow-[0_20px_50px_-30px_rgba(44,36,32,0.35)] backdrop-blur-sm lg:px-14 lg:py-16">
         <Reveal>
           <QuoteMark className="mx-auto h-14 w-20 text-gold" />
         </Reveal>
@@ -393,7 +397,7 @@ function FinalCTASection({ book }: { book: AdminBook | null }) {
   const { t } = useLanguage();
   return (
     <section className="relative overflow-hidden px-6 py-16 lg:px-10 lg:py-20">
-      <div className="relative mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 rounded-[10px] border border-beige bg-cream/60 p-10 text-center sm:grid-cols-3 lg:p-14">
+      <div className="relative mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 rounded-md border border-beige bg-cream/60 p-10 text-center sm:grid-cols-3 lg:p-14">
         <CornerFlourish className="pointer-events-none absolute start-4 top-4 h-12 w-12 text-gold/50" />
         <CornerFlourish className="pointer-events-none absolute bottom-4 end-4 h-12 w-12 rotate-180 text-gold/50" />
         <FeatureIcon icon={<IconBook className="h-8 w-8" />} label={t("home.finalCta.featureLuxuryBook")} />

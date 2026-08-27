@@ -71,6 +71,8 @@ export default function OrdersListPage() {
   const [trashTarget, setTrashTarget] = useState<AdminOrder | null>(null);
   const [permanentTarget, setPermanentTarget] = useState<AdminOrder | null>(null);
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
+  const [isMovingToTrash, setIsMovingToTrash] = useState(false);
+  const [isPermanentlyDeleting, setIsPermanentlyDeleting] = useState(false);
 
   const activeOrders = useMemo(() => orders.filter(isActiveOrder), [orders]);
   const trashedOrders = useMemo(() => orders.filter(isTrashedOrder), [orders]);
@@ -143,6 +145,7 @@ export default function OrdersListPage() {
       header: "الطلب",
       sortAccessor: SORT_ACCESSORS.id,
       className: "min-w-[120px]",
+      mobileField: "title",
       render: (o) => (
         <div>
           <p className="text-ink" dir="ltr">
@@ -159,6 +162,7 @@ export default function OrdersListPage() {
       header: "العميلة",
       sortAccessor: SORT_ACCESSORS.customerName,
       className: "min-w-[220px]",
+      mobileField: "subtitle",
       render: (o) => (
         <div className="min-w-0">
           <p className="truncate text-ink">{o.customerName}</p>
@@ -171,6 +175,7 @@ export default function OrdersListPage() {
     {
       key: "items",
       header: "العناصر",
+      mobileField: "meta",
       render: (o) => (
         <span className="text-ink-soft">
           {o.items[0].title}
@@ -181,6 +186,7 @@ export default function OrdersListPage() {
     {
       key: "paymentMethod",
       header: "طريقة الدفع",
+      mobileField: "meta",
       render: (o) => <PaymentMethodBadge order={o} />,
     },
     {
@@ -188,12 +194,14 @@ export default function OrdersListPage() {
       header: "الإجمالي",
       sortAccessor: SORT_ACCESSORS.total,
       align: "end",
+      mobileField: "value",
       render: (o) => <span className="text-ink">{formatCurrencyAmount(o.currency, ORDER_TOTAL(o))}</span>,
     },
     {
       key: "status",
       header: "الحالة",
       sortAccessor: SORT_ACCESSORS.status,
+      mobileField: "status",
       render: (o) => {
         const meta = ORDER_STATUS_META[o.status];
         return <StatusBadge variant={meta.variant}>{meta.label}</StatusBadge>;
@@ -203,6 +211,7 @@ export default function OrdersListPage() {
       key: "actions",
       header: "",
       align: "end",
+      mobileField: "actions",
       render: (o) =>
         showTrash ? (
           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -256,21 +265,24 @@ export default function OrdersListPage() {
   };
 
   const handleMoveToTrash = async () => {
-    if (!trashTarget) return;
+    if (!trashTarget || isMovingToTrash) return;
     const target = trashTarget;
-    setTrashTarget(null);
+    setIsMovingToTrash(true);
     try {
       await moveOrderToTrash(target.id);
+      setTrashTarget(null);
     } catch (error) {
       console.error("Failed to move order to trash:", error);
       setStorageWarning(error instanceof Error ? error.message : `تعذر نقل الطلب #${target.id} إلى المحذوفات.`);
+    } finally {
+      setIsMovingToTrash(false);
     }
   };
 
   const handlePermanentDelete = async () => {
-    if (!permanentTarget) return;
+    if (!permanentTarget || isPermanentlyDeleting) return;
     const target = permanentTarget;
-    setPermanentTarget(null);
+    setIsPermanentlyDeleting(true);
     try {
       const result = await permanentlyDeleteOrder(target.id);
       if (result.storageCleanupFailed) {
@@ -278,9 +290,12 @@ export default function OrdersListPage() {
           `تم حذف الطلب #${target.id} نهائيًا، لكن تعذّر حذف بعض ملفات المرفقات المرتبطة به من التخزين.`
         );
       }
+      setPermanentTarget(null);
     } catch (error) {
       console.error("Failed to permanently delete order:", error);
       setStorageWarning(error instanceof Error ? error.message : `تعذر حذف الطلب #${target.id} نهائيًا.`);
+    } finally {
+      setIsPermanentlyDeleting(false);
     }
   };
 
@@ -308,7 +323,7 @@ export default function OrdersListPage() {
       {loadError && <LoadErrorBanner message={loadError} onRetry={reload} />}
 
       {storageWarning && (
-        <div className="flex items-start justify-between gap-3 rounded-[10px] border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+        <div className="flex items-start justify-between gap-3 rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
           <p>{storageWarning}</p>
           <button
             type="button"
@@ -441,6 +456,7 @@ export default function OrdersListPage() {
         title="نقل الطلب إلى المحذوفات"
         description={`هل تريدين نقل الطلب #${trashTarget?.id ?? ""} إلى المحذوفات؟ يمكنك استعادته لاحقًا، ولن يظهر ضمن الطلبات النشطة أو إحصاءات لوحة التحكم حتى ذلك الحين.`}
         confirmLabel="نقل إلى المحذوفات"
+        busy={isMovingToTrash}
         onConfirm={handleMoveToTrash}
         onCancel={() => setTrashTarget(null)}
       />
@@ -450,6 +466,7 @@ export default function OrdersListPage() {
         title="حذف نهائي"
         description={`هل تريدين حذف الطلب #${permanentTarget?.id ?? ""} نهائيًا؟ سيتم حذف كل بياناته المرتبطة (روابط التحميل، المرفقات) ولا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
+        busy={isPermanentlyDeleting}
         onConfirm={handlePermanentDelete}
         onCancel={() => setPermanentTarget(null)}
       />

@@ -24,7 +24,7 @@ export type ConfirmPaymentFlowResult =
 
 interface OrderPaymentCardProps {
   order: AdminOrder;
-  onStatusChange: (status: OrderStatus) => void;
+  onStatusChange: (status: OrderStatus) => Promise<void>;
   onConfirmPayment: () => Promise<ConfirmPaymentFlowResult>;
 }
 
@@ -32,6 +32,8 @@ const SENSITIVE: OrderStatus[] = ["refunded", "cancelled"];
 
 export function OrderPaymentCard({ order, onStatusChange, onConfirmPayment }: OrderPaymentCardProps) {
   const [pendingStatus, setPendingStatus] = useState<OrderStatus | null>(null);
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
+  const [statusChangeError, setStatusChangeError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [confirmFeedback, setConfirmFeedback] = useState<{ tone: "success" | "warning" | "error"; message: string } | null>(
     null
@@ -78,9 +80,12 @@ export function OrderPaymentCard({ order, onStatusChange, onConfirmPayment }: Or
     if (next === order.status) return;
     if (SENSITIVE.includes(next) && !canChangeStatus) return;
     if (SENSITIVE.includes(next)) {
+      setStatusChangeError(null);
       setPendingStatus(next);
     } else {
-      onStatusChange(next);
+      onStatusChange(next).catch((error) => {
+        console.error("Failed to update order status:", error);
+      });
     }
   };
 
@@ -90,8 +95,8 @@ export function OrderPaymentCard({ order, onStatusChange, onConfirmPayment }: Or
   }));
 
   return (
-    <div className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
-      <h2 className="font-display text-lg text-ink">تفاصيل الطلب</h2>
+    <div className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
+      <h2 className="font-display text-h2 text-ink">تفاصيل الطلب</h2>
 
       <dl className="mt-4 flex flex-col gap-3 text-sm">
         <div className="flex items-center justify-between">
@@ -161,6 +166,7 @@ export function OrderPaymentCard({ order, onStatusChange, onConfirmPayment }: Or
         {!canChangeStatus && (
           <p className="mt-2 text-xs text-ink-faint">صلاحيتك الحالية لا تسمح بتحديد الطلب كمسترجع أو ملغي.</p>
         )}
+        {statusChangeError && <p className="mt-2 text-xs text-danger">{statusChangeError}</p>}
       </div>
 
       <ConfirmDialog
@@ -172,9 +178,19 @@ export function OrderPaymentCard({ order, onStatusChange, onConfirmPayment }: Or
             : "هل تريدين تحديد هذا الطلب كمسترجع؟ سيتم تسجيل ذلك في السجل الزمني للطلب."
         }
         confirmLabel="تأكيد"
-        onConfirm={() => {
-          if (pendingStatus) onStatusChange(pendingStatus);
-          setPendingStatus(null);
+        busy={isChangingStatus}
+        onConfirm={async () => {
+          if (!pendingStatus || isChangingStatus) return;
+          setIsChangingStatus(true);
+          try {
+            await onStatusChange(pendingStatus);
+            setPendingStatus(null);
+          } catch (error) {
+            console.error("Failed to update order status:", error);
+            setStatusChangeError("تعذر تحديث حالة الطلب. حاولي مرة أخرى.");
+          } finally {
+            setIsChangingStatus(false);
+          }
         }}
         onCancel={() => setPendingStatus(null)}
       />

@@ -205,7 +205,7 @@ export default function CommunicationTemplateEditorPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="تعديل القالب" description={template.name} />
 
-      <div className="flex flex-col gap-4 rounded-[10px] border border-beige bg-white/70 p-6">
+      <div className="flex flex-col gap-4 rounded-md border border-beige bg-white/70 p-6">
         <TextField
           label="اسم القالب"
           value={values.name}
@@ -261,9 +261,9 @@ export default function CommunicationTemplateEditorPage() {
       </div>
 
       {isDownloadLinkTemplate && (
-        <div className="flex flex-col gap-4 rounded-[10px] border border-beige bg-white/70 p-6">
+        <div className="flex flex-col gap-4 rounded-md border border-beige bg-white/70 p-6">
           <div>
-            <h2 className="font-display text-lg text-ink">التصميم</h2>
+            <h2 className="font-display text-h2 text-ink">التصميم</h2>
             <p className="mt-1 text-xs text-ink-faint">
               تتحكم في الشكل العام للبريد (الإطار البصري) — وليس في نصوصه. النصوص تُدار من قسم «المحتوى» أدناه.
             </p>
@@ -288,7 +288,7 @@ export default function CommunicationTemplateEditorPage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {DESIGN_COLOR_OPTIONS.map((option) => (
-              <div key={option.key} className="rounded-[10px] border border-beige p-3">
+              <div key={option.key} className="rounded-md border border-beige p-3">
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
@@ -310,7 +310,7 @@ export default function CommunicationTemplateEditorPage() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display text-lg text-ink">المحتوى</h2>
+            <h2 className="font-display text-h2 text-ink">المحتوى</h2>
             <p className="mt-1 text-xs text-ink-faint">
               إدارة أقسام المحتوى فقط — لا يوجد محرر مرئي أو سحب وإفلات في هذه المرحلة.
             </p>
@@ -360,7 +360,7 @@ export default function CommunicationTemplateEditorPage() {
             {sortedSections.map((section, index) => (
               <div
                 key={section.id}
-                className="flex items-center justify-between gap-4 rounded-[10px] border border-beige bg-white/70 p-4"
+                className="flex items-center justify-between gap-4 rounded-md border border-beige bg-white/70 p-4"
               >
                 <div className="min-w-0">
                   <span className="rounded-full bg-cream px-2.5 py-0.5 text-[11px] font-medium text-ink-soft">

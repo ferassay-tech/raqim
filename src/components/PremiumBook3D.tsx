@@ -6,7 +6,7 @@ import {
   useSpring,
   useTransform,
   useReducedMotion,
-} from "framer-motion";
+} from "motion/react";
 import HTMLFlipBook from "react-pageflip";
 import "./PremiumBook3D.pageflip.css";
 import { useLanguage } from "../context/LanguageContext";

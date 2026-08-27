@@ -207,6 +207,7 @@
   "checkout.coupon.remove": "إزالة",
   "checkout.coupon.placeholder": "أدخلي كود الخصم",
   "checkout.coupon.apply": "تطبيق",
+  "checkout.coupon.applying": "جارٍ التطبيق...",
   "checkout.coupon.invalid": "هذا الكود غير صالح حاليًا.",
   "checkout.methods.heading": "اختر طريقة الدفع",
   "checkout.deliveryNotice": "يصلك رابط التحميل عبر البريد الإلكتروني فور تأكيد الدفع",

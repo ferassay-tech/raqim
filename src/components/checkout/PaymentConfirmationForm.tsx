@@ -1,10 +1,11 @@
 import React, { useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "motion/react";
 import { useLanguage } from "../../context/LanguageContext";
 import {
   ALLOWED_ATTACHMENT_MIME_TYPES,
   MAX_ATTACHMENT_SIZE_BYTES,
 } from "../../admin/context/orderAttachmentsRepository";
+import { cardSurface } from "../ui/Card";
 
 export interface ConfirmationFormValues {
   fullName: string;
@@ -32,6 +33,7 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
   onSubmit,
 }) => {
   const { t } = useLanguage();
+  const reduceMotion = useReducedMotion();
   const [values, setValues] = useState<ConfirmationFormValues>({
     fullName: "",
     email: "",
@@ -101,9 +103,9 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
     <motion.form
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: reduceMotion ? 0 : 0.5, ease: "easeOut" }}
       onSubmit={handleSubmit}
-      className="flex flex-col gap-5 rounded-3xl border border-beige bg-white/70 p-6 shadow-[0_10px_40px_rgba(60,45,20,0.08)] backdrop-blur"
+      className={cardSurface("focal", "flex flex-col gap-5")}
       aria-labelledby="confirmation-form-heading"
     >
       <h2

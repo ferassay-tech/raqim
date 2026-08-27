@@ -19,6 +19,7 @@ interface LibraryContextValue {
   detachFromBook: (id: string) => void;
   loadError: string | null;
   reload: () => void;
+  isLoading: boolean;
 }
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -56,10 +57,12 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const reload = useCallback(() => setReloadToken((t) => t + 1), []);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoadError(null);
+    setIsLoading(true);
     libraryFilesRepository
       .list()
       .then((rows) => {
@@ -70,6 +73,10 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         console.error("Failed to load library files from Supabase:", error);
         setLoadError("تعذر تحميل ملفات المكتبة من الخادم.");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -219,6 +226,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       detachFromBook,
       loadError,
       reload,
+      isLoading,
     }),
     [
       files,
@@ -233,6 +241,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       detachFromBook,
       loadError,
       reload,
+      isLoading,
     ]
   );
 

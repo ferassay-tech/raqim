@@ -51,8 +51,8 @@ export default function SiteContentPage() {
 
       <div className="flex flex-col gap-6">
         {grouped.map(([section, sectionFields]) => (
-          <div key={section} className="rounded-[10px] border border-beige bg-white/70 p-6 backdrop-blur">
-            <h2 className="font-display text-lg text-ink">{section}</h2>
+          <div key={section} className="rounded-md border border-beige bg-white/70 p-6 backdrop-blur">
+            <h2 className="font-display text-h2 text-ink">{section}</h2>
             <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
               {sectionFields.map((field) => (
                 <div key={field.id} className={field.type === "textarea" ? "lg:col-span-2" : ""}>
@@ -76,8 +76,8 @@ export default function SiteContentPage() {
           </div>
         ))}
 
-        <div className="rounded-[10px] border border-beige bg-white/70 p-6 backdrop-blur">
-          <h2 className="font-display text-lg text-ink">الأسئلة الشائعة العامة</h2>
+        <div className="rounded-md border border-beige bg-white/70 p-6 backdrop-blur">
+          <h2 className="font-display text-h2 text-ink">الأسئلة الشائعة العامة</h2>
           <p className="mt-1 text-xs text-ink-faint">
             تظهر في صفحة الأسئلة الشائعة العامة، وكقسم أسئلة افتراضي في صفحات الكتب دون أسئلة خاصة بها.
           </p>

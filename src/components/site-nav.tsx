@@ -107,7 +107,10 @@ export function SiteNav() {
       }`}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-10">
-        <Link to={localizePath("/")} className="flex items-center gap-1">
+        <Link
+          to={localizePath("/")}
+          className="flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+        >
           <LogoMark useConfiguredSize className="transition-transform duration-300 hover:scale-105" />
           <span
             style={wordmarkStyle}
@@ -133,14 +136,14 @@ export function SiteNav() {
           <Link
             to={localizePath("/search")}
             aria-label={getValue("nav.search")}
-            className="text-sm text-ink-soft transition-colors hover:text-gold"
+            className="text-sm text-ink-soft transition-colors hover:text-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
           >
             {getValue("nav.search")}
           </Link>
           {ctaBook && (
             <Link
               to={localizePath(`/books/${ctaBook.id}`)}
-              className="rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-transform duration-300 hover:-translate-y-0.5 hover:bg-gold-deep"
+              className="rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-transform duration-300 hover:-translate-y-0.5 hover:bg-gold-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
             >
               {ctaBook.title}
             </Link>
@@ -179,20 +182,23 @@ export function SiteNav() {
                       setOpen(false);
                     }
                   }}
-                  className="rounded-lg px-3 py-3 text-base text-ink transition-colors hover:bg-cream"
+                  className="rounded-lg px-3 py-3 text-base text-ink transition-colors hover:bg-cream focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
                 >
                   {link.label}
                 </Link>
               );
             })}
-            <Link to={localizePath("/search")} className="rounded-lg px-3 py-3 text-base text-ink hover:bg-cream">
+            <Link
+              to={localizePath("/search")}
+              className="rounded-lg px-3 py-3 text-base text-ink hover:bg-cream focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+            >
               {getValue("nav.search")}
             </Link>
             <LanguageSwitcher className="px-3 py-3" />
             {ctaBook && (
               <Link
                 to={localizePath(`/books/${ctaBook.id}`)}
-                className="mt-3 rounded-full bg-ink px-5 py-3 text-center text-sm text-ivory"
+                className="mt-3 rounded-full bg-ink px-5 py-3 text-center text-sm text-ivory focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
               >
                 {t("nav.orderPrefix")}{ctaBook.title}
               </Link>
@@ -217,7 +223,7 @@ function NavLink({ to, label, active }: { to: string; label: string; active: boo
           scrollToTop();
         }
       }}
-      className="group relative py-2 text-sm text-ink-soft transition-colors hover:text-ink"
+      className="group relative py-2 text-sm text-ink-soft transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
     >
       <span className={active ? "text-ink" : ""}>{label}</span>
       <span

@@ -1,7 +1,8 @@
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "motion/react";
 import type { Product } from "../../types/product";
 import { useLanguage } from "../../context/LanguageContext";
+import { cardSurface } from "../ui/Card";
 
 interface ProductSummaryCardProps {
   product: Product;
@@ -16,6 +17,7 @@ export const ProductSummaryCard: React.FC<ProductSummaryCardProps> = ({
   appliedCouponCode,
 }) => {
   const { t } = useLanguage();
+  const reduceMotion = useReducedMotion();
   const discountPercent = Math.round(
     ((product.oldPrice - product.newPrice) / product.oldPrice) * 100
   );
@@ -25,8 +27,8 @@ export const ProductSummaryCard: React.FC<ProductSummaryCardProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-      className="flex flex-col gap-6 rounded-3xl border border-beige bg-white/70 p-6 shadow-[0_10px_40px_rgba(60,45,20,0.08)] backdrop-blur sm:flex-row sm:items-center"
+      transition={{ duration: reduceMotion ? 0 : 0.6, ease: "easeOut", delay: reduceMotion ? 0 : 0.1 }}
+      className={cardSurface("focal", "flex flex-col gap-6 sm:flex-row sm:items-center")}
     >
       <div className="mx-auto h-40 w-28 shrink-0 overflow-hidden rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.15)] sm:mx-0">
         <img

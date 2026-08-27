@@ -11,6 +11,7 @@ import { buildGraph, breadcrumbSchema, webPageSchema } from "../lib/structuredDa
 import { useAssetDimensions } from "../lib/mediaDimensions";
 import { useLanguage } from "../context/LanguageContext";
 import { localizeProperName } from "../lib/properNames";
+import { cardSurface } from "../components/ui/Card";
 
 export default function BooksIndexPage() {
   const { books } = useBooks();
@@ -112,7 +113,10 @@ export default function BooksIndexPage() {
                 <Reveal key={book.id} delay={i * 0.05}>
                   <Link
                     to={localizePath(`/books/${book.id}`)}
-                    className="group block h-full overflow-hidden rounded-[10px] border border-beige bg-cream/40 transition-shadow duration-300 hover:shadow-[0_20px_45px_-20px_rgba(44,36,32,0.25)]"
+                    className={cardSurface(
+                      "listing",
+                      "group block h-full overflow-hidden bg-cream/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+                    )}
                   >
                     <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-cream to-beige p-8">
                       {book.cover && (

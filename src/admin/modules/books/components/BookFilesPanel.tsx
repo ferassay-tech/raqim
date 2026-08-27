@@ -45,7 +45,7 @@ export function BookFilesPanel({ bookId }: BookFilesPanelProps) {
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
-      <div className="rounded-[10px] border border-beige bg-cream/40 p-5">
+      <div className="rounded-md border border-beige bg-cream/40 p-5">
         <p className="text-sm text-ink">رفع ملف جديد</p>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <TextField
@@ -95,7 +95,7 @@ export function BookFilesPanel({ bookId }: BookFilesPanelProps) {
               key={f.id}
               type="button"
               onClick={() => setActiveFileId(f.id)}
-              className="flex items-center justify-between gap-3 rounded-[10px] border border-beige bg-white/70 p-4 text-right transition-colors hover:border-gold"
+              className="flex items-center justify-between gap-3 rounded-md border border-beige bg-white/70 p-4 text-right transition-colors hover:border-gold"
             >
               <div>
                 <p className="text-sm text-ink">
@@ -133,7 +133,7 @@ export function BookFilesPanel({ bookId }: BookFilesPanelProps) {
                   attachToBook(f.id, bookId);
                   setLinkModalOpen(false);
                 }}
-                className="flex items-center justify-between gap-3 rounded-[10px] border border-beige p-4 text-right transition-colors hover:border-gold"
+                className="flex items-center justify-between gap-3 rounded-md border border-beige p-4 text-right transition-colors hover:border-gold"
               >
                 <p className="text-sm text-ink">{f.filename}</p>
                 <span className="text-xs text-ink-faint">{f.format.toUpperCase()} · {formatBytes(f.size)}</span>

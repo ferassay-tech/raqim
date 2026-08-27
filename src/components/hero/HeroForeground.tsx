@@ -1,5 +1,5 @@
 import React from "react";
-import { motion, MotionValue } from "framer-motion";
+import { motion, MotionValue } from "motion/react";
 import { useParallaxLayer } from "./MouseParallax";
 import heroForeground from "../../assets/hero/hero-foreground.webp";
 

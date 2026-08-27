@@ -15,11 +15,20 @@ interface BooksContextValue {
   /** Raw, bilingual — Book Editor only. */
   getRawBook: (id: string) => AdminBookRaw | undefined;
   createBook: (book: Omit<AdminBookRaw, "id" | "updatedAt" | "sales">) => Promise<void>;
-  updateBook: (id: string, patch: Partial<AdminBookRaw>) => void;
+  /** Awaited (not fire-and-forget), like createBook — so BookForm's submit
+   * button can show a real Button `loading` state. */
+  updateBook: (id: string, patch: Partial<AdminBookRaw>) => Promise<void>;
   /** Soft delete — sets deletedAt, hides the book from public site + default
-   * Admin views, but keeps it recoverable from the "المحذوفة" trash view. */
-  deleteBook: (id: string) => void;
-  deleteBooks: (ids: string[]) => void;
+   * Admin views, but keeps it recoverable from the "المحذوفة" trash view.
+   * Awaited (not fire-and-forget), like createBook — so BooksListPage's
+   * delete confirmation can show a real busy state and only close on
+   * success instead of silently discarding a failure. */
+  deleteBook: (id: string) => Promise<void>;
+  /** Best-effort per item, matching this context's existing semantics — a
+   * failing item is simply skipped, not a newly-invented all-or-nothing
+   * rule. Awaited only so the caller knows when the whole batch has
+   * finished attempting. */
+  deleteBooks: (ids: string[]) => Promise<void>;
   restoreBook: (id: string) => void;
   restoreBooks: (ids: string[]) => void;
   /** Actually removes the record — only ever called from the trash view. */
@@ -228,17 +237,47 @@ export function BooksProvider({ children }: { children: ReactNode }) {
   );
 
   const updateBook = useCallback(
-    (id: string, patch: Partial<AdminBookRaw>) => persistPatch(id, patch),
-    [persistPatch]
+    async (id: string, patch: Partial<AdminBookRaw>) => {
+      const current = storedBooks.find((b) => b.id === id);
+      if (!current) return;
+      const merged: AdminBookRaw = { ...current, ...patch, updatedAt: today() };
+      const row = toSupabaseRow(merged, categoryIdFor(id));
+      // Independent from persistPatch, same reasoning as deleteBook above.
+      await booksRepository.update(id, row);
+      rowsById.current.set(id, row);
+      setStoredBooks((prev) => prev.map((b) => (b.id === id ? merged : b)));
+    },
+    [storedBooks, categoryIdFor]
   );
 
-  const deleteBook = useCallback((id: string) => persistPatch(id, { deletedAt: today() }), [persistPatch]);
+  const deleteBook = useCallback(
+    async (id: string) => {
+      const current = storedBooks.find((b) => b.id === id);
+      if (!current) return;
+      const merged: AdminBookRaw = { ...current, deletedAt: today(), updatedAt: today() };
+      const row = toSupabaseRow(merged, categoryIdFor(id));
+      // Independent from persistPatch (mirrors createBook's own pattern)
+      // specifically so this stays awaitable/rejectable without changing
+      // persistPatch's existing fire-and-forget contract shared by
+      // updateBook/restoreBook/restoreBooks/setBooksStatus.
+      await booksRepository.update(id, row);
+      rowsById.current.set(id, row);
+      setStoredBooks((prev) => prev.map((b) => (b.id === id ? merged : b)));
+    },
+    [storedBooks, categoryIdFor]
+  );
 
   const deleteBooks = useCallback(
-    (ids: string[]) => {
-      ids.forEach((id) => persistPatch(id, { deletedAt: today() }));
+    async (ids: string[]) => {
+      await Promise.all(
+        ids.map((id) =>
+          deleteBook(id).catch((error) => {
+            console.error("Failed to delete book:", error);
+          })
+        )
+      );
     },
-    [persistPatch]
+    [deleteBook]
   );
 
   const restoreBook = useCallback((id: string) => persistPatch(id, { deletedAt: null }), [persistPatch]);

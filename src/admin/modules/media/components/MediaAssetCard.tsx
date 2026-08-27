@@ -13,7 +13,7 @@ export function MediaAssetCard({ asset, onClick, selected = false }: MediaAssetC
     <button
       type="button"
       onClick={onClick}
-      className={`group relative flex flex-col overflow-hidden rounded-[10px] border bg-white/70 text-start backdrop-blur transition-all duration-200 ${
+      className={`group relative flex flex-col overflow-hidden rounded-md border bg-white/70 text-start backdrop-blur transition-all duration-200 ${
         selected ? "border-gold ring-2 ring-gold/40" : "border-beige hover:border-gold/50 hover:shadow-[0_14px_30px_-16px_rgba(44,36,32,0.35)]"
       }`}
     >

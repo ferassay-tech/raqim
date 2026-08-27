@@ -11,12 +11,21 @@ const FOCUSABLE_SELECTOR =
  * restores it to whatever triggered the dialog on close. `onClose` is read
  * from a ref rather than a hook dependency so passing a fresh inline
  * function every render (the common call pattern here) never re-focuses
- * the dialog mid-interaction — only `active` toggling does.
+ * the dialog mid-interaction — only `active` toggling does. `busy` (also
+ * ref-read, same reason) suppresses Escape-to-close while an async
+ * confirmation action is in flight.
  */
-export function useDialogA11y(ref: RefObject<HTMLElement | null>, active: boolean, onClose: () => void) {
+export function useDialogA11y(
+  ref: RefObject<HTMLElement | null>,
+  active: boolean,
+  onClose: () => void,
+  busy = false
+) {
   const previouslyFocused = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
 
   useEffect(() => {
     if (!active) return;
@@ -28,6 +37,7 @@ export function useDialogA11y(ref: RefObject<HTMLElement | null>, active: boolea
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (busyRef.current) return;
         event.preventDefault();
         onCloseRef.current();
         return;

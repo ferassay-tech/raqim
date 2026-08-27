@@ -207,6 +207,7 @@
   "checkout.coupon.remove": "Remove",
   "checkout.coupon.placeholder": "Enter your discount code",
   "checkout.coupon.apply": "Apply",
+  "checkout.coupon.applying": "Applying...",
   "checkout.coupon.invalid": "This code isn't valid right now.",
   "checkout.methods.heading": "Choose a Payment Method",
   "checkout.deliveryNotice": "Your download link arrives by email as soon as payment is confirmed",

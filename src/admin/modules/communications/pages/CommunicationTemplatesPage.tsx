@@ -7,6 +7,7 @@ import { EmptyState } from "@/admin/components/ui/EmptyState";
 import { StatusBadge } from "@/admin/components/ui/StatusBadge";
 import type { StatusBadgeVariant } from "@/admin/components/ui/StatusBadge";
 import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
+import { Button } from "@/admin/components/ui/Button";
 import { IconDocument, IconPlus } from "@/admin/icons";
 import { formatArticleDate } from "@/admin/lib/articleStatus";
 import { useCommunicationTemplates } from "@/admin/context/CommunicationTemplatesContext";
@@ -94,14 +95,9 @@ export default function CommunicationTemplatesPage() {
         title="القوالب"
         description={`${templates.length.toLocaleString("en-US")} قالبًا`}
         actions={
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-gold-deep"
-          >
-            <IconPlus className="h-4 w-4" />
+          <Button variant="primary" icon={IconPlus} onClick={() => setFormOpen(true)} className="!gap-2 !px-5 !font-normal">
             قالب جديد
-          </button>
+          </Button>
         }
       />
 
@@ -111,14 +107,14 @@ export default function CommunicationTemplatesPage() {
           title="لا توجد قوالب بعد"
           description="أنشئي أول قالب لبدء إدارة رسائل نظام التواصل."
           action={
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              icon={IconPlus}
               onClick={() => setFormOpen(true)}
-              className="mt-2 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm text-ivory transition-colors hover:bg-gold-deep"
+              className="mt-2 !gap-2 !px-5 !font-normal"
             >
-              <IconPlus className="h-4 w-4" />
               قالب جديد
-            </button>
+            </Button>
           }
         />
       ) : (

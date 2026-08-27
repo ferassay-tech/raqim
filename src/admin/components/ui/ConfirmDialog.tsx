@@ -1,4 +1,5 @@
 import { Modal } from "./Modal";
+import { Button } from "./Button";
 import { IconAlertTriangle } from "@/admin/icons";
 
 interface ConfirmDialogProps {
@@ -10,6 +11,10 @@ interface ConfirmDialogProps {
   tone?: "danger" | "neutral";
   onConfirm: () => void;
   onCancel: () => void;
+  /** While true, confirm shows a loading spinner and both actions, the
+   * header close button, Escape, and backdrop click are disabled — for an
+   * async confirmation action in flight. */
+  busy?: boolean;
 }
 
 export function ConfirmDialog({
@@ -21,32 +26,32 @@ export function ConfirmDialog({
   tone = "danger",
   onConfirm,
   onCancel,
+  busy = false,
 }: ConfirmDialogProps) {
   return (
     <Modal
       open={open}
       onClose={onCancel}
       title={title}
+      busy={busy}
       footer={
         <>
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-full px-5 py-2.5 text-sm text-ink-soft transition-colors hover:bg-beige"
+            disabled={busy}
+            className="rounded-full px-5 py-2.5 text-sm text-ink-soft transition-colors hover:bg-beige disabled:pointer-events-none disabled:opacity-30"
           >
             {cancelLabel}
           </button>
-          <button
-            type="button"
+          <Button
+            variant="primary"
             onClick={onConfirm}
-            className={`rounded-full px-5 py-2.5 text-sm font-medium transition-colors ${
-              tone === "danger"
-                ? "bg-danger text-ivory hover:bg-danger/90"
-                : "bg-ink text-ivory hover:bg-gold-deep"
-            }`}
+            loading={busy}
+            className={`!px-5 ${tone === "danger" ? "!bg-danger hover:!bg-danger/90" : ""}`}
           >
             {confirmLabel}
-          </button>
+          </Button>
         </>
       }
     >

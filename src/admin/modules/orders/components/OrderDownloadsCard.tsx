@@ -73,6 +73,7 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
   const canManage = hasPermission("library.manage");
 
   const [confirmDisable, setConfirmDisable] = useState(false);
+  const [isDisabling, setIsDisabling] = useState(false);
   const [emailStatus, setEmailStatus] = useState<EmailSendStatus>("idle");
   const [toast, setToast] = useState<ToastState | null>(null);
   const [lastEmailSentAt, setLastEmailSentAt] = useState<string | null>(null);
@@ -218,8 +219,8 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
   };
 
   return (
-    <div className="rounded-[10px] border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
-      <h2 className="font-display text-lg text-ink">التحميلات</h2>
+    <div className="rounded-md border border-beige bg-white/70 p-6 shadow-(--shadow-soft) backdrop-blur">
+      <h2 className="font-display text-h2 text-ink">التحميلات</h2>
 
       {linkedFiles.length === 0 ? (
         <p className="mt-3 text-sm text-ink-faint">لا توجد ملفات مرتبطة بكتب هذا الطلب بعد.</p>
@@ -236,7 +237,7 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
       )}
 
       {order.status !== "paid" ? (
-        <p className="mt-4 rounded-[10px] bg-cream/60 p-3 text-xs text-ink-faint">
+        <p className="mt-4 rounded-md bg-cream/60 p-3 text-xs text-ink-faint">
           التحميلات تُتاح فقط بعد تأكيد الدفع وتحديد الطلب كـ«مدفوع».
         </p>
       ) : !canManage ? (
@@ -253,12 +254,12 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
       ) : (
         <div className="mt-4 flex flex-col gap-3">
           {downloadUrl ? (
-            <div className="flex items-center justify-between gap-2 rounded-[10px] bg-cream/60 px-4 py-3">
+            <div className="flex items-center justify-between gap-2 rounded-md bg-cream/60 px-4 py-3">
               <span className="truncate text-xs text-ink" dir="ltr">{downloadUrl}</span>
               <CopyIconButton value={downloadUrl} label="نسخ الرابط" className="h-6 w-6 shrink-0" />
             </div>
           ) : (
-            <p className="rounded-[10px] bg-cream/60 p-3 text-xs text-ink-faint">
+            <p className="rounded-md bg-cream/60 p-3 text-xs text-ink-faint">
               يوجد رابط تحميل نشط لهذا الطلب، لكن لا يمكن استرجاع نصه في هذه الجلسة — استخدمي «إعادة توليد الرابط» أدناه
               للحصول على رابط جديد قابل للنسخ أو الإرسال.
             </p>
@@ -349,13 +350,18 @@ export function OrderDownloadsCard({ order }: OrderDownloadsCardProps) {
         title="تعطيل رابط التحميل"
         description="لن يتمكن العميل من استخدام هذا الرابط بعد تعطيله. يمكنك توليد رابط جديد لاحقًا."
         confirmLabel="تعطيل"
-        onConfirm={() => {
-          if (activeToken) {
-            disableToken(activeToken.id).catch(() => {
-              setToast({ variant: "error", message: "تعذّر تعطيل رابط التحميل." });
-            });
+        busy={isDisabling}
+        onConfirm={async () => {
+          if (!activeToken || isDisabling) return;
+          setIsDisabling(true);
+          try {
+            await disableToken(activeToken.id);
+            setConfirmDisable(false);
+          } catch {
+            setToast({ variant: "error", message: "تعذّر تعطيل رابط التحميل." });
+          } finally {
+            setIsDisabling(false);
           }
-          setConfirmDisable(false);
         }}
         onCancel={() => setConfirmDisable(false)}
       />

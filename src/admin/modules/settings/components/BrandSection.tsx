@@ -228,7 +228,7 @@ export function BrandSection({ onSaved, onError }: BrandSectionProps) {
       <SettingsRow title="الألوان" description="تعديل أي لون هنا يُحدّث فورًا الألوان المستخدمة عبر كامل الموقع.">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
           {(Object.keys(colors) as (keyof BrandColorTokens)[]).map((token) => (
-            <div key={token} className="rounded-[10px] border border-beige p-3">
+            <div key={token} className="rounded-md border border-beige p-3">
               <div className="flex items-center gap-2">
                 <input
                   type="color"

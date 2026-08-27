@@ -13,7 +13,7 @@ interface StatCardProps {
  * MetricCard's shape would be a worse fit than a smaller, purpose-built card. */
 export function StatCard({ icon: Icon, label, value, hint }: StatCardProps) {
   return (
-    <div className="rounded-[10px] border border-beige bg-white/70 p-5 backdrop-blur">
+    <div className="rounded-md border border-beige bg-white/70 p-5 backdrop-blur">
       <div className="flex items-center gap-2.5">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-beige text-gold-deep">
           <Icon className="h-4 w-4" />

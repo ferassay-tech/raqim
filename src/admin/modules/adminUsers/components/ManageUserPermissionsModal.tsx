@@ -261,7 +261,7 @@ export function ManageUserPermissionsModal({
     >
       <div className="flex flex-col gap-5">
         {target && (
-          <div className="rounded-[10px] border border-beige bg-cream/50 px-5 py-4">
+          <div className="rounded-md border border-beige bg-cream/50 px-5 py-4">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-ink-faint">المستخدم:</span>
@@ -301,7 +301,7 @@ export function ManageUserPermissionsModal({
             {grouped.map(([group, perms]) => {
               const hasActionable = perms.some((p) => !isCorePermission(p));
               return (
-                <div key={group} className="rounded-[10px] border border-beige bg-white/70">
+                <div key={group} className="rounded-md border border-beige bg-white/70">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-beige px-4 py-3">
                     <p className="text-sm font-medium text-ink">{GROUP_LABELS[group] ?? group}</p>
                     {hasActionable && (

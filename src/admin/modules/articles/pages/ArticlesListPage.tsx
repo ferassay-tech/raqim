@@ -19,6 +19,9 @@ import { IconCheck, IconCopy, IconDocument, IconEye, IconPlus, IconTrash } from 
 import { useHasPermission } from "@/admin/lib/useHasPermission";
 import type { BulkAction } from "@/admin/components/ui/BulkActionBar";
 import { LoadErrorBanner } from "@/admin/components/ui/LoadErrorBanner";
+import { Toast } from "@/admin/components/ui/Toast";
+import type { ToastState } from "@/admin/components/ui/Toast";
+import { logAndGetErrorMessage } from "@/admin/lib/errorMessage";
 
 const PAGE_SIZE = 8;
 
@@ -55,6 +58,9 @@ export default function ArticlesListPage() {
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminArticle | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   useEffect(() => {
     if (!flash) return;
@@ -220,7 +226,7 @@ export default function ArticlesListPage() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="flex items-center gap-2.5 rounded-[10px] border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+            className="flex items-center gap-2.5 rounded-md border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
           >
             <IconCheck className="h-4 w-4 shrink-0" />
             {flash}
@@ -325,9 +331,21 @@ export default function ArticlesListPage() {
         title="حذف المقالة"
         description={`هل تريدين حذف «${deleteTarget?.title ?? ""}»؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
-        onConfirm={() => {
-          if (deleteTarget) deleteArticle(deleteTarget.id);
-          setDeleteTarget(null);
+        busy={isDeleting}
+        onConfirm={async () => {
+          if (!deleteTarget || isDeleting) return;
+          setIsDeleting(true);
+          try {
+            await deleteArticle(deleteTarget.id);
+            setDeleteTarget(null);
+          } catch (error) {
+            setToast({
+              variant: "error",
+              message: logAndGetErrorMessage("Failed to delete article:", error, "تعذر حذف المقالة."),
+            });
+          } finally {
+            setIsDeleting(false);
+          }
         }}
         onCancel={() => setDeleteTarget(null)}
       />
@@ -337,13 +355,22 @@ export default function ArticlesListPage() {
         title="حذف المقالات المحددة"
         description={`هل تريدين حذف ${selectedKeys.size} مقالة؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
-        onConfirm={() => {
-          deleteArticles([...selectedKeys]);
-          setSelectedKeys(new Set());
-          setBulkDeleteOpen(false);
+        busy={isBulkDeleting}
+        onConfirm={async () => {
+          if (isBulkDeleting) return;
+          setIsBulkDeleting(true);
+          try {
+            await deleteArticles([...selectedKeys]);
+            setSelectedKeys(new Set());
+            setBulkDeleteOpen(false);
+          } finally {
+            setIsBulkDeleting(false);
+          }
         }}
         onCancel={() => setBulkDeleteOpen(false)}
       />
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

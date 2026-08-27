@@ -20,7 +20,7 @@ export function StampCTA({
   className?: string;
 }) {
   const { localizePath } = useLanguage();
-  const classes = `group relative inline-flex items-center gap-3 rounded-[10px] bg-gold px-8 py-4 text-base font-medium text-ink shadow-[0_10px_30px_-12px_rgba(185,148,81,0.55)] transition-all duration-200 ease-out hover:bg-gold-deep hover:shadow-[0_14px_34px_-10px_rgba(156,122,60,0.6)] active:translate-y-[2px] active:scale-[0.98] active:skew-x-[0.5deg] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${className}`;
+  const classes = `group relative inline-flex items-center gap-3 rounded-md bg-gold px-8 py-4 text-base font-medium text-ink shadow-[0_10px_30px_-12px_rgba(185,148,81,0.55)] transition-all duration-200 ease-out hover:bg-gold-deep hover:shadow-[0_14px_34px_-10px_rgba(156,122,60,0.6)] active:translate-y-[2px] active:scale-[0.98] active:skew-x-[0.5deg] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${className}`;
 
   const inner = (
     <>
@@ -34,7 +34,7 @@ export function StampCTA({
       </span>
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-[10px] opacity-0 mix-blend-overlay transition-opacity duration-200 group-active:opacity-100"
+        className="pointer-events-none absolute inset-0 rounded-md opacity-0 mix-blend-overlay transition-opacity duration-200 group-active:opacity-100"
         style={{
           backgroundImage:
             "repeating-linear-gradient(120deg, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 1px, transparent 1px, transparent 3px)",

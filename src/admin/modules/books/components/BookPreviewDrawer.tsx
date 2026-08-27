@@ -59,7 +59,7 @@ export function BookPreviewDrawer({ book, onClose }: BookPreviewDrawerProps) {
 
           <p className="text-sm leading-relaxed text-ink-soft">{book.subtitle}</p>
 
-          <dl className="grid grid-cols-2 gap-4 rounded-[10px] border border-beige bg-cream/40 p-4 text-sm">
+          <dl className="grid grid-cols-2 gap-4 rounded-md border border-beige bg-cream/40 p-4 text-sm">
             <Detail label="التصنيف" value={book.category} />
             <Detail
               label="السعر"

@@ -80,7 +80,7 @@ function HeroPreviewCard({ label, src, aspect }: { label: string; src: string | 
   return (
     <div>
       <p className="mb-2 text-xs text-ink-faint">{label}</p>
-      <div className={`relative overflow-hidden rounded-[10px] border border-beige bg-gradient-to-br from-cream to-beige ${aspect}`}>
+      <div className={`relative overflow-hidden rounded-md border border-beige bg-gradient-to-br from-cream to-beige ${aspect}`}>
         {src ? (
           <img src={src} alt="" className="h-full w-full object-cover" style={{ objectPosition: "30% 35%" }} />
         ) : (

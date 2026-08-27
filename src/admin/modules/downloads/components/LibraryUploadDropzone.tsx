@@ -34,7 +34,7 @@ export function LibraryUploadDropzone({ onFilesSelected }: LibraryUploadDropzone
         setDragOver(false);
         handleFiles(e.dataTransfer.files);
       }}
-      className={`flex w-full flex-col items-center gap-3 rounded-[10px] border border-dashed px-6 py-10 text-center transition-colors ${
+      className={`flex w-full flex-col items-center gap-3 rounded-md border border-dashed px-6 py-10 text-center transition-colors ${
         dragOver ? "border-gold bg-gold/5" : "border-beige bg-white/50 hover:border-gold/60"
       }`}
     >

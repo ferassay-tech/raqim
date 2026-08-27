@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import type { AdminCoupon, CouponType } from "@/admin/types/coupon";
 import { Modal } from "@/admin/components/ui/Modal";
+import { Button } from "@/admin/components/ui/Button";
 import { TextField } from "@/admin/components/forms/TextField";
 import { TextArea } from "@/admin/components/forms/TextArea";
 import { SegmentedControl } from "@/admin/components/forms/SegmentedControl";
@@ -11,7 +12,7 @@ import { IconRefresh } from "@/admin/icons";
 interface CouponFormModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (values: Omit<AdminCoupon, "id" | "usageCount">) => void;
+  onSave: (values: Omit<AdminCoupon, "id" | "usageCount">) => void | Promise<void>;
   initialCoupon?: AdminCoupon | null;
   existingCodes: string[];
 }
@@ -55,6 +56,7 @@ const fromCoupon = (coupon: AdminCoupon): FormState => ({
 export function CouponFormModal({ open, onClose, onSave, initialCoupon, existingCodes }: CouponFormModalProps) {
   const [values, setValues] = useState<FormState>(emptyState());
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -68,8 +70,9 @@ export function CouponFormModal({ open, onClose, onSave, initialCoupon, existing
     setError(null);
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     const code = values.code.trim().toUpperCase();
     if (!code) {
       setError("كود الخصم مطلوب.");
@@ -92,17 +95,22 @@ export function CouponFormModal({ open, onClose, onSave, initialCoupon, existing
       return;
     }
 
-    onSave({
-      code,
-      type: values.type,
-      value,
-      minOrderValue: values.minOrderValue ? Number(values.minOrderValue) : null,
-      usageLimit: values.usageLimit ? Number(values.usageLimit) : null,
-      startsAt: values.startsAt || null,
-      expiresAt: values.expiresAt || null,
-      enabled: values.enabled === "true",
-      description: values.description.trim(),
-    });
+    setIsSaving(true);
+    try {
+      await onSave({
+        code,
+        type: values.type,
+        value,
+        minOrderValue: values.minOrderValue ? Number(values.minOrderValue) : null,
+        usageLimit: values.usageLimit ? Number(values.usageLimit) : null,
+        startsAt: values.startsAt || null,
+        expiresAt: values.expiresAt || null,
+        enabled: values.enabled === "true",
+        description: values.description.trim(),
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -120,13 +128,9 @@ export function CouponFormModal({ open, onClose, onSave, initialCoupon, existing
           >
             إلغاء
           </button>
-          <button
-            type="submit"
-            form="coupon-form"
-            className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-ivory transition-colors hover:bg-gold-deep"
-          >
+          <Button type="submit" form="coupon-form" variant="primary" loading={isSaving} className="!px-5">
             {initialCoupon ? "حفظ التغييرات" : "إضافة الكود"}
-          </button>
+          </Button>
         </>
       }
     >
@@ -142,13 +146,13 @@ export function CouponFormModal({ open, onClose, onSave, initialCoupon, existing
               onChange={(e) => set("code", e.target.value.toUpperCase())}
               placeholder="RAQIM10"
               dir="ltr"
-              className="w-full rounded-[10px] border border-beige bg-ivory px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
+              className="w-full rounded-md border border-beige bg-ivory px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none"
             />
             <button
               type="button"
               onClick={() => set("code", generateCouponCode())}
               title="توليد كود عشوائي"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-beige text-ink-soft transition-colors hover:border-gold hover:text-ink"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-beige text-ink-soft transition-colors hover:border-gold hover:text-ink"
             >
               <IconRefresh className="h-4 w-4" />
             </button>

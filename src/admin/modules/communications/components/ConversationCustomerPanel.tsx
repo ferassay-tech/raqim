@@ -30,7 +30,7 @@ export function ConversationCustomerPanel({ conversation }: ConversationCustomer
       <div className="flex flex-col items-center gap-3 text-center">
         <CustomerAvatar name={conversation.customerName} size="lg" />
         <div>
-          <p className="font-display text-lg text-ink">{conversation.customerName}</p>
+          <p className="font-display text-h2 text-ink">{conversation.customerName}</p>
           <div className="mt-1 flex items-center justify-center gap-1">
             <span className="truncate text-xs text-ink-faint" dir="ltr">
               {conversation.customerEmail}
@@ -51,12 +51,12 @@ export function ConversationCustomerPanel({ conversation }: ConversationCustomer
           </Link>
 
           <div className="grid grid-cols-2 gap-3 text-center text-sm">
-            <div className="rounded-[10px] border border-beige bg-cream/40 p-3">
-              <p className="font-display text-lg text-ink">{customer.orderCount}</p>
+            <div className="rounded-md border border-beige bg-cream/40 p-3">
+              <p className="font-display text-h2 text-ink">{customer.orderCount}</p>
               <p className="mt-0.5 text-[11px] text-ink-faint">الطلبات</p>
             </div>
-            <div className="rounded-[10px] border border-beige bg-cream/40 p-3">
-              <p className="font-display text-lg text-ink">{formatCurrencyGroups(customer.totalSpent)}</p>
+            <div className="rounded-md border border-beige bg-cream/40 p-3">
+              <p className="font-display text-h2 text-ink">{formatCurrencyGroups(customer.totalSpent)}</p>
               <p className="mt-0.5 text-[11px] text-ink-faint">إجمالي الإنفاق</p>
             </div>
           </div>
@@ -64,7 +64,7 @@ export function ConversationCustomerPanel({ conversation }: ConversationCustomer
           <CustomerOrderHistoryCard customer={customer} />
         </>
       ) : (
-        <p className="rounded-[10px] border border-dashed border-beige bg-cream/30 p-4 text-center text-xs text-ink-faint">
+        <p className="rounded-md border border-dashed border-beige bg-cream/30 p-4 text-center text-xs text-ink-faint">
           لا يوجد سجل عميلة مرتبط بهذا البريد بعد.
         </p>
       )}

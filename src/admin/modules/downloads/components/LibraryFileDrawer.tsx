@@ -43,7 +43,7 @@ export function LibraryFileDrawer({ file, onClose }: LibraryFileDrawerProps) {
     <Drawer open={Boolean(file)} onClose={onClose} title="تفاصيل الملف">
       {file && (
         <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between gap-3 rounded-[10px] bg-cream p-5">
+          <div className="flex items-center justify-between gap-3 rounded-md bg-cream p-5">
             <div>
               <p className="text-xs uppercase tracking-[0.15em] text-gold-deep">{file.format}</p>
               <p className="mt-1 text-sm text-ink-faint">{formatBytes(file.size)}</p>
@@ -66,7 +66,7 @@ export function LibraryFileDrawer({ file, onClose }: LibraryFileDrawerProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               onBlur={() => name.trim() && name !== file.filename && renameFile(file.id, name.trim())}
-              className="w-full rounded-[10px] border border-beige bg-ivory px-4 py-3 text-sm text-ink focus:border-gold focus:outline-none"
+              className="w-full rounded-md border border-beige bg-ivory px-4 py-3 text-sm text-ink focus:border-gold focus:outline-none"
             />
           </label>
 
@@ -97,7 +97,7 @@ export function LibraryFileDrawer({ file, onClose }: LibraryFileDrawerProps) {
             options={[{ value: "none", label: "غير مرتبط" }, ...books.map((b) => ({ value: b.id, label: b.title }))]}
           />
 
-          <dl className="grid grid-cols-2 gap-4 rounded-[10px] border border-beige bg-cream/40 p-4 text-sm">
+          <dl className="grid grid-cols-2 gap-4 rounded-md border border-beige bg-cream/40 p-4 text-sm">
             <div>
               <dt className="text-xs text-ink-faint">تاريخ الرفع</dt>
               <dd className="mt-0.5 text-ink">{file.uploadedAt}</dd>
@@ -157,6 +157,7 @@ export function LibraryFileDrawer({ file, onClose }: LibraryFileDrawerProps) {
         title="حذف الملف"
         description={`هل تريدين حذف «${file?.filename ?? ""}»؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
+        busy={isDeleting}
         onConfirm={async () => {
           if (!file || isDeleting) return;
           setIsDeleting(true);

@@ -254,13 +254,24 @@ export default function AdminUsersPage() {
   const selectedProfile = profiles.find((p) => p.id === selectedUserId) ?? null;
   const selectedRolePermissions = selectedProfile ? (permissionsByRole.get(selectedProfile.role) ?? []) : [];
 
-  const runAction = async (id: string, action: () => Promise<void>, successMessage: string) => {
+  /** Returns whether the action succeeded so ConfirmDialog callers can
+   * decide whether to close (only on success) — existing Toast/error
+   * behavior and the shared `pendingActionId` busy-tracking are unchanged;
+   * the notifications-toggle checkbox below ignores this return value,
+   * exactly as it ignored the previous implicit `undefined`. */
+  const runAction = async (
+    id: string,
+    action: () => Promise<void>,
+    successMessage: string
+  ): Promise<boolean> => {
     setPendingActionId(id);
     try {
       await action();
       setToast({ variant: "success", message: successMessage });
+      return true;
     } catch (err) {
       setToast({ variant: "error", message: logAndGetErrorMessage("Admin action failed:", err, "حدث خطأ غير متوقع.") });
+      return false;
     } finally {
       setPendingActionId(null);
     }
@@ -600,7 +611,7 @@ export default function AdminUsersPage() {
       />
 
       {!isOwner && (
-        <div className="flex items-start gap-3 rounded-[10px] border border-beige bg-cream/50 p-4 text-sm text-ink-soft">
+        <div className="flex items-start gap-3 rounded-md border border-beige bg-cream/50 p-4 text-sm text-ink-soft">
           <IconAlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-gold-deep" />
           <p>إدارة المستخدمين والدعوات متاحة لمالك المنصة فقط. يمكنك استعراض القوائم أدناه دون تعديلها.</p>
         </div>
@@ -617,7 +628,7 @@ export default function AdminUsersPage() {
               description={profilesError}
             />
           ) : isLoading && profiles.length === 0 ? (
-            <div className="rounded-[10px] border border-beige bg-white/70 p-10 text-center text-sm text-ink-faint">
+            <div className="rounded-md border border-beige bg-white/70 p-10 text-center text-sm text-ink-faint">
               جارٍ التحميل...
             </div>
           ) : profiles.length === 0 ? (
@@ -685,13 +696,13 @@ export default function AdminUsersPage() {
       {tab === "permissions" && (
         <div className="flex flex-col gap-6">
           <div>
-            <h2 className="font-display text-lg text-ink">صلاحيات كل دور</h2>
+            <h2 className="font-display text-h2 text-ink">صلاحيات كل دور</h2>
             <p className="mt-1 text-xs text-ink-faint">
               الصلاحيات موروثة من دور المستخدم — لا يمكن تعديلها هنا مباشرة.
             </p>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {Array.from(permissionsByRole.entries()).map(([role, perms]) => (
-                <div key={role} className="rounded-[10px] border border-beige bg-white/70 p-4">
+                <div key={role} className="rounded-md border border-beige bg-white/70 p-4">
                   <p className="font-medium text-ink">{ROLE_LABELS[role] ?? role}</p>
                   <ul className="mt-2 flex flex-col gap-1">
                     {perms.map((perm) => (
@@ -709,7 +720,7 @@ export default function AdminUsersPage() {
           </div>
 
           <div className="border-t border-beige pt-6">
-            <h2 className="font-display text-lg text-ink">الصلاحيات الفعلية لمستخدم</h2>
+            <h2 className="font-display text-h2 text-ink">الصلاحيات الفعلية لمستخدم</h2>
             <p className="mt-1 text-xs text-ink-faint">
               الصلاحية الفعلية = صلاحيات الدور، مضافًا إليها أي استثناءات خاصة بهذا المستخدم تحديدًا. "صلاحيات الدور"
               أدناه للقراءة فقط دائمًا؛ "استثناءات خاصة" هي ما يمكن تعديله لهذا المستخدم وحده دون التأثير على بقية من
@@ -743,7 +754,7 @@ export default function AdminUsersPage() {
                   <p className="text-sm text-ink-faint">جارٍ التحميل...</p>
                 ) : (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="rounded-[10px] border border-beige bg-white/70 p-4">
+                    <div className="rounded-md border border-beige bg-white/70 p-4">
                       <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">صلاحيات الدور</p>
                       <ul className="mt-2 flex flex-col gap-1">
                         {selectedRolePermissions.map((perm) => (
@@ -756,7 +767,7 @@ export default function AdminUsersPage() {
                         )}
                       </ul>
                     </div>
-                    <div className="rounded-[10px] border border-beige bg-white/70 p-4">
+                    <div className="rounded-md border border-beige bg-white/70 p-4">
                       <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">استثناءات خاصة</p>
                       <ul className="mt-2 flex flex-col gap-1">
                         {overrides.map((o) => (
@@ -902,7 +913,7 @@ export default function AdminUsersPage() {
             يمكنك أيضًا مشاركة رابط الدعوة يدويًا كخيار احتياطي إذا لم تصل الرسالة:
           </p>
           {inviteResult && (
-            <div className="flex items-center justify-between gap-2 rounded-[10px] bg-cream/60 px-4 py-3">
+            <div className="flex items-center justify-between gap-2 rounded-md bg-cream/60 px-4 py-3">
               <span dir="ltr" className="truncate text-xs text-ink">
                 {inviteResult.rawToken}
               </span>
@@ -938,11 +949,12 @@ export default function AdminUsersPage() {
         title="تعليق الوصول"
         description={`هل تريدين تعليق وصول ${suspendTarget?.name ?? ""}؟ سيفقد صلاحياته الإدارية فورًا حتى تتم إعادة تفعيله.`}
         confirmLabel="تعليق"
-        onConfirm={() => {
-          if (suspendTarget) {
-            runAction(suspendTarget.id, () => suspendAdmin(suspendTarget.id), `تم تعليق وصول ${suspendTarget.name}.`);
-          }
-          setSuspendTarget(null);
+        busy={pendingActionId === suspendTarget?.id}
+        onConfirm={async () => {
+          if (!suspendTarget) return;
+          const target = suspendTarget;
+          const ok = await runAction(target.id, () => suspendAdmin(target.id), `تم تعليق وصول ${target.name}.`);
+          if (ok) setSuspendTarget(null);
         }}
         onCancel={() => setSuspendTarget(null)}
       />
@@ -953,11 +965,12 @@ export default function AdminUsersPage() {
         description={`هل تريدين إعادة تفعيل وصول ${reactivateTarget?.name ?? ""}؟`}
         confirmLabel="إعادة تفعيل"
         tone="neutral"
-        onConfirm={() => {
-          if (reactivateTarget) {
-            runAction(reactivateTarget.id, () => reactivateAdmin(reactivateTarget.id), `تمت إعادة تفعيل وصول ${reactivateTarget.name}.`);
-          }
-          setReactivateTarget(null);
+        busy={pendingActionId === reactivateTarget?.id}
+        onConfirm={async () => {
+          if (!reactivateTarget) return;
+          const target = reactivateTarget;
+          const ok = await runAction(target.id, () => reactivateAdmin(target.id), `تمت إعادة تفعيل وصول ${target.name}.`);
+          if (ok) setReactivateTarget(null);
         }}
         onCancel={() => setReactivateTarget(null)}
       />
@@ -967,11 +980,12 @@ export default function AdminUsersPage() {
         title="رفض الدعوة"
         description={`هل تريدين رفض دعوة ${rejectTarget?.email ?? ""}؟ لن يحصل على أي صلاحيات إدارية.`}
         confirmLabel="رفض الدعوة"
-        onConfirm={() => {
-          if (rejectTarget) {
-            runAction(rejectTarget.id, () => rejectInvitation(rejectTarget.id), `تم رفض دعوة ${rejectTarget.email}.`);
-          }
-          setRejectTarget(null);
+        busy={pendingActionId === rejectTarget?.id}
+        onConfirm={async () => {
+          if (!rejectTarget) return;
+          const target = rejectTarget;
+          const ok = await runAction(target.id, () => rejectInvitation(target.id), `تم رفض دعوة ${target.email}.`);
+          if (ok) setRejectTarget(null);
         }}
         onCancel={() => setRejectTarget(null)}
       />
@@ -981,11 +995,12 @@ export default function AdminUsersPage() {
         title="إلغاء الدعوة"
         description={`هل تريدين إلغاء دعوة ${revokeTarget?.email ?? ""}؟ سيتوقف رابط الدعوة الحالي عن العمل، ويمكنك دعوة هذا البريد مجددًا لاحقًا.`}
         confirmLabel="إلغاء الدعوة"
-        onConfirm={() => {
-          if (revokeTarget) {
-            runAction(revokeTarget.id, () => revokeInvitation(revokeTarget.id), `تم إلغاء دعوة ${revokeTarget.email}.`);
-          }
-          setRevokeTarget(null);
+        busy={pendingActionId === revokeTarget?.id}
+        onConfirm={async () => {
+          if (!revokeTarget) return;
+          const target = revokeTarget;
+          const ok = await runAction(target.id, () => revokeInvitation(target.id), `تم إلغاء دعوة ${target.email}.`);
+          if (ok) setRevokeTarget(null);
         }}
         onCancel={() => setRevokeTarget(null)}
       />
@@ -996,11 +1011,12 @@ export default function AdminUsersPage() {
         description={`هل تريدين استعادة دعوة ${restoreTarget?.email ?? ""}؟ ستعود إلى قائمة الدعوات النشطة بحالة "بانتظار قبول المدعو" ورابط دعوة صالح لمدة ٧ أيام جديدة.`}
         confirmLabel="استعادة"
         tone="neutral"
-        onConfirm={() => {
-          if (restoreTarget) {
-            runAction(restoreTarget.id, () => restoreInvitation(restoreTarget.id), `تمت استعادة دعوة ${restoreTarget.email}.`);
-          }
-          setRestoreTarget(null);
+        busy={pendingActionId === restoreTarget?.id}
+        onConfirm={async () => {
+          if (!restoreTarget) return;
+          const target = restoreTarget;
+          const ok = await runAction(target.id, () => restoreInvitation(target.id), `تمت استعادة دعوة ${target.email}.`);
+          if (ok) setRestoreTarget(null);
         }}
         onCancel={() => setRestoreTarget(null)}
       />
@@ -1010,11 +1026,16 @@ export default function AdminUsersPage() {
         title="حذف نهائي"
         description={`هل تريدين حذف دعوة ${deleteTarget?.email ?? ""} نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائي"
-        onConfirm={() => {
-          if (deleteTarget) {
-            runAction(deleteTarget.id, () => deleteInvitationPermanently(deleteTarget.id), `تم حذف دعوة ${deleteTarget.email} نهائيًا.`);
-          }
-          setDeleteTarget(null);
+        busy={pendingActionId === deleteTarget?.id}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          const target = deleteTarget;
+          const ok = await runAction(
+            target.id,
+            () => deleteInvitationPermanently(target.id),
+            `تم حذف دعوة ${target.email} نهائيًا.`
+          );
+          if (ok) setDeleteTarget(null);
         }}
         onCancel={() => setDeleteTarget(null)}
       />
