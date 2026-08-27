@@ -95,15 +95,27 @@ export function BookFilesPanel({ bookId, onPendingFilesChange }: BookFilesPanelP
     }
   };
 
-  const handleStageUpload = (file: File) => {
-    setUploadError(null);
-    setStagedUploads((prev) => [...prev, { id: `staged-${Date.now()}-${Math.random().toString(36).slice(2)}`, file, version: version.trim() || null }]);
-    setVersion("");
-  };
+  // Same (name, size, lastModified) as an already-staged file is treated as
+  // the same file re-picked — re-selecting the same folder/files in a
+  // second file-picker action must not stage duplicate entries. File
+  // objects themselves are never reused across two separate OS picker
+  // invocations, so this is the narrowest reliable equality check available.
+  const isSameFile = (a: File, b: File) =>
+    a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
-  const handleFileChosen = (file: File) => {
-    if (bookId) void handleUpload(file);
-    else handleStageUpload(file);
+  const handleStageUploads = (newFiles: File[]) => {
+    setUploadError(null);
+    setStagedUploads((prev) => {
+      const additions = newFiles
+        .filter((nf) => !prev.some((s) => isSameFile(s.file, nf)))
+        .map((file) => ({
+          id: `staged-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          file,
+          version: version.trim() || null,
+        }));
+      return additions.length > 0 ? [...prev, ...additions] : prev;
+    });
+    setVersion("");
   };
 
   const removeStagedUpload = (id: string) => {
@@ -143,10 +155,17 @@ export function BookFilesPanel({ bookId, onPendingFilesChange }: BookFilesPanelP
             ref={fileInputRef}
             type="file"
             accept=".pdf,.epub,.mobi,.zip"
+            // Only create mode (no real book yet) supports selecting more
+            // than one file at once — edit mode's own OS file dialog stays
+            // exactly as it was, single-file only.
+            multiple={bookId === null}
             className="hidden"
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFileChosen(f);
+              const selected = Array.from(e.target.files ?? []);
+              if (selected.length > 0) {
+                if (bookId) void handleUpload(selected[0]);
+                else handleStageUploads(selected);
+              }
               e.target.value = "";
             }}
           />
