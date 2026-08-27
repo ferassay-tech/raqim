@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type {
   AdminBookRaw,
@@ -27,6 +27,7 @@ import { ConfirmDialog } from "@/admin/components/ui/ConfirmDialog";
 import { Button } from "@/admin/components/ui/Button";
 import { MediaPickerModal } from "@/admin/modules/media/components/MediaPickerModal";
 import { BookFilesPanel } from "./BookFilesPanel";
+import type { PendingBookFiles } from "./BookFilesPanel";
 import { IconTrash } from "@/admin/icons";
 
 export type BookFormValues = Omit<AdminBookRaw, "id" | "sales" | "updatedAt">;
@@ -98,7 +99,11 @@ const EDITING_LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
 interface BookFormProps {
   mode: "create" | "edit";
   initialBook?: AdminBookRaw;
-  onSave: (values: BookFormValues) => void | Promise<void>;
+  /** In create mode, also receives whatever files were staged in the Files
+   * tab (new uploads + existing files chosen to link) — empty in edit
+   * mode, where BookFilesPanel already writes through LibraryContext
+   * directly instead of staging anything. */
+  onSave: (values: BookFormValues, pendingFiles: PendingBookFiles) => void | Promise<void>;
   onCancel: () => void;
   onDelete?: () => Promise<void>;
 }
@@ -114,6 +119,14 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Read only at submit time (see handleSubmit) — a ref avoids re-rendering
+  // the rest of this form on every staged-file change, and create mode is
+  // the only mode that ever populates it (BookFilesPanel never calls
+  // onPendingFilesChange once a real bookId exists).
+  const pendingFilesRef = useRef<PendingBookFiles>({ uploads: [], linkIds: [] });
+  const handlePendingFilesChange = useCallback((pending: PendingBookFiles) => {
+    pendingFilesRef.current = pending;
+  }, []);
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   const [backCoverPickerOpen, setBackCoverPickerOpen] = useState(false);
   const coverObjectUrlRef = useRef<string | null>(null);
@@ -166,7 +179,7 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
     if (isSaving) return;
     setIsSaving(true);
     try {
-      await onSave(values);
+      await onSave(values, pendingFilesRef.current);
     } finally {
       setIsSaving(false);
     }
@@ -504,13 +517,7 @@ export function BookForm({ mode, initialBook, onSave, onCancel, onDelete }: Book
           )}
 
           {activeTab === "files" && (
-            <>
-              {initialBook ? (
-                <BookFilesPanel bookId={initialBook.id} />
-              ) : (
-                <p className="text-sm text-ink-faint">احفظي الكتاب أولًا لإدارة ملفاته القابلة للتحميل.</p>
-              )}
-            </>
+            <BookFilesPanel bookId={initialBook?.id ?? null} onPendingFilesChange={handlePendingFilesChange} />
           )}
 
           {activeTab === "faq" && (

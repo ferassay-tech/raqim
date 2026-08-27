@@ -14,7 +14,12 @@ interface BooksContextValue {
   getBook: (id: string) => AdminBook | undefined;
   /** Raw, bilingual — Book Editor only. */
   getRawBook: (id: string) => AdminBookRaw | undefined;
-  createBook: (book: Omit<AdminBookRaw, "id" | "updatedAt" | "sales">) => Promise<void>;
+  /** Resolves to the new book's id (already computed client-side before
+   * the insert, see the implementation) — lets a caller that needs the
+   * real, persisted id (e.g. BookNewPage linking staged downloadable
+   * files) continue without a second lookup. Existing callers that ignore
+   * the return value are unaffected. */
+  createBook: (book: Omit<AdminBookRaw, "id" | "updatedAt" | "sales">) => Promise<string>;
   /** Awaited (not fire-and-forget), like createBook — so BookForm's submit
    * button can show a real Button `loading` state. */
   updateBook: (id: string, patch: Partial<AdminBookRaw>) => Promise<void>;
@@ -220,6 +225,7 @@ export function BooksProvider({ children }: { children: ReactNode }) {
     await booksRepository.create(row);
     rowsById.current.set(id, row);
     setStoredBooks((prev) => [created, ...prev]);
+    return id;
   }, [storedBooks]);
 
   const persistPatch = useCallback(

@@ -251,7 +251,6 @@
   "confirmationForm.email": "Email",
   "confirmationForm.country": "Country",
   "confirmationForm.paymentMethod": "Payment Method",
-  "confirmationForm.transactionId": "Transaction ID",
   "confirmationForm.uploadReceipt": "Upload Payment Receipt",
   "confirmationForm.attachedFilePrefix": "Attached file: ",
   "confirmationForm.fileTypeError": "Unsupported file type. Allowed: JPG, PNG, WEBP, PDF.",

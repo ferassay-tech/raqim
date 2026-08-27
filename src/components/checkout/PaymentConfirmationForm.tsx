@@ -12,7 +12,6 @@ export interface ConfirmationFormValues {
   email: string;
   country: string;
   paymentMethod: string;
-  transactionId: string;
   notes: string;
   /** The real selected file, kept until upload after order creation — see
    * PaymentMethodPage.handleConfirmationSubmit. Previously only file.name
@@ -39,7 +38,6 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
     email: "",
     country: "",
     paymentMethod: methodTitle,
-    transactionId: "",
     notes: "",
     receiptFile: undefined,
   });
@@ -172,20 +170,6 @@ export const PaymentConfirmationForm: React.FC<PaymentConfirmationFormProps> = (
             value={values.paymentMethod}
             readOnly
             className={`${inputClasses} cursor-not-allowed bg-beige/60`}
-          />
-        </div>
-
-        <div className="sm:col-span-2">
-          <label htmlFor="transactionId" className="mb-1.5 block text-xs text-ink-soft">
-            {t("confirmationForm.transactionId")}
-          </label>
-          <input
-            id="transactionId"
-            name="transactionId"
-            required
-            value={values.transactionId}
-            onChange={handleChange}
-            className={inputClasses}
           />
         </div>
 

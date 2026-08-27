@@ -251,7 +251,6 @@
   "confirmationForm.email": "البريد الإلكتروني",
   "confirmationForm.country": "الدولة",
   "confirmationForm.paymentMethod": "طريقة الدفع",
-  "confirmationForm.transactionId": "رقم العملية",
   "confirmationForm.uploadReceipt": "رفع إيصال الدفع",
   "confirmationForm.attachedFilePrefix": "الملف المرفق: ",
   "confirmationForm.fileTypeError": "نوع الملف غير مدعوم. الأنواع المسموحة: JPG, PNG, WEBP, PDF.",
