@@ -208,10 +208,22 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
   // orientation and writes to those two motion values — it never touches
   // PageFlip, so page turning stays entirely the engine's own responsibility.
   useEffect(() => {
+    // TEMPORARY DIAGNOSTIC — real-device Hero tilt investigation, remove
+    // once the pipeline is confirmed working. Logs once per mount only.
+    console.log("[HeroTilt DIAG] mount", {
+      isMobile,
+      reducedMotion,
+      hasDeviceOrientationEvent: typeof window !== "undefined" && "DeviceOrientationEvent" in window,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "n/a",
+    });
+
     if (!isMobile || reducedMotion) return;
     if (typeof window === "undefined" || !("DeviceOrientationEvent" in window)) return;
 
     let active = true;
+    // TEMPORARY DIAGNOSTIC — throttle gate for the per-tick log below.
+    let lastDiagLog = 0;
+    const DIAG_INTERVAL_MS = 750;
     // Calibrated against wherever the device happens to be held when
     // tracking starts, not an assumed "flat" or "upright" angle — people
     // hold phones at very different resting angles, so only the DELTA from
@@ -265,7 +277,16 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
       // event handler below now only ever writes that latest reading, never
       // schedules anything itself.
       rafId = requestAnimationFrame(applyOrientation);
-      if (!hasReading) return;
+
+      // TEMPORARY DIAGNOSTIC — throttled tick, ~1.3/sec max.
+      const nowTs = Date.now();
+      const shouldLog = nowTs - lastDiagLog >= DIAG_INTERVAL_MS;
+      if (shouldLog) lastDiagLog = nowTs;
+
+      if (!hasReading) {
+        if (shouldLog) console.log("[HeroTilt DIAG] tick: no deviceorientation reading received yet");
+        return;
+      }
       if (baseline === null) baseline = { beta: latestBeta, gamma: latestGamma };
       smoothedBeta =
         smoothedBeta === null ? latestBeta : smoothedBeta + (latestBeta - smoothedBeta) * SMOOTHING;
@@ -284,6 +305,20 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
 
       const betaMoved = lastAppliedBeta === null || Math.abs(normBeta - lastAppliedBeta) > DEAD_ZONE;
       const gammaMoved = lastAppliedGamma === null || Math.abs(normGamma - lastAppliedGamma) > DEAD_ZONE;
+
+      // TEMPORARY DIAGNOSTIC — reports raw + normalized values and whether
+      // this tick will actually be written to mouseX/mouseY.
+      if (shouldLog) {
+        console.log("[HeroTilt DIAG] tick", {
+          rawBeta: latestBeta,
+          rawGamma: latestGamma,
+          baseline,
+          normBeta: Number(normBeta.toFixed(4)),
+          normGamma: Number(normGamma.toFixed(4)),
+          willApply: betaMoved || gammaMoved,
+        });
+      }
+
       if (!betaMoved && !gammaMoved) return;
 
       lastAppliedBeta = normBeta;
@@ -304,6 +339,8 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
     };
 
     const attach = () => {
+      // TEMPORARY DIAGNOSTIC — confirms the listener actually gets registered.
+      console.log("[HeroTilt DIAG] attach() called — registering deviceorientation listener");
       window.addEventListener("deviceorientation", handleOrientation);
       if (rafId === null) rafId = requestAnimationFrame(applyOrientation);
     };
@@ -317,6 +354,12 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
       requestPermission?: () => Promise<"granted" | "denied">;
     };
 
+    // TEMPORARY DIAGNOSTIC — confirms whether this platform even exposes
+    // the iOS-style permission gate at all.
+    console.log("[HeroTilt DIAG] requestPermission exists?", {
+      hasRequestPermission: typeof RequestableDeviceOrientationEvent.requestPermission === "function",
+    });
+
     if (typeof RequestableDeviceOrientationEvent.requestPermission === "function") {
       // iOS requires permission to be requested from a genuine user
       // gesture — it doesn't have to be any particular gesture, just some
@@ -329,9 +372,13 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
       const requestPermission = () => {
         RequestableDeviceOrientationEvent.requestPermission?.()
           .then((state) => {
+            // TEMPORARY DIAGNOSTIC — the actual granted/denied result.
+            console.log("[HeroTilt DIAG] requestPermission() resolved:", state);
             if (state === "granted") attach();
           })
-          .catch(() => {
+          .catch((err) => {
+            // TEMPORARY DIAGNOSTIC
+            console.log("[HeroTilt DIAG] requestPermission() rejected:", err);
             /* permission denied or unsupported — floating simply stays off */
           });
       };
