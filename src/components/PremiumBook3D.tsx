@@ -277,6 +277,26 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
     let lastAppliedBeta: number | null = null;
     let lastAppliedGamma: number | null = null;
     const DEAD_ZONE = 0.02;
+    // Android sensor-fusion noise is measurably higher during and briefly
+    // after a deliberate tilt than it is once the phone has been still for
+    // a while — DEAD_ZONE alone is sized for the quieter resting floor, so
+    // it can still be crossed by that elevated post-movement noise, causing
+    // the same reference-relocation random walk described above to
+    // reappear right after a real tilt. `settled` distinguishes the two
+    // regimes: while actively moving (or within SETTLE_QUIET_MS of the last
+    // accepted change), DEAD_ZONE applies exactly as before — full
+    // responsiveness, unchanged. Once the signal has stayed within
+    // DEAD_ZONE for that long, `settled` flips true and the stricter
+    // SETTLE_DEAD_ZONE takes over, giving real margin above the elevated
+    // post-movement noise. lastAppliedBeta/lastAppliedGamma already sit at
+    // the right value the moment we settle — nothing is snapped or
+    // recalibrated — and the very first frame of a genuine new tilt clears
+    // SETTLE_DEAD_ZONE immediately, applying that change and setting
+    // `settled` back to false in the same tick, so breaking out is instant.
+    let settled = false;
+    let lastMovementTs = 0;
+    const SETTLE_QUIET_MS = 400;
+    const SETTLE_DEAD_ZONE = 0.05;
     // Set the moment the first real reading arrives — applyOrientation must
     // never calibrate `baseline` against the {0,0} defaults latestBeta/
     // latestGamma start at, which would happen if the frame loop below ran
@@ -324,8 +344,9 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
       const normBeta = Math.max(-0.25, Math.min(0.25, (smoothedBeta - baseline.beta) / 100));
       const normGamma = Math.max(-0.25, Math.min(0.25, (smoothedGamma - baseline.gamma) / 100));
 
-      const betaMoved = lastAppliedBeta === null || Math.abs(normBeta - lastAppliedBeta) > DEAD_ZONE;
-      const gammaMoved = lastAppliedGamma === null || Math.abs(normGamma - lastAppliedGamma) > DEAD_ZONE;
+      const activeThreshold = settled ? SETTLE_DEAD_ZONE : DEAD_ZONE;
+      const betaMoved = lastAppliedBeta === null || Math.abs(normBeta - lastAppliedBeta) > activeThreshold;
+      const gammaMoved = lastAppliedGamma === null || Math.abs(normGamma - lastAppliedGamma) > activeThreshold;
 
       // TEMPORARY DIAGNOSTIC — reports raw + normalized values and whether
       // this tick will actually be written to mouseX/mouseY.
@@ -340,12 +361,17 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
         });
       }
 
-      if (!betaMoved && !gammaMoved) return;
+      if (!betaMoved && !gammaMoved) {
+        if (!settled && nowTs - lastMovementTs > SETTLE_QUIET_MS) settled = true;
+        return;
+      }
 
       lastAppliedBeta = normBeta;
       lastAppliedGamma = normGamma;
       mouseY.set(normBeta);
       mouseX.set(normGamma);
+      lastMovementTs = nowTs;
+      settled = false;
     };
 
     const handleOrientation = (e: DeviceOrientationEvent) => {
