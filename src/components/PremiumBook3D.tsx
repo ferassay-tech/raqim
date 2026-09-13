@@ -234,10 +234,23 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
     // whose fused accelerometer+magnetometer orientation pipeline is
     // typically jumpier than iOS's — so an exponential moving average
     // absorbs that noise before it ever reaches the motion values, rather
-    // than letting the spring chase a constantly-jittering target.
+    // than letting the spring chase a constantly-jittering target. 0.15 (the
+    // original value) only gives a ~110ms time constant — too fast to
+    // meaningfully damp real held-still sensor/hand-tremor noise (commonly
+    // several degrees on Android, not the ~0.15° this pipeline's dead zone
+    // below was sized against), so that noise was passing through mostly
+    // intact and continuously re-crossing the dead zone in alternating
+    // directions, each crossing relocating the "last applied" reference the
+    // dead zone measures from — the spring then visibly chased that stream
+    // of small, directionless targets, reading as constant micro-jitter
+    // even while the phone itself was essentially still. 0.06 gives a
+    // ~280ms time constant: still well within "responsive" for a genuine
+    // tilt (which unfolds over hundreds of milliseconds to seconds), but
+    // slow enough to average out frame-to-frame noise before it reaches the
+    // dead-zone check.
     let smoothedBeta: number | null = null;
     let smoothedGamma: number | null = null;
-    const SMOOTHING = 0.15;
+    const SMOOTHING = 0.06;
     let latestBeta = 0;
     let latestGamma = 0;
     let rafId: number | null = null;
