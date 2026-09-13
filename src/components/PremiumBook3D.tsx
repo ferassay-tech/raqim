@@ -522,7 +522,15 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
   return (
     <div
       ref={containerRef}
-      onClick={openBook}
+      // Mobile: the decorative peek's only trigger on touch is this click —
+      // there's no hover to fall back on there (see onMouseEnter below) —
+      // and it shares the same 3D transform parent as the live device-tilt
+      // rotation, so opening it on tap visibly compounds with tilt noise.
+      // Disabled here on mobile only; desktop's hover-driven peek (and its
+      // own click, effectively redundant once hover has already opened it)
+      // is untouched, and this has no effect on the real PageFlip page (the
+      // hasPreview branch), where openBook() is already a no-op regardless.
+      onClick={isMobile ? undefined : openBook}
       onMouseMove={isMobile || reducedMotion ? undefined : handleMouseMove}
       onMouseEnter={
         isMobile || reducedMotion
