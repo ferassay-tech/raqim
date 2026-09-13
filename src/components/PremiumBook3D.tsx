@@ -396,21 +396,22 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
           });
       };
 
-      // The very first touch anywhere on the page, including the book
-      // itself, requests permission, on "touchstart" rather than "click" so
-      // it fires the instant a finger lands. Falls back to "click" for
-      // pointer/mouse-based testing (e.g. desktop devtools device
-      // emulation), which never fires "touchstart".
+      // The very first click anywhere on the page, including the book
+      // itself, requests permission. Deliberately "click", not "touchstart":
+      // requestPermission() is a WebKit privacy-prompt API that requires a
+      // genuine, completed user gesture — touchstart fires the instant a
+      // finger lands, before iOS has resolved whether this is a tap, a
+      // scroll, or a pinch, and was found to not reliably carry enough
+      // "user activation" for this specific API on real iPhones (the
+      // permission request would silently never resolve). "click" is also
+      // what a real tap produces on touch devices, so nothing is lost.
       const requestOnFirstTouch = () => {
-        window.removeEventListener("touchstart", requestOnFirstTouch);
         window.removeEventListener("click", requestOnFirstTouch);
         requestPermission();
       };
-      window.addEventListener("touchstart", requestOnFirstTouch, { passive: true });
       window.addEventListener("click", requestOnFirstTouch);
       return () => {
         active = false;
-        window.removeEventListener("touchstart", requestOnFirstTouch);
         window.removeEventListener("click", requestOnFirstTouch);
         cleanup();
       };
