@@ -258,17 +258,25 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
     // the dead zone below so an imperceptible wobble (real hand tremor plus
     // sensor-fusion noise, still present after the EMA above) never repaints
     // the transform at all, rather than repainting it by a barely-visible
-    // amount every frame. Same normalized units as normBeta/normGamma (0.005
-    // here is about half a degree of raw tilt, after smoothing) — measured
-    // against synthetic Android-style sensor noise (~0.15° jitter around a
-    // held-still baseline) this suppresses the large majority of noise-driven
-    // updates while still passing through the large majority of updates
-    // during an actual deliberate tilt, since real tilt steps are
-    // consistently one-directional (and therefore consistently exceed the
-    // zone) rather than randomly oscillating in place like noise.
+    // amount every frame. Same normalized units as normBeta/normGamma. This
+    // comparison is measured against `lastAppliedBeta`/`lastAppliedGamma` —
+    // the last point actually applied, not a fixed rest position — which
+    // only suppresses noise smaller than the zone itself: once noise crosses
+    // it, the reference relocates there, so the next bit of noise just as
+    // easily crosses the same-width zone again from that new point. 0.005
+    // (≈0.5° of raw tilt, about half of Android's real held-still noise
+    // floor even after the 0.06 EMA above) was well within that range,
+    // producing a continuous, self-sustaining random walk of tiny
+    // directionless updates — visible as constant micro-jitter on Android.
+    // 0.02 (≈2° of raw tilt) gives roughly 4x the margin above that noise
+    // floor, so a real crossing — and the reference-relocation it causes —
+    // becomes rare instead of continuous, while remaining a small fraction
+    // (~8%) of the pipeline's full ±0.25 normalized range: a genuine,
+    // deliberate tilt (which moves several degrees within its very first
+    // frame) still clears it immediately, so responsiveness is unaffected.
     let lastAppliedBeta: number | null = null;
     let lastAppliedGamma: number | null = null;
-    const DEAD_ZONE = 0.005;
+    const DEAD_ZONE = 0.02;
     // Set the moment the first real reading arrives — applyOrientation must
     // never calibrate `baseline` against the {0,0} defaults latestBeta/
     // latestGamma start at, which would happen if the frame loop below ran
