@@ -358,6 +358,10 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
           normBeta: Number(normBeta.toFixed(4)),
           normGamma: Number(normGamma.toFixed(4)),
           willApply: betaMoved || gammaMoved,
+          settled,
+          activeThreshold,
+          lastAppliedBeta,
+          lastAppliedGamma,
         });
       }
 
