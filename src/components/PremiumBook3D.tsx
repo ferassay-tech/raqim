@@ -177,7 +177,26 @@ const PremiumBook3D: React.FC<PremiumBook3DProps> = ({
 
   const lightXRaw = useTransform(mouseX, [-0.5, 0.5], [25, 75]);
   const lightYRaw = useTransform(mouseY, [-0.5, 0.5], [20, 80]);
-  const REFLECTION_SPRING = { stiffness: 100, damping: 22, mass: 0.8 };
+  // Mass raised from 0.8 to 1.6 (matching TILT_SPRING's own mass) as a
+  // targeted experiment against Android Hero jitter: this reflection reads
+  // raw mouseX/mouseY directly (unlike rotateX/rotateY, which already pass
+  // through TILT_SPRING first), so any residual noise in the device-tilt
+  // signal reached the book's own surface through this spring with less
+  // filtering than everywhere else. A damped harmonic oscillator's decay
+  // envelope rate is damping / (2 * mass) — independent of stiffness — and
+  // with damping already identical to TILT_SPRING (22), the old mass (0.8)
+  // gave this spring roughly double TILT_SPRING's decay rate (~13.75 vs
+  // ~6.88), i.e. it settled about twice as fast and therefore tracked a
+  // noisy input more faithfully. Raising mass to 1.6 makes the two springs'
+  // decay rates identical (both 22/(2*1.6) = 6.875) and, as a side effect of
+  // sharing a damping coefficient, brings this spring's damping ratio
+  // (~0.87) and natural frequency (~7.9 rad/s) very close to TILT_SPRING's
+  // own (~0.83, ~8.3 rad/s) — so the reflection now settles with essentially
+  // the same restraint already proven correct for the book's own rotation,
+  // rather than a lighter, faster-tracking response of its own. Stiffness
+  // and damping are unchanged: the math above shows mass alone is
+  // sufficient to reach parity with TILT_SPRING.
+  const REFLECTION_SPRING = { stiffness: 100, damping: 22, mass: 1.6 };
   const lightX = useSpring(lightXRaw, REFLECTION_SPRING);
   const lightY = useSpring(lightYRaw, REFLECTION_SPRING);
   const reflectionPosition = useMotionTemplate`${lightX}% ${lightY}%`;
