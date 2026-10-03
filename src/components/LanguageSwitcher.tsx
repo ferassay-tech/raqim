@@ -13,8 +13,19 @@ const OPTIONS: { code: Language; label: string }[] = [
  * left-to-right (AR first) regardless of the page's current direction, so
  * it reads the same whether the site is in Arabic or English.
  */
-export function LanguageSwitcher({ className = "" }: { className?: string }) {
+export function LanguageSwitcher({
+  className = "",
+  tone = "light",
+}: {
+  className?: string;
+  /** "dark" when the nav sits over the homepage journey's dark scenes. */
+  tone?: "light" | "dark";
+}) {
   const { language, setLanguage, t } = useLanguage();
+  const c =
+    tone === "dark"
+      ? { divider: "text-ivory/50", active: "font-medium text-ivory", idle: "text-ivory/75 hover:text-ivory" }
+      : { divider: "text-ink-faint", active: "font-medium text-ink", idle: "text-ink-soft hover:text-ink" };
 
   return (
     <div
@@ -25,13 +36,13 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
     >
       {OPTIONS.map((option, index) => (
         <span key={option.code} className="flex items-center gap-1.5">
-          {index > 0 && <span className="text-ink-faint">|</span>}
+          {index > 0 && <span className={c.divider}>|</span>}
           <button
             type="button"
             onClick={() => setLanguage(option.code)}
             aria-current={language === option.code}
             className={`transition-colors duration-300 ${
-              language === option.code ? "font-medium text-ink" : "text-ink-soft hover:text-ink"
+              language === option.code ? c.active : c.idle
             }`}
           >
             {option.label}
