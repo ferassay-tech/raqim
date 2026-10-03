@@ -3,7 +3,18 @@ import { SiteNav } from "./site-nav";
 import { SiteFooter } from "./site-footer";
 import { useLanguage } from "../context/LanguageContext";
 
-export function PageShell({ children }: { children: ReactNode }) {
+export function PageShell({
+  children,
+  navOverlay = false,
+  navTone = "light",
+}: {
+  children: ReactNode;
+  /** The nav floats over the page instead of taking its own row — used by
+   * the homepage while the scroll journey is mounted. */
+  navOverlay?: boolean;
+  /** "dark" while the nav sits over the journey's dark scenes. */
+  navTone?: "light" | "dark";
+}) {
   const { t } = useLanguage();
   return (
     <div className="flex min-h-dvh flex-col bg-ivory">
@@ -13,7 +24,7 @@ export function PageShell({ children }: { children: ReactNode }) {
       >
         {t("nav.skipToContent")}
       </a>
-      <SiteNav />
+      <SiteNav overlay={navOverlay} tone={navTone} />
       <main id="main-content" className="flex-1">{children}</main>
       <SiteFooter />
     </div>
