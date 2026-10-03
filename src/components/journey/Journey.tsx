@@ -6,7 +6,7 @@ import { useSiteContent } from "../../admin/context/SiteContentContext";
 import { A } from "./assets";
 import { createJourney } from "./engine";
 import type { JourneyHandle } from "./engine";
-import { markJourneySeen } from "./useJourneySeen";
+import { JOURNEY_RESTART_EVENT, markJourneySeen } from "./useJourneySeen";
 import "./journey.css";
 
 // Switching language changes the path (/ ↔ /en), and ScrollToTop then resets
@@ -78,7 +78,11 @@ export default function Journey({
       onEnd: markJourneySeen,
     });
     handleRef.current = handle;
+    // the nav logo / replay link: rewind to the first scene
+    const onRestart = () => handle.restart();
+    window.addEventListener(JOURNEY_RESTART_EVENT, onRestart);
     return () => {
+      window.removeEventListener(JOURNEY_RESTART_EVENT, onRestart);
       handleRef.current = null;
       handle.destroy();
     };

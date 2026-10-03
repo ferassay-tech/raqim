@@ -24,12 +24,21 @@ export interface JourneyHandle {
   destroy: () => void;
   goTo: (chapter: number) => void;
   skip: () => void;
+  /** back to the first scene (p = 0), instantly */
+  restart: () => void;
 }
 
-// Section height in vh: the prototype's track, plus a tail in which the cream
-// veil rises and hands over to the homepage. Keep in sync with journey.css.
+// Section height in vh: the prototype's track, plus a short handover tail.
+// The section overlaps the homepage hero by a full screen (margin-bottom in
+// journey.css), so the hero rises into place *underneath* the stage: unseen
+// while the finale is at rest, then revealed as the stage dissolves over the
+// tail. The tail is the last TAIL_VH of that rise, so the hero is already most
+// of the way up when the light opens onto it and exactly in place when it ends
+// — the light reveals the hero, never an empty page. Keep in sync with journey.css.
 const TRACK_VH = 1350;
-const TAIL_VH = 80;
+const TAIL_VH = 45;
+// the stage is fully dissolved, and the journey counts as finished, from this point of the tail
+const TAIL_DONE = 0.9;
 // film grain strength over the video scenes (0 = off)
 const GRAIN = 0.14;
 // images of a later scene start loading this far (in p) before the scene
@@ -199,14 +208,16 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
   const spans = chapters.map((c) => [+c.dataset.in!, +c.dataset.out!] as const);
   const mids = spans.map(([a, b]) => (a === 0 ? 0 : b > 1 ? 1 : (a + b) / 2));
 
-  let W = 0, H = 0, max = 1, tailLen = 1;
+  let W = 0, H = 0, max = 1, tailLen = 1, heroAt = 1;
   let target = 0, tail = 0, visible = true, stageTop = 0, dark: boolean | null = null, ended = false;
   let prog = 0, time = 0, last = performance.now(), started = false, booted = false, running = false, raf = 0;
 
   function measure() {
     const unit = root.offsetHeight / (TRACK_VH + TAIL_VH);
     max = Math.max(1, unit * TRACK_VH - H);
-    tailLen = Math.max(1, root.offsetHeight - H - max);
+    tailLen = Math.max(1, unit * TAIL_VH);
+    // scroll distance (from the section's top) at which the hero sits at the top of the viewport
+    heroAt = root.offsetHeight + (parseFloat(getComputedStyle(root).marginBottom) || 0);
   }
   function setTone(d: boolean) {
     if (d === dark) return;
@@ -217,20 +228,33 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
     const r = root.getBoundingClientRect();
     const sc = -r.top;
     target = story(clamp(sc / max, 0, 1));
-    tail = clamp((sc - max) / tailLen, 0, 1);
-    visible = r.bottom > 0 && r.top < innerHeight;
+    // measured from the hero, not the stage, so tail = 1 is "hero in place" on every viewport
+    tail = clamp(1 - (heroAt - sc) / tailLen, 0, 1);
+    visible = r.top < innerHeight && tail < TAIL_DONE;
     stageTop = r.top > 0 ? r.top : Math.min(0, r.bottom - H);
-    // the nav sits at the top of the viewport: dark while the stage is under it and the veil has not risen
-    setTone(r.top < 48 && r.bottom > 48 && tail < 0.55);
+    // handover: the stage dissolves over the hero rising beneath it, then stops taking clicks
+    stage.style.opacity = (1 - sm(0.2, TAIL_DONE, tail)).toFixed(3);
+    stage.style.pointerEvents = visible ? "" : "none";
+    // the nav sits at the top of the viewport: dark while the stage is under it and the light has not risen
+    setTone(r.top < 48 && tail < 0.3);
+    if (tail >= TAIL_DONE && !ended) { ended = true; opts.onEnd?.(); }
     if (visible) wake();
   }
+  // document position at which the homepage hero sits at the top of the viewport
+  const endTop = () => root.getBoundingClientRect().top + scrollY + heroAt;
   function goTo(i: number) {
     const top = root.getBoundingClientRect().top + scrollY;
     scrollTo({ top: top + toRaw(mids[i]) * max, behavior: reduced ? "auto" : "smooth" });
   }
   // Straight to the homepage content. Instant, and the loop stops first, so the scenes in between never load.
   function skip() {
-    scrollTo({ top: root.getBoundingClientRect().bottom + scrollY, behavior: "instant" });
+    scrollTo({ top: endTop(), behavior: "instant" });
+    onScroll();
+    prog = target;
+  }
+  function restart() {
+    scrollTo({ top: root.getBoundingClientRect().top + scrollY, behavior: "instant" });
+    ended = false;
     onScroll();
     prog = target;
   }
@@ -242,7 +266,7 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
       const fi = a === 0 ? 1 : sm(a, a + 0.02, p);
       const fo = b > 1 ? 1 : 1 - sm(b - 0.02, b, p);
       // the finale stays until the tail, then leaves as the veil rises
-      const o = fi * fo * (i === lastI ? 1 - sm(0, 0.35, tail) : 1);
+      const o = fi * fo * (i === lastI ? 1 - sm(0, 0.3, tail) : 1);
       c.style.opacity = o.toFixed(3);
       c.style.visibility = o > 0.01 ? "visible" : "hidden";
       c.style.transform = reduced ? "none" : `translateY(${((1 - fi) * 40 - (1 - fo) * 40).toFixed(1)}px)`;
@@ -544,12 +568,11 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
     drawDust(p, time, reduced ? 0 : dt, bookScreen, open * oSky, oSky > 0 ? zd : 1);
     updateChapters(p);
 
-    /* tail — the cream veil rises over the finale and hands over to the homepage */
-    op(veil, sm(0.2, 0.95, tail));
-    const chrome = 1 - sm(0, 0.3, tail);
+    /* tail — a cream light rises over the finale while the whole stage dissolves (onScroll) onto the hero beneath */
+    op(veil, sm(0, 0.5, tail));
+    const chrome = 1 - sm(0, 0.2, tail);
     vis(rail, chrome);
     vis(skipBtn, chrome);
-    if (tail >= 0.999 && !ended) { ended = true; opts.onEnd?.(); }
 
     if (!started) {
       started = true;
@@ -593,6 +616,7 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
   return {
     goTo,
     skip,
+    restart,
     destroy() {
       dead = true;
       cancelAnimationFrame(raf);
@@ -602,6 +626,8 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
       VIDS.forEach((v) => { if (v.loaded) { v.el.removeAttribute("src"); v.el.load(); } });
       created.forEach((el) => el.remove());
       delete loader.dataset.done;
+      stage.style.opacity = "";
+      stage.style.pointerEvents = "";
     },
   };
 }

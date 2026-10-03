@@ -27,3 +27,16 @@ export function clearJourneySeen() {
     /* ignore */
   }
 }
+
+/** Fired on window when the visitor asks to start the journey again (the
+ * nav logo, or the "replay" link under the hero). HomePage mounts the
+ * journey if it is not mounted; a mounted journey rewinds to its first scene. */
+export const JOURNEY_RESTART_EVENT = "raqim:journey-restart";
+
+/** Forget that the journey was seen and ask for it to start from the top.
+ * Safe to call from any page: off the homepage nothing is listening, and
+ * the cleared flag makes the journey mount on the next visit to it. */
+export function requestJourneyRestart() {
+  clearJourneySeen();
+  window.dispatchEvent(new Event(JOURNEY_RESTART_EVENT));
+}

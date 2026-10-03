@@ -13,17 +13,22 @@
   --j-gold-soft: #d9bd84;
   --j-glow: 212, 175, 95;                /* gold light: button, active rail dot, glows (rgb) */
   --j-line: rgba(185, 148, 81, 0.3);
-  /* 1350vh track + 80vh handover tail — keep in sync with TRACK_VH / TAIL_VH in engine.ts */
-  height: 1430vh;
+  /* 1350vh track + 45vh handover tail — keep in sync with TRACK_VH / TAIL_VH in engine.ts.
+     The section overlaps the homepage hero by one screen (negative margin): the hero rises into
+     place underneath the stage and the stage dissolves over the tail, so the section itself is
+     transparent and lets clicks through. */
+  height: 1395vh;
+  margin-bottom: -100vh;
   position: relative;
+  z-index: 2;
   isolation: isolate;
-  background: var(--j-bg);
+  pointer-events: none;
   color: var(--j-text);
   font-family: var(--font-body);
 }
 .journey *, .journey *::before, .journey *::after { box-sizing: border-box; }
 
-.j-stage { position: sticky; top: 0; height: 100vh; height: 100dvh; overflow: hidden; background: var(--j-bg); }
+.j-stage { position: sticky; top: 0; height: 100vh; height: 100dvh; overflow: hidden; background: var(--j-bg); pointer-events: auto; }
 
 /* atmosphere */
 .j-vignette { position: absolute; inset: 0; pointer-events: none; z-index: 2;

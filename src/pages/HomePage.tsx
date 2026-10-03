@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/page-shell";
 import { GoldDivider, CornerFlourish, ArchFrame, QuoteMark, IconBook, IconHeart, IconOpenHands } from "../components/ornaments";
@@ -19,7 +19,7 @@ import { localizeProperName } from "../lib/properNames";
 import { BRAND_ASSETS } from "../config/brandAssets";
 import { cardSurface } from "../components/ui/Card";
 import { scrollToTop } from "../lib/scrollToTop";
-import { clearJourneySeen, hasSeenJourney } from "../components/journey/useJourneySeen";
+import { JOURNEY_RESTART_EVENT, hasSeenJourney, requestJourneyRestart } from "../components/journey/useJourneySeen";
 
 // Lazy-loaded: pulls in react-pageflip + motion, kept out of the main
 // public bundle every visitor downloads (HomePage is the highest-traffic
@@ -45,19 +45,32 @@ export default function HomePage() {
   const { language } = useLanguage();
 
   // The journey plays once per device: after it has been finished or
-  // skipped, the homepage opens straight on the hero (with a replay link).
+  // skipped, the homepage opens straight on the hero. The nav logo and the
+  // replay link under the hero buttons both start it again.
   // Read synchronously on first render so the page never jumps.
   const [showJourney, setShowJourney] = useState(() => !hasSeenJourney());
   const [journeyDark, setJourneyDark] = useState(showJourney);
   const focusContent = useCallback(() => {
     document.getElementById("home-content")?.focus({ preventScroll: true });
   }, []);
-  const replayJourney = useCallback(() => {
-    clearJourneySeen();
-    setShowJourney(true);
-    setJourneyDark(true);
-    scrollToTop();
+  // Restart requests (requestJourneyRestart — nav logo, replay link): mount
+  // the journey if it is not mounted, and start from the very top. A journey
+  // that is already mounted rewinds itself on the same event.
+  const [restarts, setRestarts] = useState(0);
+  useEffect(() => {
+    const onRestart = () => {
+      setShowJourney(true);
+      setJourneyDark(true);
+      setRestarts((n) => n + 1);
+      scrollToTop();
+    };
+    window.addEventListener(JOURNEY_RESTART_EVENT, onRestart);
+    return () => window.removeEventListener(JOURNEY_RESTART_EVENT, onRestart);
   }, []);
+  // again once the journey is in the page, in case mounting it moved the scroll
+  useEffect(() => {
+    if (restarts > 0) scrollToTop();
+  }, [restarts]);
 
   const activeBooks = useMemo(() => books.filter((b) => b.deletedAt === null), [books]);
   const heroBook = useMemo(
@@ -88,7 +101,14 @@ export default function HomePage() {
       <Helmet title={settings.seo.title} description={settings.seo.description} path="/" />
       <StructuredData json={homeJsonLd} />
       {showJourney && (
-        <Suspense fallback={<div className="h-[1430vh] bg-ink" />}>
+        <Suspense
+          fallback={
+            // same box as .journey (journey.css): 1395vh, overlapping the hero by one screen
+            <div className="pointer-events-none relative z-[2] -mb-[100vh] h-[1395vh]">
+              <div className="sticky top-0 h-dvh bg-ink" />
+            </div>
+          }
+        >
           <Journey
             featuredBook={heroBook ? { id: heroBook.id, title: heroBook.title } : null}
             onTone={setJourneyDark}
@@ -99,7 +119,7 @@ export default function HomePage() {
       {/* Where "Skip intro" lands. While the journey is mounted the nav is a
           fixed overlay, so this also reserves the nav's height above the hero. */}
       <div id="home-content" tabIndex={-1} className={`outline-none ${showJourney ? "h-20" : ""}`} />
-      <HeroSection book={heroBook} onReplay={showJourney ? undefined : replayJourney} />
+      <HeroSection book={heroBook} onReplay={requestJourneyRestart} />
       <PhilosophySection />
       {featuredBook && <FeaturedBookSection book={featuredBook} />}
       <BooksGridSection books={libraryBooks} />
@@ -109,7 +129,7 @@ export default function HomePage() {
   );
 }
 
-function HeroSection({ book, onReplay }: { book: AdminBook | null; onReplay?: () => void }) {
+function HeroSection({ book, onReplay }: { book: AdminBook | null; onReplay: () => void }) {
   const { t } = useLanguage();
   return (
     <section className="isolate relative overflow-hidden px-6 pb-14 pt-14 lg:px-10 lg:pb-20 lg:pt-20">
@@ -216,8 +236,7 @@ function HeroSection({ book, onReplay }: { book: AdminBook | null; onReplay?: ()
               <UnderlineLink to="/about">{t("home.hero.aboutLink")}</UnderlineLink>
             </div>
           </Reveal>
-          {onReplay && (
-            <Reveal delay={0.32}>
+          <Reveal delay={0.32}>
               <button
                 type="button"
                 onClick={onReplay}
@@ -225,8 +244,7 @@ function HeroSection({ book, onReplay }: { book: AdminBook | null; onReplay?: ()
               >
                 {t("journey.replay")}
               </button>
-            </Reveal>
-          )}
+          </Reveal>
         </div>
       </div>
     </section>

@@ -9,6 +9,7 @@ import { FONT_STACKS } from "../admin/context/ThemeContext";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useLanguage } from "../context/LanguageContext";
 import { scrollToTop } from "../lib/scrollToTop";
+import { requestJourneyRestart } from "./journey/useJourneySeen";
 
 function IconMenu({ size = 22 }: { size?: number }) {
   return (
@@ -136,7 +137,16 @@ export function SiteNav({
       >
         <Link
           to={localizePath("/")}
-          className="flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+          onClick={(e) => {
+            // The logo always restarts the homepage journey from its first
+            // scene: forget the "seen" flag, then let the link go home. Already
+            // on the homepage the link itself is a no-op, and the restart event
+            // (HomePage / Journey listen for it) does the work.
+            requestJourneyRestart();
+            // a mouse click must not leave the focus ring behind (detail is 0 for keyboard activation)
+            if (e.detail > 0) e.currentTarget.blur();
+          }}
+          className="flex items-center gap-1 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
         >
           <LogoMark useConfiguredSize className="transition-transform duration-300 hover:scale-105" />
           <span
