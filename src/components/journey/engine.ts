@@ -106,7 +106,7 @@ const MOBILE_MAX_W = 900;
 // zoom z0→z1 toward the focal point (fx, fy as % of the image), optional slow rotation (deg).
 // A still shared by two scenes (12, 13) gets one continuous move across both.
 const STILL_CAM: Record<string, { a: number; b: number; z0: number; z1: number; fx: number; fy: number; rot?: number }> = {
-  "09": { a: 0.335, b: 0.46, z0: 1.05, z1: 1.2, fx: 52, fy: 48, rot: 7 },  // tunnel core, slowly spinning (09B is the smallest still: a gentler zoom)
+  "09": { a: 0.335, b: 0.46, z0: 1.03, z1: 1.34, fx: 52, fy: 48, rot: 7 }, // tunnel core, slowly spinning
   "10": { a: 0.448, b: 0.61, z0: 1, z1: 1.22, fx: 48, fy: 53 },            // the library on the lake
   "11": { a: 0.598, b: 0.69, z0: 1, z1: 1.3, fx: 50, fy: 47 },             // the door
   "12": { a: 0.64, b: 0.835, z0: 1, z1: 1.16, fx: 50, fy: 62 },            // the hall, toward the table
