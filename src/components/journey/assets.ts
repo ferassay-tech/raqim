@@ -51,6 +51,9 @@ export const A: Record<string, string> = {
   spine4: "/journey/ui/spine4.webp",
   spine5: "/journey/ui/spine5.webp",
   spine6: "/journey/ui/spine6.webp",
+  // quill cursor, 64×96 and its 2× version (nib tip at the bottom-left)
+  feather: "/journey/ui/feather-cursor.webp",
+  feather2x: "/journey/ui/feather-cursor@2x.webp",
   v1: `${VID}/web/v1.mp4`,
   v2: `${VID}/web/v2.mp4`,
   v3: `${VID}/web/v3.mp4`,

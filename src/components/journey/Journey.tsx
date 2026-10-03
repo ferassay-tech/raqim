@@ -277,7 +277,6 @@ export default function Journey({
           <small>{t("journey.loading")}</small>
         </div>
 
-        <div className="j-cursor" data-j="cursor" />
       </div>
     </section>
   );

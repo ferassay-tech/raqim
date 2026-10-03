@@ -1,4 +1,5 @@
 import { A } from "./assets";
+import { createFeather } from "./feather";
 
 /**
  * Scroll-journey engine: an imperative port of the prototype's main.js.
@@ -151,7 +152,6 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
   const rail = $("rail");
   const railFill = $("railFill");
   const skipBtn = $("skip");
-  const cur = $("cursor");
   const veil = $("veil");
   const pageGrain = $("grain");
   const vGrain = $("vGrain");
@@ -278,15 +278,13 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
   }
 
   /* ---------- pointer ---------- */
-  let mx = 0, my = 0, cx = 0, cy = 0, px = 0, py = 0, smx = 0, smy = 0;
+  let mx = 0, my = 0, smx = 0, smy = 0;
   on(window, "pointermove", ((e: PointerEvent) => {
-    if (!cur.dataset.on) { cur.dataset.on = "1"; px = e.clientX; py = e.clientY - stageTop; }
-    cx = e.clientX;
-    cy = e.clientY - stageTop;
     mx = (e.clientX / (W || 1)) * 2 - 1;
-    my = (cy / (H || 1)) * 2 - 1;
+    my = ((e.clientY - stageTop) / (H || 1)) * 2 - 1;
   }) as EventListener, { passive: true });
-  on(root, "pointerover", (e) => { cur.dataset.big = (e.target as Element).closest("a,button") ? "1" : "0"; });
+  // the quill cursor and its gold-dust trail: mouse and pen only, never on touch screens
+  const feather = coarse ? null : createFeather(reduced);
 
   /* ---------- scroll-driven videos ---------- */
   const VIDS = VID_DEFS.map((v) => ({
@@ -469,7 +467,6 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
     const k = 1 - Math.pow(1 - 0.06, dt * 60);
     smx += (mx - smx) * k;
     smy += (my - smy) * k;
-    if (!coarse) { px += (cx - px) * 0.22; py += (cy - py) * 0.22; cur.style.transform = `translate(${px}px,${py}px)`; }
     const par = reduced ? 0 : 1, ax = smx * par, ay = smy * par, sway = reduced ? 0 : 1;
     const kv = 1 - Math.pow(1 - 0.25, dt * 60);
     VIDS.forEach((v) => scrub(v, p, kv));
@@ -589,6 +586,8 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
       if (w.requestIdleCallback) w.requestIdleCallback(boot, { timeout: 1500 });
       else timers.push(window.setTimeout(boot, 300));
     }
+    // the quill belongs to the journey only: gone (system cursor back) once the light rises onto the hero
+    feather?.frame(dt, visible && tail < 0.3);
     // off-screen: stop the loop; onScroll wakes it when the journey is back in view
     if (visible) raf = requestAnimationFrame(frame);
     else running = false;
@@ -623,6 +622,7 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
       clearTimeout(rT);
       timers.forEach(clearTimeout);
       offs.forEach((off) => off());
+      feather?.destroy();
       VIDS.forEach((v) => { if (v.loaded) { v.el.removeAttribute("src"); v.el.load(); } });
       created.forEach((el) => el.remove());
       delete loader.dataset.done;
