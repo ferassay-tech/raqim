@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/page-shell";
 import { GoldDivider, CornerFlourish, ArchFrame, QuoteMark, IconBook, IconHeart, IconOpenHands } from "../components/ornaments";
@@ -18,11 +18,18 @@ import { DEFAULT_OG_IMAGE } from "../lib/seo";
 import { localizeProperName } from "../lib/properNames";
 import { BRAND_ASSETS } from "../config/brandAssets";
 import { cardSurface } from "../components/ui/Card";
+import { scrollToTop } from "../lib/scrollToTop";
+import { clearJourneySeen, hasSeenJourney } from "../components/journey/useJourneySeen";
 
 // Lazy-loaded: pulls in react-pageflip + motion, kept out of the main
 // public bundle every visitor downloads (HomePage is the highest-traffic
 // route) — only fetched when this component actually renders.
 const PremiumBook3D = lazy(() => import("../components/PremiumBook3D"));
+
+// Lazy-loaded: the scroll journey that opens the homepage. Its engine and
+// stylesheet stay out of the main bundle every other route downloads; the
+// fallback below reserves the journey's exact height so nothing shifts.
+const Journey = lazy(() => import("../components/journey/Journey"));
 
 // Every Hero* atmosphere component (HeroLight, HeroClouds, HeroParticles,
 // HeroBirds, HeroForeground) and the shared ambient mask are temporarily
@@ -36,6 +43,21 @@ export default function HomePage() {
   const { books } = useBooks();
   const { settings } = useSettings();
   const { language } = useLanguage();
+
+  // The journey plays once per device: after it has been finished or
+  // skipped, the homepage opens straight on the hero (with a replay link).
+  // Read synchronously on first render so the page never jumps.
+  const [showJourney, setShowJourney] = useState(() => !hasSeenJourney());
+  const [journeyDark, setJourneyDark] = useState(showJourney);
+  const focusContent = useCallback(() => {
+    document.getElementById("home-content")?.focus({ preventScroll: true });
+  }, []);
+  const replayJourney = useCallback(() => {
+    clearJourneySeen();
+    setShowJourney(true);
+    setJourneyDark(true);
+    scrollToTop();
+  }, []);
 
   const activeBooks = useMemo(() => books.filter((b) => b.deletedAt === null), [books]);
   const heroBook = useMemo(
@@ -62,10 +84,22 @@ export default function HomePage() {
   ]);
 
   return (
-    <PageShell>
+    <PageShell navOverlay={showJourney} navTone={showJourney && journeyDark ? "dark" : "light"}>
       <Helmet title={settings.seo.title} description={settings.seo.description} path="/" />
       <StructuredData json={homeJsonLd} />
-      <HeroSection book={heroBook} />
+      {showJourney && (
+        <Suspense fallback={<div className="h-[1430vh] bg-ink" />}>
+          <Journey
+            featuredBook={heroBook ? { id: heroBook.id, title: heroBook.title } : null}
+            onTone={setJourneyDark}
+            onSkip={focusContent}
+          />
+        </Suspense>
+      )}
+      {/* Where "Skip intro" lands. While the journey is mounted the nav is a
+          fixed overlay, so this also reserves the nav's height above the hero. */}
+      <div id="home-content" tabIndex={-1} className={`outline-none ${showJourney ? "h-20" : ""}`} />
+      <HeroSection book={heroBook} onReplay={showJourney ? undefined : replayJourney} />
       <PhilosophySection />
       {featuredBook && <FeaturedBookSection book={featuredBook} />}
       <BooksGridSection books={libraryBooks} />
@@ -75,7 +109,7 @@ export default function HomePage() {
   );
 }
 
-function HeroSection({ book }: { book: AdminBook | null }) {
+function HeroSection({ book, onReplay }: { book: AdminBook | null; onReplay?: () => void }) {
   const { t } = useLanguage();
   return (
     <section className="isolate relative overflow-hidden px-6 pb-14 pt-14 lg:px-10 lg:pb-20 lg:pt-20">
@@ -182,6 +216,17 @@ function HeroSection({ book }: { book: AdminBook | null }) {
               <UnderlineLink to="/about">{t("home.hero.aboutLink")}</UnderlineLink>
             </div>
           </Reveal>
+          {onReplay && (
+            <Reveal delay={0.32}>
+              <button
+                type="button"
+                onClick={onReplay}
+                className="mt-6 text-sm text-ink-faint underline decoration-gold/40 decoration-1 underline-offset-4 transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+              >
+                {t("journey.replay")}
+              </button>
+            </Reveal>
+          )}
         </div>
       </div>
     </section>
