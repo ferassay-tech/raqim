@@ -98,6 +98,26 @@ const FLY_DEF = [
   { k: "fly4", side: 1, h: 0.26, ar: 582 / 725, o: 0.02, sp: 0.85, dir: 1, near: false },
 ];
 
+// Phones (narrow or portrait screens) never play the full-screen clips V4–V8: a 16:9 clip
+// cropped to a portrait screen is upscaled 4–5× and looks soft and blocky. They get the sharp
+// stills instead, each with its own slow scroll-driven camera move, and soft crossfades.
+const MOBILE_MAX_W = 900;
+// Camera per still (by its key), over the range of p in which that still is on screen:
+// zoom z0→z1 toward the focal point (fx, fy as % of the image), optional slow rotation (deg).
+// A still shared by two scenes (12, 13) gets one continuous move across both.
+const STILL_CAM: Record<string, { a: number; b: number; z0: number; z1: number; fx: number; fy: number; rot?: number }> = {
+  "09": { a: 0.335, b: 0.46, z0: 1.05, z1: 1.2, fx: 52, fy: 48, rot: 7 },  // tunnel core, slowly spinning (09B is the smallest still: a gentler zoom)
+  "10": { a: 0.448, b: 0.61, z0: 1, z1: 1.22, fx: 48, fy: 53 },            // the library on the lake
+  "11": { a: 0.598, b: 0.69, z0: 1, z1: 1.3, fx: 50, fy: 47 },             // the door
+  "12": { a: 0.64, b: 0.835, z0: 1, z1: 1.16, fx: 50, fy: 62 },            // the hall, toward the table
+  "13": { a: 0.78, b: 0.962, z0: 1, z1: 1.16, fx: 50, fy: 62 },            // the books in flight, the table
+  "15": { a: 0.915, b: 1, z0: 1, z1: 1.12, fx: 54, fy: 72 },               // the open book
+};
+// V3 (the dive) is 640px square. On a phone the dive would blow it up ~4× before the flash;
+// there it stops growing at this multiple of its real pixels, and the flash arrives a little sooner.
+const V3_PX = 640;
+const V3_MAX_UPSCALE = 2.6;
+
 interface VidDef {
   id: string;
   /** a→b: the scroll range over which the clip goes from its first to its last frame */
@@ -109,8 +129,9 @@ interface VidDef {
   end?: string;
   e0?: number;
   e1?: number;
-  /** on portrait screens never show the video, only the stills */
-  mobileStill?: boolean;
+  /** phones: the end still fades in over this range instead (no clip in between, so a longer, softer dissolve) */
+  m0?: number;
+  m1?: number;
   /** [scale, x%, y%] at the clip's first frame, then at its last — tiny corrections measured against the
    * sharp stills so each handover lands pixel-aligned; the clip eases from the first fit to the second as it plays. */
   fit?: number[];
@@ -123,9 +144,9 @@ const VID_DEFS: VidDef[] = [
   { id: "v3", a: 0.2, b: 0.335 },
   { id: "v4", a: 0.352, b: 0.447, full: true },
   { id: "v5", a: 0.53, b: 0.6, full: true, fit: [1.035, 0, -0.25, 1.035, 0, -0.25] },
-  { id: "v6", a: 0.62, b: 0.682, full: true, end: "e12", e0: 0.682, e1: 0.69, fit: [1, 0, 0, 1.015, 0, 0.42] },
-  { id: "v7", a: 0.76, b: 0.835, full: true, end: "e13", e0: 0.818, e1: 0.835, fit: [1.01, 0, -0.11, 1.01, 0, -0.11] },
-  { id: "v8", a: 0.9, b: 0.955, full: true, end: "fin15", e0: 0.955, e1: 0.965, fit: [1.005, 0.06, -0.32, 1, 0, 0] },
+  { id: "v6", a: 0.62, b: 0.682, full: true, end: "e12", e0: 0.682, e1: 0.69, m0: 0.642, m1: 0.69, fit: [1, 0, 0, 1.015, 0, 0.42] },
+  { id: "v7", a: 0.76, b: 0.835, full: true, end: "e13", e0: 0.818, e1: 0.835, m0: 0.782, m1: 0.835, fit: [1.01, 0, -0.11, 1.01, 0, -0.11] },
+  { id: "v8", a: 0.9, b: 0.955, full: true, end: "fin15", e0: 0.955, e1: 0.965, m0: 0.918, m1: 0.962, fit: [1.005, 0.06, -0.32, 1, 0, 0] },
 ];
 
 export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): JourneyHandle {
@@ -300,18 +321,19 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
   const VID: Record<string, Vid> = {};
   VIDS.forEach((v) => { VID[v.id] = v; });
   let por: boolean | null = null;
+  // phone mode: stills with a camera move instead of the full-screen clips (see MOBILE_MAX_W)
+  let mob: boolean | null = null;
 
   function loadVid(v: Vid) {
-    if (v.loaded || v.skip || (por && v.mobileStill)) return;
+    if (v.loaded || v.skip || (mob && v.full)) return;
     v.loaded = true;
     const e = v.el;
     e.muted = true;
     e.playsInline = true;
     on(e, "loadeddata", () => { v.ready = true; }, { once: true });
     on(e, "error", () => { v.skip = true; }, { once: true });
-    // screens ≥ 900px wide get the upscaled clip; phones keep the light original ("-lo") when there is one
     e.preload = "auto";
-    e.src = (innerWidth < 900 && A[v.id + "-lo"]) || A[v.id];
+    e.src = A[v.id];
     e.load();
   }
   function scrub(v: Vid, p: number, k: number) {
@@ -349,6 +371,16 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
       peak.src = A["peak-" + v];
       stills.forEach((s) => { if (s.on) s.el.src = fullSrc(s.el); });
     }
+    const m2 = W < MOBILE_MAX_W || por;
+    if (m2 !== mob) {
+      mob = m2;
+      // each still zooms toward its own focal point on phones; on desktop the stills carry no transform of their own
+      stills.forEach((s) => {
+        const c = STILL_CAM[s.el.dataset.k!];
+        s.el.style.transformOrigin = mob && c ? `${c.fx}% ${c.fy}%` : "";
+        s.el.style.transform = "";
+      });
+    }
     measure();
     s0 = Math.min(W, H * 1.15);
     box(cam, W, H, 0, 0);
@@ -358,6 +390,9 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
     L.book = { x: W / 2, y: bT + bw * 0.5, w: bw, l: bL, t: bT };
     // dive: the book plane must grow until V3 (same box as the book) covers the screen
     L.zEnd = (Math.max(W, H) * 1.3) / (bw * 1.25);
+    // phones: V3 never grows past V3_MAX_UPSCALE of its real pixels (the flash takes over from there)
+    // (1.25 = the camera's own push-in on the whole scene, see frame())
+    if (mob) L.zEnd = Math.max(1.6, Math.min(L.zEnd, (V3_MAX_UPSCALE * V3_PX) / (bw * 1.25 * (devicePixelRatio || 1))));
     L.kSky = Math.log(1.15) / Math.log(L.zEnd);
     boxP(bgSky, W * 1.12, H * 1.12, -W * 0.06, -H * 0.06);
     boxP(peak, K.w * sc, K.h * sc, W / 2 - K.cx * sc, plY - K.top * sc);
@@ -394,7 +429,7 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
       box(el, w, h, (W - w) / 2, (H - h) / 2);
     });
     // V8 ends ~11% closer than still 15 (desktop framing): show 15 at that scale so the handover lines up
-    fin15.style.transform = por ? "none" : "translate(0,1.6%) scale(1.105)";
+    if (!mob) fin15.style.transform = "translate(0,1.6%) scale(1.105)";
 
     const dpr = Math.min(devicePixelRatio || 1, 1.5);
     dust.width = W * dpr;
@@ -481,7 +516,8 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
     op(vGrain, (1 - oSky) * GRAIN);
     op(pageGrain, oSky * 0.07);
     vis(scenes.sky, oSky); vis(scenes.tun, oTun); vis(scenes.lake, oLake); vis(scenes.entry, oEntry); vis(scenes.hall, oHall); vis(scenes.fin, oFin);
-    const fl = Math.max(band(0.315, 0.338, 0.348, 0.375, p), band(0.44, 0.451, 0.456, 0.475, p) * 0.85, band(0.59, 0.601, 0.605, 0.62, p) * 0.3);
+    // phones: the dive ends on its flash a little sooner, before V3 gets large
+    const fl = Math.max(band(mob ? 0.295 : 0.315, mob ? 0.33 : 0.338, 0.348, 0.375, p), band(0.44, 0.451, 0.456, 0.475, p) * 0.85, band(0.59, 0.601, 0.605, 0.62, p) * 0.3);
     op(flash, fl * (reduced ? 0.4 : 1));
 
     /* 1 — sky, summit, book, dive */
@@ -533,7 +569,9 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
     /* 2–6 — full-screen scenes: sharp still at rest, video only while the scene moves.
        The still and the video share one container, so they get the same slow zoom and mouse parallax. */
     const pan = (sc: HTMLElement, a: number, b: number, z0: number, z1: number) => {
-      (sc.firstElementChild as HTMLElement).style.transform = `translate3d(${(-ax * 14).toFixed(1)}px,${(-ay * 10).toFixed(1)}px,0) scale(${lerp(z0, z1, clamp((p - a) / (b - a), 0, 1)).toFixed(4)})`;
+      // phones: the zoom belongs to each still's own camera (below), the container only carries the parallax
+      const z = mob ? 1 : lerp(z0, z1, clamp((p - a) / (b - a), 0, 1));
+      (sc.firstElementChild as HTMLElement).style.transform = `translate3d(${(-ax * 14).toFixed(1)}px,${(-ay * 10).toFixed(1)}px,0) scale(${z.toFixed(4)})`;
     };
     if (oTun > 0) pan(scenes.tun, 0.338, 0.458, 1.05, 1.1);
     if (oLake > 0) pan(scenes.lake, 0.448, 0.608, 1.05, 1.08);
@@ -543,13 +581,22 @@ export function createJourney(root: HTMLElement, opts: JourneyOptions = {}): Jou
     const fd = por ? 0.02 : 0.012; // portrait stills (B) are framed differently from the 16:9 clips: a slightly longer dissolve
     VIDS.forEach((v) => {
       if (!v.full) return;
-      op(v.el, v.ready && !(por && v.mobileStill) ? sm(v.a, v.a + fd, p) : 0);
+      op(v.el, v.ready && !mob ? sm(v.a, v.a + fd, p) : 0);
       if (v.fit) {
         const u = clamp((p - v.a) / (v.b - v.a), 0, 1), f = v.fit;
         v.el.style.transform = `translate(${lerp(f[1], f[4], u).toFixed(3)}%,${lerp(f[2], f[5], u).toFixed(3)}%) scale(${lerp(f[0], f[3], u).toFixed(4)})`;
       }
-      if (v.endEl) op(v.endEl, sm(Math.min(v.e0!, v.e1! - fd), v.e1!, p));
+      if (v.endEl) op(v.endEl, mob ? sm(v.m0!, v.m1!, p) : sm(Math.min(v.e0!, v.e1! - fd), v.e1!, p));
     });
+    /* phones — a slow scroll-driven camera on every still: push in toward its focal point (the tunnel also turns) */
+    if (mob) {
+      stills.forEach((s) => {
+        const c = STILL_CAM[s.el.dataset.k!];
+        if (!c || !s.on || p < c.a - 0.02 || p > c.b + 0.02) return;
+        const u = reduced ? 0 : clamp((p - c.a) / (c.b - c.a), 0, 1);
+        s.el.style.transform = `scale(${lerp(c.z0, c.z1, u).toFixed(4)})${c.rot ? ` rotate(${(c.rot * u).toFixed(2)}deg)` : ""}`;
+      });
+    }
     /* flying books: close to the camera along the left/right edges, the centre stays clear */
     const fv = band(0.765, 0.79, 0.88, 0.9, p);
     if (fv > 0) {

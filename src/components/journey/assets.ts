@@ -1,7 +1,7 @@
 // Paths of every journey image and video, served statically from
 // public/journey/. To swap a file, change its path here.
-// v4–v8: the upscaled clips (1728×992) for screens ≥ 900px wide; "-lo" is the
-// original size (864×496) for phones.
+// v4–v8 are the upscaled clips (1728×992), used on screens ≥ 900px wide only:
+// phones show the sharp stills instead (see MOBILE in engine.ts).
 const IMG = "/journey/img";
 const VID = "/journey/video";
 
@@ -62,9 +62,4 @@ export const A: Record<string, string> = {
   v6: `${VID}/web/v6.mp4`,
   v7: `${VID}/web/v7.mp4`,
   v8: `${VID}/web/v8.mp4`,
-  "v4-lo": `${VID}/web_lowres/v4.mp4`,
-  "v5-lo": `${VID}/web_lowres/v5.mp4`,
-  "v6-lo": `${VID}/web_lowres/v6.mp4`,
-  "v7-lo": `${VID}/web_lowres/v7.mp4`,
-  "v8-lo": `${VID}/web_lowres/v8.mp4`,
 };
